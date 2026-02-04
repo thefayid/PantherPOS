@@ -27,6 +27,34 @@ if (process.env.ELECTRON_RUN_AS_NODE) {
 
 const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const { startServer } = require('./server');
+const { autoUpdater } = require('electron-updater');
+
+// --- AUTO UPDATE CONFIG ---
+autoUpdater.logger = log;
+autoUpdater.autoDownload = true;
+
+const sendUpdateStatus = (text: string) => {
+  log(`[Updater] ${text}`);
+  if (mainWindow) mainWindow.webContents.send('update-message', text);
+};
+
+autoUpdater.on('checking-for-update', () => sendUpdateStatus('Checking for updates...'));
+autoUpdater.on('update-available', () => sendUpdateStatus('Update available. Downloading...'));
+autoUpdater.on('update-not-available', () => sendUpdateStatus('Up to date.'));
+autoUpdater.on('error', (err: any) => sendUpdateStatus(`Error in auto-updater: ${err}`));
+autoUpdater.on('download-progress', (progressObj: any) => {
+  let log_message = 'Download speed: ' + progressObj.bytesPerSecond;
+  log_message = log_message + ' - Downloaded ' + progressObj.percent + '%';
+  log_message = log_message + ' (' + progressObj.transferred + '/' + progressObj.total + ')';
+  sendUpdateStatus(log_message);
+});
+autoUpdater.on('update-downloaded', () => {
+  sendUpdateStatus('Update downloaded. Restarting now...');
+  // Force restart immediately for simple UX
+  setTimeout(() => {
+    autoUpdater.quitAndInstall();
+  }, 3000);
+});
 
 try {
   fs.writeFileSync(logFile, "--- BOOT SEQUENCE STARTS ---\n");
@@ -67,6 +95,10 @@ const createWindow = () => {
     if (process.env.VITE_DEV_SERVER_URL) {
       mainWindow?.webContents.openDevTools();
     }
+    // Check for updates once window is ready
+    if (!process.env.VITE_DEV_SERVER_URL) {
+      autoUpdater.checkForUpdatesAndNotify();
+    }
   });
 
   // and load the index.html of the app.
@@ -86,9 +118,8 @@ const createWindow = () => {
         // Fallback to loadURL
         if (mainWindow) mainWindow.loadURL(`file://${indexPath}`);
       });
-
-      // FORCE OPEN DEVTOOLS FOR DEBUGGING
-      mainWindow.webContents.openDevTools();
+      // PRODUCTION DEVTOOLS OPTIONAL
+      // mainWindow.webContents.openDevTools();
     }
   }
 
@@ -136,6 +167,11 @@ app.on('activate', () => {
 });
 
 // IPC handlers
+ipcMain.handle('app-check-updates', () => {
+  autoUpdater.checkForUpdatesAndNotify();
+  return { success: true };
+});
+
 ipcMain.handle('db-query', async (event: any, sql: any, params: any) => {
   try {
     if (!dbModule) throw new Error('DB Module not loaded');

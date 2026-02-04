@@ -22,6 +22,7 @@
     "@types/qrcode.react": "^1.0.5",
     "axios": "^1.13.4",
     "clsx": "^2.1.0",
+    "electron-updater": "^6.7.3",
     "fastify": "^4.29.1",
     "fuse.js": "^7.1.0",
     "jsbarcode": "^3.12.3",
@@ -81,7 +82,13 @@
     ],
     "win": {
       "target": "nsis",
-      "publish": null
+      "publish": [
+        {
+          "provider": "github",
+          "owner": "fayi-fayi",
+          "repo": "PantherPOS"
+        }
+      ]
     },
     "nsis": {
       "oneClick": true,
