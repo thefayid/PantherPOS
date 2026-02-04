@@ -17,37 +17,56 @@ module.exports = {
         },
         extend: {
             colors: {
-                background: '#0a0a0a', // Deep Black/Charcoal
-                surface: '#1a1a1a',    // Elevated Dark
-                theme: {
-                    bg: '#0a0a0a',
-                    'bg-secondary': '#1a1a1a',
-                    'bg-hover': '#27272a',
-                    border: '#27272a',
-                    text: '#ffffff',
-                    'text-secondary': '#a1a1aa',
-                    'text-muted': '#71717a',
+                background: 'hsl(var(--background))',
+                foreground: 'hsl(var(--foreground))',
+
+                card: {
+                    DEFAULT: 'hsl(var(--card))',
+                    foreground: 'hsl(var(--card-foreground))',
+                },
+                popover: {
+                    DEFAULT: 'hsl(var(--popover))',
+                    foreground: 'hsl(var(--popover-foreground))',
                 },
                 primary: {
-                    DEFAULT: '#10b981', // Emerald 500
-                    hover: '#059669',   // Emerald 600
+                    DEFAULT: 'hsl(var(--primary))',
+                    foreground: 'hsl(var(--primary-foreground))',
+                    hover: '#059669', // Keep hardcoded or map to var if needed
                     glow: 'rgba(16, 185, 129, 0.4)',
                 },
                 secondary: {
-                    DEFAULT: '#27272a', // Zinc 800
-                    hover: '#3f3f46',   // Zinc 700
+                    DEFAULT: 'hsl(var(--secondary))',
+                    foreground: 'hsl(var(--secondary-foreground))',
+                    hover: 'hsl(var(--secondary) / 0.8)',
                 },
                 muted: {
-                    DEFAULT: '#71717a', // Zinc 500
-                    foreground: '#a1a1aa', // Zinc 400
-                },
-                destructive: {
-                    DEFAULT: '#ef4444',
-                    foreground: '#ffffff',
+                    DEFAULT: 'hsl(var(--muted))',
+                    foreground: 'hsl(var(--muted-foreground))',
                 },
                 accent: {
-                    DEFAULT: '#10b981',
-                    foreground: '#ffffff',
+                    DEFAULT: 'hsl(var(--accent))',
+                    foreground: 'hsl(var(--accent-foreground))',
+                },
+                destructive: {
+                    DEFAULT: 'hsl(var(--destructive))',
+                    foreground: 'hsl(var(--destructive-foreground))',
+                },
+                border: 'hsl(var(--border))',
+                input: 'hsl(var(--input))',
+                ring: 'hsl(var(--ring))',
+
+                // Custom
+                surface: 'hsl(var(--surface))',
+
+                // Keeping 'theme' for backward compatibility but mapped to vars where possible
+                theme: {
+                    bg: 'hsl(var(--background))', // Was #0a0a0a
+                    'bg-secondary': 'hsl(var(--surface))', // Was #1a1a1a
+                    'bg-hover': 'hsl(var(--accent))', // Aproximation
+                    border: 'hsl(var(--border))',
+                    text: 'hsl(var(--foreground))',
+                    'text-secondary': 'hsl(var(--muted-foreground))',
+                    'text-muted': 'hsl(var(--muted-foreground))',
                 },
             },
             backgroundImage: {

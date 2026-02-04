@@ -1,16 +1,30 @@
 import { useState, useEffect, useRef } from 'react';
 import { productService } from '../services/productService';
 import type { Product } from '../types/db';
-import { Search, Printer, Trash2, Grid, Plus, Minus, Barcode } from 'lucide-react';
+import { Search, Printer, Trash2, Grid, Plus, Minus, Barcode, Settings2 } from 'lucide-react';
 import { BarcodeLabel } from '../components/BarcodeLabel';
 import { useReactToPrint } from 'react-to-print';
+import LabelDesigner, { type LabelConfig } from '../components/LabelDesigner';
 
 export default function Barcodes() {
     const [products, setProducts] = useState<Product[]>([]);
     const [search, setSearch] = useState('');
     const [queue, setQueue] = useState<{ product: Product, qty: number }[]>([]);
+    const [config, setConfig] = useState<LabelConfig>({
+        width: 200,
+        height: 120,
+        fontSize: 12,
+        showName: true,
+        showPrice: true,
+        columns: 4,
+        gap: 16,
+        barcodeType: '1D'
+    });
+    const [designerOpen, setDesignerOpen] = useState(false);
     const componentRef = useRef<HTMLDivElement>(null);
-    const handlePrint = useReactToPrint({ content: () => componentRef.current });
+    const handlePrint = useReactToPrint({
+        contentRef: componentRef,
+    });
 
     useEffect(() => { loadProducts(); }, []);
 
@@ -30,114 +44,171 @@ export default function Barcodes() {
     const filteredProducts = products.filter(p => p.name.toLowerCase().includes(search.toLowerCase()) || p.barcode.includes(search)).slice(0, 20);
 
     return (
-        <div className="p-6 bg-white min-h-screen text-black font-sans flex gap-6">
+        <div className="h-full flex gap-6 bg-background text-foreground p-6 overflow-hidden">
             {/* LEFT: Product Selector */}
-            <div className="flex-1 flex flex-col gap-4">
+            <div className="flex-1 flex flex-col gap-6">
                 {/* Header / Search */}
                 <div>
-                    <h1 className="text-2xl font-bold flex items-center gap-2">
-                        <Barcode size={24} className="text-blue-500" />
-                        Label Printer
-                    </h1>
-                    <input
-                        className="w-full p-3 border rounded mt-4"
-                        placeholder="Search products by name or barcode..."
-                        value={search}
-                        onChange={e => setSearch(e.target.value)}
-                        autoFocus
-                    />
+                    <h1 className="text-3xl font-bold tracking-tight mb-2">Label Printer</h1>
+                    <div className="flex items-center gap-4">
+                        <div className="relative flex-1 group">
+                            <input
+                                className="w-full bg-surface border border-border rounded-xl pl-12 pr-4 py-4 text-foreground focus:border-primary/50 focus:outline-none focus:ring-1 focus:ring-primary/50 transition-all shadow-lg placeholder:text-muted-foreground/50"
+                                placeholder="Search products..."
+                                value={search}
+                                onChange={e => setSearch(e.target.value)}
+                                autoFocus
+                            />
+                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors" size={20} />
+                        </div>
+                        <button
+                            onClick={() => setDesignerOpen(!designerOpen)}
+                            className={`p-4 rounded-xl border transition-all flex items-center gap-2 font-bold ${designerOpen ? 'bg-primary border-primary text-primary-foreground shadow-glow' : 'bg-surface border-border text-muted-foreground hover:text-foreground'
+                                }`}
+                        >
+                            <Settings2 size={20} />
+                            <span className="hidden lg:inline">Design Labels</span>
+                        </button>
+                    </div>
                 </div>
 
                 {/* Products Grid */}
-                <div className="flex-1 overflow-y-auto border rounded p-4">
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                <div className="flex-1 overflow-y-auto bg-surface rounded-xl border border-border shadow-inner p-4 custom-scrollbar bg-muted/5">
+                    <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                         {filteredProducts.map(p => (
                             <button
                                 key={p.id}
                                 onClick={() => addToQueue(p)}
-                                className="text-left p-4 border rounded hover:bg-gray-50 flex flex-col gap-2"
+                                className="text-left p-4 bg-background hover:bg-muted border border-border hover:border-primary/50 rounded-xl transition-all group flex flex-col gap-3 h-full justify-between shadow-sm"
                             >
-                                <div className="flex justify-between items-center w-full">
-                                    <span className="text-xs bg-gray-200 px-2 py-1 rounded text-gray-600">ID: {p.id}</span>
-                                    <span className="text-sm font-bold text-green-700 bg-green-100 px-2 py-1 rounded">₹{p.sell_price}</span>
+                                <div className="flex justify-between items-start w-full">
+                                    <span className="text-[10px] font-bold bg-muted px-2 py-1 rounded text-muted-foreground">ID: {p.id}</span>
+                                    <span className="text-sm font-bold text-emerald-500 bg-emerald-500/10 px-2 py-1 rounded border border-emerald-500/20">₹{p.sell_price}</span>
                                 </div>
-                                <div className="font-bold truncate">{p.name}</div>
-                                <div className="text-xs text-gray-500 font-mono flex items-center gap-1">
-                                    <Barcode size={12} /> {p.barcode}
+                                <div className="font-bold text-lg leading-tight line-clamp-2 group-hover:text-primary transition-colors">{p.name}</div>
+                                <div className="text-xs text-muted-foreground font-mono flex items-center gap-1.5 p-1.5 bg-muted/50 rounded border border-border opacity-70">
+                                    <Barcode size={14} /> {p.barcode}
                                 </div>
                             </button>
                         ))}
                     </div>
                     {filteredProducts.length === 0 && (
-                        <div className="p-8 text-center text-gray-500">
-                            <p>No products found matched your search.</p>
+                        <div className="h-full flex flex-col items-center justify-center text-muted-foreground opacity-50">
+                            <Search size={48} strokeWidth={1} className="mb-4" />
+                            <p className="text-lg font-medium">No products found matched your search.</p>
                         </div>
                     )}
                 </div>
             </div>
 
-            {/* RIGHT: Print Queue */}
-            <div className="w-1/3 border rounded p-4 flex flex-col gap-4 bg-gray-50 h-[calc(100vh-48px)]">
-                <div className="flex justify-between items-center border-b pb-4">
-                    <div>
-                        <h2 className="text-lg font-bold flex items-center gap-2">
-                            <Printer size={20} className="text-blue-500" /> Print Queue
-                        </h2>
-                        <p className="text-xs text-gray-500">Ready to print labels</p>
-                    </div>
-                    <span className="text-sm font-bold bg-blue-100 text-blue-700 px-3 py-1 rounded-full">
-                        {queue.reduce((a, b) => a + b.qty, 0)} Total
-                    </span>
-                </div>
-
-                <div className="flex-1 overflow-y-auto flex flex-col gap-2">
-                    {queue.length === 0 ? (
-                        <div className="flex-1 flex flex-col items-center justify-center text-gray-400">
-                            <Grid size={32} className="mb-4 opacity-20" />
-                            <p className="font-bold">Queue is empty</p>
-                            <p className="text-xs text-center">Select products to add to queue</p>
+            {/* RIGHT: Print Queue & Designer */}
+            <div className={`flex flex-col gap-4 transition-all duration-500 overflow-hidden ${designerOpen ? 'w-[750px]' : 'w-[400px]'}`}>
+                <div className="flex gap-4 h-full min-h-0">
+                    {/* Designer Panel */}
+                    {designerOpen && (
+                        <div className="flex-1 min-w-[320px] overflow-y-auto custom-scrollbar no-scrollbar">
+                            <LabelDesigner config={config} onChange={setConfig} />
                         </div>
-                    ) : (
-                        queue.map((item, idx) => (
-                            <div key={idx} className="flex items-center gap-3 p-3 bg-white border rounded">
-                                <div className="flex-1 min-w-0">
-                                    <div className="font-bold truncate">{item.product.name}</div>
-                                    <div className="text-xs font-mono text-gray-500">{item.product.barcode}</div>
-                                </div>
-                                <div className="flex items-center bg-gray-100 rounded">
-                                    <button onClick={() => updateQty(item.product.id, item.qty - 1)} disabled={item.qty <= 1} className="p-2 hover:bg-gray-200 disabled:opacity-50"><Minus size={14} /></button>
-                                    <span className="w-8 text-center font-bold text-sm">{item.qty}</span>
-                                    <button onClick={() => updateQty(item.product.id, item.qty + 1)} className="p-2 hover:bg-gray-200"><Plus size={14} /></button>
-                                </div>
-                                <button onClick={() => removeFromQueue(item.product.id)} className="p-2 text-red-500 hover:bg-red-50 rounded"><Trash2 size={16} /></button>
-                            </div>
-                        ))
                     )}
-                </div>
 
-                <div className="hidden">
-                    <div ref={componentRef} className="p-4">
-                        <div className="grid grid-cols-4 gap-4">
-                            {queue.flatMap(item => Array(item.qty).fill(item.product)).map((p, i) => (
-                                <div key={i} className="border border-black p-2 flex flex-col items-center justify-center h-32">
-                                    <div className="text-xs font-bold text-center w-full truncate">{p.name}</div>
-                                    <BarcodeLabel value={p.barcode} name={p.name} price={p.sell_price} />
-                                    <div className="text-xs font-black mt-1">₹{p.sell_price.toFixed(2)}</div>
+                    {/* Queue Panel */}
+                    <div className={`flex flex-col bg-surface rounded-xl border border-border shadow-xl overflow-hidden h-full ${designerOpen ? 'w-[380px]' : 'w-full'}`}>
+                        <div className="p-5 border-b border-border bg-muted/30 flex justify-between items-center">
+                            <div>
+                                <h2 className="text-xl font-bold flex items-center gap-2">
+                                    <Printer size={20} className="text-primary" /> Print Queue
+                                </h2>
+                                <p className="text-xs text-muted-foreground mt-0.5">Ready to print labels</p>
+                            </div>
+                            <span className="text-sm font-bold bg-primary/10 text-primary border border-primary/20 px-3 py-1 rounded-full shadow-sm">
+                                {queue.reduce((a, b) => a + b.qty, 0)} Total
+                            </span>
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-2 custom-scrollbar no-scrollbar">
+                            {queue.length === 0 ? (
+                                <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground pb-20">
+                                    <Grid size={48} className="mb-4 opacity-10" />
+                                    <p className="font-bold text-lg opacity-50">Queue is empty</p>
+                                    <p className="text-xs text-center opacity-40 max-w-[200px] mt-2">Select products from the left to add them to the print queue</p>
                                 </div>
-                            ))}
+                            ) : (
+                                queue.map((item, idx) => (
+                                    <div key={idx} className="flex items-center gap-3 p-3 bg-muted/20 border border-border rounded-xl group hover:border-primary/30 transition-colors">
+                                        <div className="flex-1 min-w-0">
+                                            <div className="font-bold truncate text-foreground">{item.product.name}</div>
+                                            <div className="text-xs font-mono text-muted-foreground opacity-70">{item.product.barcode}</div>
+                                        </div>
+                                        <div className="flex items-center bg-background rounded-lg p-0.5 border border-border">
+                                            <button onClick={() => updateQty(item.product.id, item.qty - 1)} disabled={item.qty <= 1} className="p-2 hover:bg-muted rounded-md disabled:opacity-30 text-foreground transition-colors"><Minus size={14} /></button>
+                                            <span className="w-8 text-center font-bold text-sm text-primary">{item.qty}</span>
+                                            <button onClick={() => updateQty(item.product.id, item.qty + 1)} className="p-2 hover:bg-muted rounded-md text-foreground transition-colors"><Plus size={14} /></button>
+                                        </div>
+                                        <button onClick={() => removeFromQueue(item.product.id)} className="p-2.5 text-muted-foreground hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all"><Trash2 size={16} /></button>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+
+                        <div className="hidden">
+                            <div ref={componentRef} className="p-4 bg-white">
+                                <div
+                                    className="grid gap-4"
+                                    style={{
+                                        gridTemplateColumns: `repeat(${config.columns}, 1fr)`,
+                                        gap: `${config.gap}px`
+                                    }}
+                                >
+                                    {queue.flatMap(item => Array(item.qty).fill(item.product)).map((p, i) => (
+                                        <div
+                                            key={i}
+                                            className="border border-black flex flex-col items-center justify-center overflow-hidden"
+                                            style={{
+                                                width: `${config.width}px`,
+                                                height: `${config.height}px`,
+                                                padding: '5px'
+                                            }}
+                                        >
+                                            {config.showName && (
+                                                <div
+                                                    className="font-bold text-center w-full truncate text-black mb-1"
+                                                    style={{ fontSize: `${config.fontSize}px` }}
+                                                >
+                                                    {p.name.toUpperCase()}
+                                                </div>
+                                            )}
+                                            <BarcodeLabel
+                                                value={p.barcode}
+                                                type={config.barcodeType}
+                                                name={p.name}
+                                                price={p.sell_price}
+                                                className="!p-0 !bg-transparent !shadow-none !border-none scale-90"
+                                            />
+                                            {config.showPrice && (
+                                                <div
+                                                    className="font-black text-black mt-1"
+                                                    style={{ fontSize: `${config.fontSize + 2}px` }}
+                                                >
+                                                    ₹{p.sell_price.toFixed(2)}
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="p-4 border-t border-border bg-muted/30">
+                            <button
+                                onClick={handlePrint}
+                                disabled={queue.length === 0}
+                                className={`w-full py-4 rounded-xl font-bold flex items-center justify-center gap-2 transaction-all shadow-lg ${queue.length === 0 ? 'bg-muted text-muted-foreground cursor-not-allowed border border-border' : 'bg-primary hover:bg-primary/90 text-primary-foreground shadow-glow border border-transparent hover:scale-[1.02] active:scale-[0.98]'
+                                    }`}
+                            >
+                                <Printer size={20} /> Print {queue.reduce((a, b) => a + b.qty, 0)} Labels
+                            </button>
                         </div>
                     </div>
-                </div>
-
-                <div className="border-t pt-4">
-                    <button
-                        onClick={handlePrint}
-                        disabled={queue.length === 0}
-                        className={`w-full py-3 rounded font-bold flex items-center justify-center gap-2 ${queue.length === 0 ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-green-600 text-white hover:bg-green-700'
-                            }`}
-                    >
-                        <Printer size={20} /> Print {queue.reduce((a, b) => a + b.qty, 0)} Labels
-                    </button>
                 </div>
             </div>
         </div>

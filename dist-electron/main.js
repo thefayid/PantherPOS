@@ -24,6 +24,7 @@ if (process.env.ELECTRON_RUN_AS_NODE) {
     delete process.env.ELECTRON_RUN_AS_NODE;
 }
 const { app, BrowserWindow, ipcMain, dialog } = require('electron');
+const { startServer } = require('./server');
 try {
     fs.writeFileSync(logFile, "--- BOOT SEQUENCE STARTS ---\n");
     log(`Process ExecPath: ${process.execPath}`);
@@ -99,6 +100,9 @@ app.on('ready', async () => {
         log('Initializing DB...');
         await initDb(log); // Pass logger
         log('DB Initialized');
+        log('Starting API Server...');
+        startServer(dbModule, log);
+        log('API Server Started');
         createWindow();
     }
     catch (e) {

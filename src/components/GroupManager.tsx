@@ -111,28 +111,28 @@ export function GroupManager({ isOpen, onClose }: GroupManagerProps) {
         <Modal isOpen={isOpen} onClose={onClose} title="Product Groups" size="lg">
             <div className="flex h-[600px] gap-4">
                 {/* Left Panel: Group List */}
-                <div className="w-1/3 flex flex-col border-r border-white/10 pr-4">
+                <div className="w-1/3 flex flex-col border-r border-border pr-4">
                     <div className="flex justify-between items-center mb-4">
-                        <h3 className="font-bold text-mac-text-secondary uppercase tracking-wider text-xs">Groups</h3>
+                        <h3 className="font-bold text-muted-foreground uppercase tracking-wider text-xs">Groups</h3>
                         <button
                             onClick={() => setIsCreating(true)}
-                            className="p-1 hover:bg-white/10 rounded-lg transition-colors text-mac-accent-emerald"
+                            className="p-1 hover:bg-muted/50 rounded-lg transition-colors text-primary"
                         >
                             <Plus className="w-5 h-5" />
                         </button>
                     </div>
 
                     {isCreating && (
-                        <div className="bg-white/5 rounded-xl p-3 mb-3 space-y-2 animate-in fade-in slide-in-from-top-2">
+                        <div className="bg-muted/40 rounded-xl p-3 mb-3 space-y-2 animate-in fade-in slide-in-from-top-2">
                             <input
                                 autoFocus
-                                className="w-full bg-black/20 border border-white/10 rounded-lg px-2 py-1.5 text-sm text-mac-text-primary"
+                                className="w-full bg-background border border-border rounded-lg px-2 py-1.5 text-sm text-foreground"
                                 placeholder="Group Name"
                                 value={newGroupName}
                                 onChange={e => setNewGroupName(e.target.value)}
                             />
                             <input
-                                className="w-full bg-black/20 border border-white/10 rounded-lg px-2 py-1.5 text-xs text-mac-text-primary"
+                                className="w-full bg-background border border-border rounded-lg px-2 py-1.5 text-xs text-foreground"
                                 placeholder="Description (Optional)"
                                 value={newGroupDesc}
                                 onChange={e => setNewGroupDesc(e.target.value)}
@@ -152,20 +152,20 @@ export function GroupManager({ isOpen, onClose }: GroupManagerProps) {
                                 className={clsx(
                                     "w-full text-left p-3 rounded-xl transition-all flex items-start justify-between group",
                                     selectedGroup?.id === group.id
-                                        ? "bg-mac-accent-emerald/10 border border-mac-accent-emerald/20 shadow-lg"
-                                        : "hover:bg-white/5 border border-transparent"
+                                        ? "bg-primary/10 border border-primary/20 shadow-lg"
+                                        : "hover:bg-muted/50 border border-transparent"
                                 )}
                             >
                                 <div className="flex items-center gap-3">
-                                    <Folder className={clsx("w-5 h-5", selectedGroup?.id === group.id ? "text-mac-accent-emerald" : "text-mac-text-secondary opacity-50")} />
+                                    <Folder className={clsx("w-5 h-5", selectedGroup?.id === group.id ? "text-primary" : "text-muted-foreground opacity-50")} />
                                     <div>
-                                        <div className={clsx("font-bold text-sm", selectedGroup?.id === group.id ? "text-mac-accent-emerald" : "text-mac-text-primary")}>{group.name}</div>
-                                        <div className="text-[10px] text-mac-text-secondary opacity-60 font-mono">{group.item_count || 0} items</div>
+                                        <div className={clsx("font-bold text-sm", selectedGroup?.id === group.id ? "text-primary" : "text-foreground")}>{group.name}</div>
+                                        <div className="text-[10px] text-muted-foreground opacity-60 font-mono">{group.item_count || 0} items</div>
                                     </div>
                                 </div>
                                 <div
                                     onClick={(e) => { e.stopPropagation(); handleDeleteGroup(group.id); }}
-                                    className="opacity-0 group-hover:opacity-100 p-1 hover:text-red-500 transition-all text-mac-text-secondary"
+                                    className="opacity-0 group-hover:opacity-100 p-1 hover:text-destructive transition-all text-muted-foreground"
                                 >
                                     <Trash2 className="w-4 h-4" />
                                 </div>
@@ -180,8 +180,8 @@ export function GroupManager({ isOpen, onClose }: GroupManagerProps) {
                         <>
                             <div className="flex justify-between items-start mb-6">
                                 <div>
-                                    <h2 className="text-xl font-black text-mac-text-primary">{selectedGroup.name}</h2>
-                                    <p className="text-xs text-mac-text-secondary opacity-60 mt-1">{selectedGroup.description || "No description"}</p>
+                                    <h2 className="text-xl font-bold text-foreground">{selectedGroup.name}</h2>
+                                    <p className="text-xs text-muted-foreground opacity-60 mt-1">{selectedGroup.description || "No description"}</p>
                                 </div>
                                 <Button
                                     size="sm"
@@ -194,15 +194,15 @@ export function GroupManager({ isOpen, onClose }: GroupManagerProps) {
                             </div>
 
                             {isAddingProduct ? (
-                                <div className="flex-1 flex flex-col min-h-0 bg-black/20 rounded-2xl border border-white/5 overflow-hidden">
-                                    <div className="p-4 border-b border-white/5">
+                                <div className="flex-1 flex flex-col min-h-0 bg-muted/10 rounded-2xl border border-border overflow-hidden">
+                                    <div className="p-4 border-b border-border">
                                         <div className="relative">
-                                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-mac-text-secondary opacity-50" />
+                                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground opacity-50" />
                                             <input
                                                 autoFocus
                                                 value={search}
                                                 onChange={e => setSearch(e.target.value)}
-                                                className="w-full bg-black/40 border border-white/10 rounded-xl pl-10 pr-4 py-3 text-sm text-mac-text-primary focus:border-mac-accent-emerald/50 outline-none"
+                                                className="w-full bg-background/50 border border-border rounded-xl pl-10 pr-4 py-3 text-sm text-foreground focus:border-primary/50 outline-none"
                                                 placeholder="Search products to add..."
                                             />
                                         </div>
@@ -215,23 +215,23 @@ export function GroupManager({ isOpen, onClose }: GroupManagerProps) {
                                                     key={p.id}
                                                     disabled={isAlreadyIn}
                                                     onClick={() => handleAddProduct(p)}
-                                                    className="w-full flex items-center justify-between p-3 hover:bg-white/5 disabled:opacity-50 disabled:hover:bg-transparent rounded-lg transition-colors group"
+                                                    className="w-full flex items-center justify-between p-3 hover:bg-muted/50 disabled:opacity-50 disabled:hover:bg-transparent rounded-lg transition-colors group"
                                                 >
                                                     <div className="flex items-center gap-3">
-                                                        <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center">
-                                                            <Package className="w-4 h-4 text-mac-text-secondary" />
+                                                        <div className="w-8 h-8 rounded-lg bg-background flex items-center justify-center border border-border">
+                                                            <Package className="w-4 h-4 text-muted-foreground" />
                                                         </div>
                                                         <div className="text-left">
-                                                            <div className="font-bold text-sm text-mac-text-primary">{p.name}</div>
-                                                            <div className="text-[10px] font-mono text-mac-text-secondary opacity-60">{p.barcode}</div>
+                                                            <div className="font-bold text-sm text-foreground">{p.name}</div>
+                                                            <div className="text-[10px] font-mono text-muted-foreground opacity-60">{p.barcode}</div>
                                                         </div>
                                                     </div>
                                                     {!isAlreadyIn && (
-                                                        <span className="text-xs font-bold text-mac-accent-emerald opacity-0 group-hover:opacity-100 transition-opacity">
+                                                        <span className="text-xs font-bold text-primary opacity-0 group-hover:opacity-100 transition-opacity">
                                                             Add
                                                         </span>
                                                     )}
-                                                    {isAlreadyIn && <span className="text-[10px] font-bold text-mac-text-secondary opacity-40">Added</span>}
+                                                    {isAlreadyIn && <span className="text-[10px] font-bold text-muted-foreground opacity-40">Added</span>}
                                                 </button>
                                             );
                                         })}
@@ -252,19 +252,19 @@ export function GroupManager({ isOpen, onClose }: GroupManagerProps) {
                                         </div>
                                     ) : (
                                         groupProducts.map(p => (
-                                            <div key={p.id} className="flex items-center justify-between p-3 bg-white/5 rounded-xl group border border-transparent hover:border-white/5 transition-all">
+                                            <div key={p.id} className="flex items-center justify-between p-3 bg-muted/10 rounded-xl group border border-transparent hover:border-border transition-all">
                                                 <div className="flex items-center gap-3">
-                                                    <div className="w-10 h-10 rounded-lg bg-black/20 flex items-center justify-center text-xs font-bold text-mac-text-secondary">
+                                                    <div className="w-10 h-10 rounded-lg bg-background flex items-center justify-center text-xs font-bold text-muted-foreground border border-border">
                                                         {p.stock}
                                                     </div>
                                                     <div>
-                                                        <div className="font-bold text-mac-text-primary text-sm">{p.name}</div>
-                                                        <div className="text-[10px] font-mono opacity-50">{p.barcode} • ₹{p.sell_price}</div>
+                                                        <div className="font-bold text-foreground text-sm">{p.name}</div>
+                                                        <div className="text-[10px] font-mono opacity-50 text-muted-foreground">{p.barcode} • ₹{p.sell_price}</div>
                                                     </div>
                                                 </div>
                                                 <button
                                                     onClick={() => handleRemoveProduct(p.id)}
-                                                    className="p-2 text-mac-text-secondary hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                                                    className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
                                                 >
                                                     <Trash2 className="w-4 h-4" />
                                                 </button>

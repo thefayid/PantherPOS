@@ -2,11 +2,84 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+  :root {
+    /* Pure, Professional Light Palette */
+    --background: 210 20% 98%;
+    /* Soft White/Gray */
+    --foreground: 222 47% 11%;
+    /* Charcoal Blue */
+
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+
+    --primary: 158 82% 35%;
+    /* Deep Emerald */
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 210 20% 90%;
+    --secondary-foreground: 222 47% 11%;
+
+    --muted: 210 20% 92%;
+    --muted-foreground: 215 16% 47%;
+
+    --accent: 210 20% 94%;
+    --accent-foreground: 222 47% 11%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 214 32% 85%;
+    --input: 214 32% 91%;
+    --ring: 158 82% 35%;
+    --radius: 0.75rem;
+
+    --surface: 0 0% 100%;
+  }
+
+  .dark {
+    /* Premium Night Deep Palette */
+    --background: 222 30% 6%;
+    /* #090a0f */
+    --foreground: 210 40% 98%;
+
+    --surface: 222 25% 10%;
+    /* #12141c */
+    --card: 222 25% 10%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222 25% 12%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 161 94% 30%;
+    /* Vibrant Emerald */
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 222 20% 18%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 222 20% 15%;
+    --muted-foreground: 215 20% 65%;
+
+    --accent: 222 20% 18%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 222 20% 15%;
+    --input: 222 20% 15%;
+    --ring: 161 94% 30%;
+  }
+}
+
 body {
-  background-color: #0a0a0a;
-  color: white;
-  margin: 0;
+  @apply bg-background text-foreground;
   font-family: 'Inter', sans-serif;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 /* Custom Scrollbar (kept for usability) */
@@ -24,6 +97,22 @@ body {
   border-radius: 4px;
 }
 
-::-webkit-scrollbar-thumb:hover {
-  background: #777;
+
+/* Barcode Scanner Styles */
+body.barcode-scanner-active {
+  --background: transparent !important;
+  background-color: transparent !important;
+  visibility: hidden;
+}
+
+body.barcode-scanner-active #root {
+  visibility: visible;
+  background-color: transparent !important;
+}
+
+/* Hide everything except perhaps a 'Cancel' button or overlay when scanning */
+body.barcode-scanner-active .modal-overlay,
+body.barcode-scanner-active nav,
+body.barcode-scanner-active aside {
+  display: none !important;
 }

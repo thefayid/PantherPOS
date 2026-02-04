@@ -2,7 +2,7 @@ import { Search, ArrowUpDown } from 'lucide-react';
 import clsx from 'clsx';
 
 export type FilterType = 'all' | 'low_stock' | 'out_of_stock';
-export type SortType = 'name_asc' | 'price_desc' | 'stock_asc';
+export type SortType = 'name_asc' | 'price_desc' | 'stock_asc' | 'stock_desc';
 
 interface FilterBarProps {
     search: string;

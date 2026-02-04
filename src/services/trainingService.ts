@@ -146,6 +146,21 @@ class TrainingService {
     // Getters for personality
     public getBotName() { return this.botName; }
     public getUserName() { return this.userPreferredName; }
+
+    public ingestTrainingData(data: any[]) {
+        console.log('[TrainingService] Ingesting training data...', data.length, 'items');
+        try {
+            data.forEach(item => {
+                // 2. Learn Aliases
+                if (item.intent === 'LEARN_ALIAS' && item.entities?.alias && item.entities?.target) {
+                    aliasService.addAlias(item.entities.alias, item.entities.target);
+                }
+            });
+            console.log('[TrainingService] Ingestion complete.');
+        } catch (error) {
+            console.error('[TrainingService] Ingestion failed:', error);
+        }
+    }
 }
 
 export const trainingService = new TrainingService();

@@ -1,5 +1,4 @@
 import { Search, Bell, User } from 'lucide-react';
-import { Button } from './Button';
 
 export function TopBar() {
     return (
@@ -15,7 +14,7 @@ export function TopBar() {
 
             {/* Center: App Title */}
             <div className="absolute left-1/2 top-1/2 -translate-x-1/2 flex items-center gap-2 pointer-events-none select-none">
-                <span className="text-sm font-semibold text-theme-text opacity-90 tracking-tight">Retail POS Pro</span>
+                <span className="text-sm font-semibold text-theme-text opacity-90 tracking-tight">PantherPOS</span>
             </div>
 
             {/* Right: Search & Profile */}

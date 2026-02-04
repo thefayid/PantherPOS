@@ -1,4 +1,5 @@
 import type { Product } from '../types/db';
+import { databaseService } from './databaseService';
 
 const STORAGE_KEY = 'mock_products';
 
@@ -21,31 +22,13 @@ const saveMockProducts = (products: Product[]) => {
 
 export const productService = {
     getAll: async (): Promise<Product[]> => {
-        if (!window.electronAPI) {
-            return getMockProducts().sort((a, b) => a.name.localeCompare(b.name));
-        }
-        return await window.electronAPI.dbQuery('SELECT * FROM products ORDER BY name ASC');
+        return await databaseService.query('SELECT * FROM products ORDER BY name ASC');
     },
 
     search: async (query: string): Promise<Product[]> => {
-        if (!window.electronAPI) {
-            const lowerQuery = query.toLowerCase();
-            return getMockProducts().filter(p =>
-                p.name.toLowerCase().includes(lowerQuery) ||
-                p.barcode.includes(query) ||
-                (p.hsn_code && p.hsn_code.includes(query))
-            ).sort((a, b) => {
-                const aStarts = a.name.toLowerCase().startsWith(lowerQuery);
-                const bStarts = b.name.toLowerCase().startsWith(lowerQuery);
-                if (aStarts && !bStarts) return -1;
-                if (!aStarts && bStarts) return 1;
-                return a.name.localeCompare(b.name);
-            });
-        }
         const prefixTerm = `${query}%`;
         const centerTerm = `%${query}%`;
-        // Prioritize results that START with the query, then those that contain it
-        return await window.electronAPI.dbQuery(
+        return await databaseService.query(
             `SELECT * FROM products 
              WHERE name LIKE ? OR barcode LIKE ? OR hsn_code LIKE ?
              ORDER BY 
@@ -60,25 +43,37 @@ export const productService = {
     },
 
     create: async (product: Omit<Product, 'id'>): Promise<number> => {
-        if (!window.electronAPI) {
-            const products = getMockProducts();
-            const newId = Math.max(0, ...products.map(p => p.id)) + 1;
-            const newProduct = { ...product, id: newId };
-            products.push(newProduct as Product);
-            saveMockProducts(products);
-            return 1;
-        }
-        // Enforce unique barcode check before insert if strictness is needed beyond DB constraint
-        const productName = product.name;
-        const imgLen = product.image ? product.image.length : 0;
-        console.log(`Creating product: ${productName}, Image Length: ${imgLen}`);
-
-        const result = await window.electronAPI.dbQuery(
+        const result = await databaseService.query(
             `INSERT INTO products (name, barcode, cost_price, sell_price, stock, gst_rate, hsn_code, min_stock_level, image, variant_group_id, attributes)
              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [product.name, product.barcode, product.cost_price, product.sell_price, product.stock, product.gst_rate, product.hsn_code, product.min_stock_level || 5, product.image || null, product.variant_group_id || null, product.attributes || null]
         );
         return result.changes;
+    },
+
+    bulkCreate: async (products: Omit<Product, 'id'>[]): Promise<{ imported: number, failed: number }> => {
+        let imported = 0;
+        let failed = 0;
+        for (const p of products) {
+            try {
+                // Check if barcode exists
+                const existing = await productService.getByBarcode(p.barcode);
+                if (existing) {
+                    // Start Update if exists? Or Skip?
+                    // For now, let's update stock and price if exists, or just skip.
+                    // Implementation Plan didn't specify, but "Import" usually implies "Add or Update".
+                    // Let's doing "Update if exists" logic for robust import.
+                    await productService.update({ ...existing, ...p, id: existing.id });
+                } else {
+                    await productService.create(p);
+                }
+                imported++;
+            } catch (e) {
+                console.error(`Failed to import ${p.name}:`, e);
+                failed++;
+            }
+        }
+        return { imported, failed };
     },
 
     update: async (product: Product): Promise<number> => {
@@ -96,7 +91,7 @@ export const productService = {
         const imgLen = product.image ? product.image.length : 0;
         console.log(`Updating product: ${product.name}, Image Length: ${imgLen}`);
 
-        const result = await window.electronAPI.dbQuery(
+        const result = await databaseService.query(
             `UPDATE products SET name=?, barcode=?, cost_price=?, sell_price=?, stock=?, gst_rate=?, hsn_code=?, min_stock_level=?, image=?, variant_group_id=?, attributes=?
              WHERE id=?`,
             [product.name, product.barcode, product.cost_price, product.sell_price, product.stock, product.gst_rate, product.hsn_code, product.min_stock_level || 5, product.image || null, product.variant_group_id || null, product.attributes || null, product.id]
@@ -105,39 +100,24 @@ export const productService = {
     },
 
     delete: async (id: number): Promise<number> => {
-        if (!window.electronAPI) {
-            const products = getMockProducts();
-            const filtered = products.filter(p => p.id !== id);
-            saveMockProducts(filtered);
-            return 1;
-        }
-        const result = await window.electronAPI.dbQuery('DELETE FROM products WHERE id=?', [id]);
+        const result = await databaseService.query('DELETE FROM products WHERE id=?', [id]);
         return result.changes;
     },
 
     getByBarcode: async (barcode: string): Promise<Product | undefined> => {
-        if (!window.electronAPI) {
-            return getMockProducts().find(p => p.barcode === barcode);
-        }
-        const rows = await window.electronAPI.dbQuery('SELECT * FROM products WHERE barcode = ?', [barcode]);
+        const rows = await databaseService.query('SELECT * FROM products WHERE barcode = ?', [barcode]);
         return rows[0];
     },
 
     getLowStockProducts: async (): Promise<Product[]> => {
-        if (!window.electronAPI) {
-            return getMockProducts()
-                .filter(p => p.stock <= p.min_stock_level)
-                .sort((a, b) => a.stock - b.stock);
-        }
-        return await window.electronAPI.dbQuery(
+        return await databaseService.query(
             'SELECT * FROM products WHERE stock <= min_stock_level ORDER BY stock ASC'
         );
     },
 
     // --- VARIANTS ---
     getVariants: async (variantGroupId: string): Promise<Product[]> => {
-        if (!window.electronAPI) return [];
-        return await window.electronAPI.dbQuery(
+        return await databaseService.query(
             'SELECT * FROM products WHERE variant_group_id = ? ORDER BY name ASC',
             [variantGroupId]
         );
@@ -147,7 +127,7 @@ export const productService = {
         if (!window.electronAPI) return;
 
         // 1. Fetch Parent
-        const parentRes = await window.electronAPI.dbQuery('SELECT * FROM products WHERE id = ?', [parentId]);
+        const parentRes = await databaseService.query('SELECT * FROM products WHERE id = ?', [parentId]);
         const parent = parentRes[0];
         if (!parent) throw new Error('Parent product not found');
 
@@ -155,13 +135,13 @@ export const productService = {
         let groupId = parent.variant_group_id;
         if (!groupId) {
             groupId = crypto.randomUUID();
-            await window.electronAPI.dbQuery('UPDATE products SET variant_group_id = ? WHERE id = ?', [groupId, parentId]);
+            await databaseService.query('UPDATE products SET variant_group_id = ? WHERE id = ?', [groupId, parentId]);
         }
 
         // 3. Create Name (Append attributes)
         // e.g. "Shirt" + " - Red" + " - M"
         const entries = Object.entries(attributes);
-        const suffix = entries.map(([k, v]) => `${v}`).join(' ');
+        const suffix = entries.map(([_, v]) => `${v}`).join(' ');
         const newName = `${parent.name} - ${suffix}`;
 
         // 4. Insert New Product
@@ -190,7 +170,7 @@ export const productService = {
             return { success: false, message: 'Mock product not found' };
         }
         try {
-            const result = await window.electronAPI.dbQuery('UPDATE products SET stock = ? WHERE id = ?', [quantity, id]);
+            const result = await databaseService.query('UPDATE products SET stock = ? WHERE id = ?', [quantity, id]);
             console.log('[ProductService] DB Result:', result);
 
             // If result exists, query ran. 
@@ -216,7 +196,7 @@ export const productService = {
             return { success: false, message: 'Mock product not found' };
         }
         try {
-            const result = await window.electronAPI.dbQuery('UPDATE products SET sell_price = ? WHERE id = ?', [price, id]);
+            const result = await databaseService.query('UPDATE products SET sell_price = ? WHERE id = ?', [price, id]);
             console.log('[ProductService] DB Result:', result);
             return { success: true, message: result.changes === 0 ? 'Value was already set' : undefined };
         } catch (e: any) {

@@ -1,3 +1,5 @@
+import { databaseService } from './databaseService';
+
 export const systemService = {
     checkHealth: async () => {
         const report = {
@@ -7,12 +9,8 @@ export const systemService = {
 
         // 1. Check Database
         try {
-            if (window.electronAPI) {
-                await window.electronAPI.dbQuery('SELECT 1');
-                report.database = { status: 'ONLINE', message: 'Connected to SQLite' };
-            } else {
-                report.database = { status: 'MOCK', message: 'Running in Browser Mode' };
-            }
+            await databaseService.query('SELECT 1');
+            report.database = { status: 'ONLINE', message: 'Connected to Database' };
         } catch (error: any) {
             report.database = { status: 'OFFLINE', message: error.message };
         }

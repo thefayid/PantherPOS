@@ -5,6 +5,7 @@ export interface ElectronAPI {
     printRaw: (data: number[]) => Promise<{ success: boolean; error?: string }>;
     scaleReadWeight: () => Promise<{ success: boolean; weight?: number; error?: string }>;
     openWindow: (path: string) => Promise<void>;
+    showItemInFolder: (path: string) => Promise<void>;
     createBackup: () => Promise<{ success: boolean; path?: string; filename?: string; error?: string }>;
     getBackups: () => Promise<any[]>;
     restoreBackup: (filename: string) => Promise<{ success: boolean; error?: string }>;

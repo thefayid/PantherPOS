@@ -26,6 +26,7 @@ if (process.env.ELECTRON_RUN_AS_NODE) {
 }
 
 const { app, BrowserWindow, ipcMain, dialog } = require('electron');
+const { startServer } = require('./server');
 
 try {
   fs.writeFileSync(logFile, "--- BOOT SEQUENCE STARTS ---\n");
@@ -110,6 +111,10 @@ app.on('ready', async () => {
     log('Initializing DB...');
     await initDb(log); // Pass logger
     log('DB Initialized');
+
+    log('Starting API Server...');
+    startServer(dbModule, log);
+    log('API Server Started');
 
     createWindow();
   } catch (e: any) {
@@ -246,6 +251,12 @@ ipcMain.handle('open-window', async (event: any, windowPath: string) => {
     newWindow.loadURL(`file://${indexPath}#${windowPath}`);
   }
 
+  return { success: true };
+});
+
+ipcMain.handle('show-item-in-folder', async (event: any, filePath: string) => {
+  const { shell } = require('electron');
+  shell.showItemInFolder(filePath);
   return { success: true };
 });
 

@@ -286,6 +286,31 @@ const initDb = async (log = console.log) => {
             FOREIGN KEY(group_id) REFERENCES product_groups(id) ON DELETE CASCADE,
             FOREIGN KEY(product_id) REFERENCES products(id) ON DELETE CASCADE
         );
+
+        CREATE TABLE IF NOT EXISTS company_settings (
+            id INTEGER PRIMARY KEY CHECK (id = 1),
+            name TEXT,
+            tax_number TEXT,
+            street_name TEXT,
+            building_number TEXT,
+            additional_street_name TEXT,
+            plot_identification TEXT,
+            district TEXT,
+            postal_code TEXT,
+            city TEXT,
+            state TEXT,
+            country TEXT,
+            phone_number TEXT,
+            email TEXT,
+            bank_acc_number TEXT,
+            bank_details TEXT,
+            logo TEXT
+        );
+
+        CREATE TABLE IF NOT EXISTS void_reasons (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            reason TEXT NOT NULL
+        );
         `;
         // Initialize schema
         try {
@@ -369,6 +394,15 @@ const initDb = async (log = console.log) => {
         catch (e) {
             console.error('Migration Error (product_groups):', e);
         }
+        // Migration: Add order_type and notes to bills
+        try {
+            db.run("ALTER TABLE bills ADD COLUMN order_type TEXT DEFAULT 'DINE_IN'"); // DINE_IN, TAKEAWAY, DELIVERY
+        }
+        catch (e) { }
+        try {
+            db.run("ALTER TABLE bills ADD COLUMN notes TEXT");
+        }
+        catch (e) { }
         try {
             db.run(`
                 CREATE TABLE IF NOT EXISTS product_group_items (
@@ -468,12 +502,12 @@ const initDb = async (log = console.log) => {
             const settingCount = db.exec("SELECT COUNT(*) as count FROM store_settings")[0].values[0][0];
             if (settingCount === 0) {
                 const keys = [
-                    ['store_name', 'QuickPOS Store'],
+                    ['store_name', 'PantherPOS Store'],
                     ['address_line1', '123 Business Avenue'],
                     ['address_line2', 'Tech City'],
                     ['phone', '+91 00000 00000'],
                     ['gstin', 'XXABCDE1234F1Z5'],
-                    ['receipt_header', 'Welcome to QuickPOS'],
+                    ['receipt_header', 'Welcome to PantherPOS'],
                     ['receipt_footer', 'Thank you for your visit!'],
                     ['logo_path', '']
                 ];

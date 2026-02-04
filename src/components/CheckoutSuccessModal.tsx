@@ -23,8 +23,8 @@ export function CheckoutSuccessModal({ isOpen, onClose, billNo, total, customerN
                     <CheckCircle className="w-10 h-10 text-green-500" />
                 </div>
 
-                <h2 className="text-2xl font-black text-white mb-2">₹{total.toFixed(2)}</h2>
-                <p className="text-mac-text-secondary text-sm mb-6">
+                <h2 className="text-2xl font-black text-foreground mb-2">₹{total.toFixed(2)}</h2>
+                <p className="text-muted-foreground text-sm mb-6">
                     Transaction <b>{billNo}</b> completed successfully.
                     {customerName && <span className="block mt-1">Customer: {customerName}</span>}
                 </p>

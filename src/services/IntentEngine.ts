@@ -1,5 +1,6 @@
 import type { POSCommand } from './CommandGateway';
 import { aliasService } from './aliasService';
+import Fuse from 'fuse.js';
 
 interface IntentPattern {
     regex: RegExp;
@@ -8,6 +9,42 @@ interface IntentPattern {
 }
 
 export class IntentEngine {
+    private fuse: Fuse<any> | null = null;
+    private stopWords = new Set(['please', 'can', 'you', 'show', 'give', 'me', 'the', 'is', 'i', 'want', 'to', 'need', 'get', 'calculate', 'check', 'for', 'about', 'on', 'with', 'a', 'towards']);
+    private canonicalMap: Record<string, string> = {
+        'paal': 'milk', 'paala': 'milk',
+        'panjasara': 'sugar', 'panchar': 'sugar',
+        'ari': 'rice', 'choru': 'rice',
+        'vellam': 'water', 'water': 'water',
+        'kadi': 'snacks', 'biscuit': 'biscuits',
+        'mittayi': 'candy', 'chocolates': 'candy',
+        'chaya': 'tea', 'tea': 'tea',
+        'kappi': 'coffee', 'kaappi': 'coffee',
+        'bill': 'billing', 'billu': 'billing',
+        'paisa': 'payment', 'cash': 'cash',
+        'printer': 'printing', 'print': 'printing'
+    };
+
+    constructor() {
+        // No longer initializes Fuse with trainingData static import
+    }
+
+    public ingestTrainingData(data: any[]) {
+        console.log('[IntentEngine] Ingesting training data for Fuse...', data.length, 'items');
+        this.fuse = new Fuse(data, {
+            keys: [
+                { name: 'text', weight: 0.8 },
+                { name: 'intent', weight: 0.2 }
+            ],
+            threshold: 0.4,
+            distance: 100,
+            includeScore: true,
+            useExtendedSearch: true,
+            ignoreLocation: true,
+            minMatchCharLength: 2
+        });
+    }
+
     private patterns: IntentPattern[] = [
         // EXPENSE: Top priority to prevent "expense" being treated as a product
         {
@@ -36,45 +73,39 @@ export class IntentEngine {
                 return { amount, reason };
             }
         },
-        // SWITCH THEME: "Turn on white mode", "Dark mode please"
+        // SWITCH THEME: "Turn on white mode", "Dark mode please", "night layout", "bright mode"
         {
-            regex: /\b(turn|switch|enable|set|change|activate)?.*\b(white|light|day|dark|night)\s+(mode|theme)?/i,
+            regex: /\b(turn|switch|enable|set|change|activate)?.*\b(white|light|day|bright|dark|night|dim|black)\s+(mode|theme|layout|interface|ui|appearance|style|background|screen)?/i,
             intent: 'SWITCH_THEME',
             extract: (matches) => {
                 const text = matches[0].toLowerCase();
-                const isDark = text.includes('dark') || text.includes('night');
+                const isDark = text.includes('dark') || text.includes('night') || text.includes('dim') || text.includes('black');
                 return {
                     theme: isDark ? 'dark' : 'light'
                 };
             }
         },
-        // NAVIGATION: "Go to settings", "Open dashboard", "Show customers"
+        // HARDWARE: "Open drawer", "Restart scanner", "Check paper roll"
         {
-            regex: /\b(go to|open|show|view|navigate to|launch)\s+(.+)/i,
-            intent: 'NAVIGATE',
-            extract: (matches) => {
-                const target = matches[2].toLowerCase();
-                if (target.includes('dashboard') || target.includes('home')) return { route: '/', label: 'Dashboard' };
-                if (target.includes('bill') || target.includes('checkout') || target.includes('sales')) return { route: '/billing', label: 'Billing' };
-                if (target.includes('settings') || target.includes('config')) return { route: '/settings', label: 'Settings' };
-                if (target.includes('customer') || target.includes('client')) return { route: '/customers', label: 'Customers' };
-                if (target.includes('stock') || target.includes('inventory')) return { route: '/stocktake', label: 'Stocktake' };
-                if (target.includes('staff') || target.includes('employee')) return { route: '/staff', label: 'Staff Management' };
-
-                return { route: '/', label: 'Home' }; // Fallback
-            }
-        },
-        // HARDWARE: "Open drawer", "Open cash box", "Test printer", "Weigh this"
-        {
-            regex: /\b(open|test|read|check)\s+(drawer|printer|scale|weight|cash box|till)/i,
+            regex: /\b(open|test|read|check|restart|reboot|reinitialize)\s+(drawer|printer|scale|weight|cash box|till|scanner|barcode reader|paper|paper roll)/i,
             intent: 'HARDWARE_ACTION',
             extract: (matches) => {
+                const actionVerb = matches[1].toLowerCase();
                 const target = matches[2].toLowerCase();
+
                 if (target.includes('drawer') || target.includes('cash') || target.includes('till')) return { action: 'OPEN_DRAWER' };
-                if (target.includes('printer')) return { action: 'TEST_PRINTER' };
+                if (target.includes('printer')) {
+                    if (actionVerb.includes('restart') || actionVerb.includes('reboot')) return { action: 'RESTART_PRINTER' };
+                    return { action: 'TEST_PRINTER' };
+                }
+                if (target.includes('scanner') || target.includes('reader')) {
+                    if (actionVerb.includes('restart') || actionVerb.includes('reboot') || actionVerb.includes('reinitialize')) return { action: 'RESTART_SCANNER' };
+                    return { action: 'TEST_SCANNER' };
+                }
+                if (target.includes('paper')) return { action: 'CHECK_PAPER' };
                 if (target.includes('scale') || target.includes('weight')) return { action: 'READ_SCALE' };
 
-                return { action: 'OPEN_DRAWER' }; // Fallback safe?
+                return { action: 'OPEN_DRAWER' };
             }
         },
         // SYSTEM: "Check alerts", "Any warnings?", "System status"
@@ -82,6 +113,17 @@ export class IntentEngine {
             regex: /\b(check|show|any)\s+(alerts|warnings|notifications)\b/i,
             intent: 'ANALYTICS_QUERY',
             extract: () => ({ subType: 'CHECK_ALERTS' })
+        },
+        // INVENTORY FORECAST: "When will I run out of stock?", "Show inventory forecast", "Predict stockouts"
+        {
+            regex: /\b(when|forecast|predict|projection|stockout|run\s+out)\s+.*\b(stock|inventory|stockout)\b/i,
+            intent: 'INVENTORY_FORECAST',
+            extract: () => ({})
+        },
+        {
+            regex: /\b(generate|create|make|get)\s+.*\b(purchase\s+order|po|order\s+stock|procurement)\b/i,
+            intent: 'GENERATE_PO',
+            extract: () => ({})
         },
         // SYSTEM OPS: "System status", "Health check", "Reload app"
         {
@@ -150,47 +192,159 @@ export class IntentEngine {
                 return { discountPercent: percent };
             }
         },
-        // REPORT: "Sales today", "Weekly report", "Show profit this month", "Report as pdf", "Suppliers list"
+        // REPORT: "Sales today", "Weekly report", "Show profit this month", "Wastage analysis", "AI stock forecast"
         {
-            // Improved Regex: Matches "Suppliers list", "List of suppliers", "Sales list"
-            regex: /\b(sales|report|profit|turnover|collection|details|summary|status|supplier|suppliers|list)\s*(?:of|for)?\s*(today|todays|yesterday|this week|this month|last month|daily|weekly|monthly)?\s*(?:as|in|format)?\s*(?:a)?\s*(pdf|download|list)?/i,
+            regex: /\b(comprehensive|detailed|full|sales|report|profit|revenue|gst|eod|dead\s+stock|low\s+stock|stock|performance|trend|analysis)\b.*?(today|yesterday|this week|last week|this month|last month|this year|daily|weekly|monthly|quarterly|yearly)?\s*(pdf|excel|csv)?/i,
             intent: 'REPORT_QUERY',
             extract: (matches) => {
                 const fullText = (matches.input || matches[0] || "").toLowerCase();
+                const matchedType = matches[1].toLowerCase();
 
-                // 1. Explicit PDF override
-                if (/\b(pdf|download)\b/.test(fullText)) {
-                    return {
-                        reportType: matches[1].toLowerCase(),
-                        period: matches[2] ? matches[2].toLowerCase().replace('todays', 'today') : 'today',
-                        format: 'pdf'
-                    };
+                // 1. Better Report Type Extraction
+                // Look for the "meat" of the report request
+                let reportType = matchedType;
+
+                // If the user mentioned a specific multi-word type that our regex might have partially captured
+                const types = [
+                    'itemwise sales', 'category sales', 'top products', 'dead stock', 'low stock',
+                    'gst', 'customer sales', 'payment mode summary', 'payment mode comparison',
+                    'eod', 'financial summary', 'yearly comparison', 'revenue', 'sales forecast',
+                    'revenue forecast', 'demand forecast', 'sales trend', 'product performance comparison',
+                    'category performance analysis', 'hourly sales', 'peak hour sales', 'basket analysis',
+                    'customer buying pattern', 'repeat customers', 'customer lifetime value',
+                    'inventory aging', 'inventory turnover', 'inventory shrinkage', 'stock consumption',
+                    'wastage expiry', 'purchase efficiency', 'supplier rating', 'margin analysis',
+                    'margin comparison', 'tax liability', 'input tax credit', 'tax projection',
+                    'store performance index', 'stock movement', 'reorder recommendations',
+                    'safety stock analysis', 'stock coverage', 'stockout risk', 'overstock', 'understock',
+                    'inventory valuation', 'slow moving items', 'fast moving items', 'non moving items',
+                    'damage loss', 'incoming stock trend', 'outgoing stock trend', 'inventory forecast',
+                    'demand based reorder', 'purchase to stock efficiency', 'stock holding cost',
+                    'inventory accuracy', 'warehouse utilization', 'wastage analysis', 'wastage percentage',
+                    'expiry products', 'expiring soon', 'expiry forecast', 'expired stock',
+                    'stock spoilage', 'spoilage percentage', 'breakage', 'leakage damage',
+                    'damage report', 'damaged quantity', 'loss analysis', 'loss percentage',
+                    'expiry loss', 'wastage loss', 'stock discrepancy', 'system vs physical',
+                    'shelf life analysis', 'low shelf life', 'shelf life distribution', 'expiry risk',
+                    'wastage risk', 'spoilage risk', 'damage trend', 'wastage trend', 'shrinkage trend',
+                    'expiry trend', 'category wastage', 'product expiry', 'batch expiry', 'batch damage',
+                    'batch wastage', 'wastage cost', 'expiry cost', 'shrinkage cost',
+                    'wastage shrinkage combined', 'spoilage cost', 'breakage cost', 'leakage cost',
+                    'high wastage items', 'high expiry items', 'max shrinkage items', 'expiry timeline',
+                    'expiry calendar', 'wastage reasons', 'damage reasons', 'inventory forecast',
+                    'expiry prediction', 'wastage forecast', 'shrinkage prediction', 'stockout prediction',
+                    'ai reorder suggestion', 'demand forecast', 'purchase planning ai',
+                    'slow moving forecast', 'non moving prediction', 'expiry risk prediction',
+                    'shelf life forecast', 'wastage reduction suggestions', 'damage trend prediction',
+                    'spoilage detection ai', 'overstock forecast', 'understock forecast',
+                    'inventory anomaly detection', 'consumption pattern ai', 'damage cost prediction',
+                    'wastage cost forecast', 'shrinkage cost forecast', 'high risk scoring',
+                    'optimized reorder ai', 'stock balancing ai', 'spoilage prediction',
+                    'expiry clustering', 'wastage timeline forecast', 'high wastage prediction',
+                    'future stock health', 'reorder date prediction', 'spoilage risk forecast',
+                    'predicted expiry count', 'wastage anomaly detection', 'inventory gap forecast',
+                    'shelf life loss estimate', 'damage probability', 'expiry probability',
+                    'shrinkage estimate', 'inventory bottleneck detection', 'aging forecast',
+                    'warehouse load forecast', 'ai expiry alerts', 'expiry loss forecast',
+                    'damage loss forecast', 'wastage heatmap', 'expiry heatmap', 'wastage insight ai',
+                    'dead stock forecast', 'non moving forecast', 'clearance recommendation',
+                    'ai inventory prediction', 'stock forecast', 'demand projection',
+                    'predictive sales insight', 'overstock detection', 'understock detection',
+                    'reorder quantity estimate', 'usage projection', 'seasonal demand forecast',
+                    'shrinkage forecast', 'waste prediction', 'expiry projection', 'spoilage projection',
+                    'stock health forecast', 'purchase optimization ai', 'supplier delay prediction',
+                    'ai stock levels', 'item demand projection', 'slow moving prediction',
+                    'dead stock prediction', 'supply chain risk', 'future shortages',
+                    'demand spike detection', 'demand drop detection', 'stock volatility',
+                    'projected wastage', 'future expiry volume', 'restocking window prediction',
+                    'inventory imbalance prediction', 'temperature risk analysis', 'spoilage probability',
+                    'inventory loss forecast', 'logistic delay prediction', 'warehouse load prediction',
+                    'item rotation prediction', 'inventory risk forecast', 'stock adjustment ai',
+                    'stock anomaly detection', 'predictive reorder alert', 'inventory freshness score',
+                    'stock balancing forecast', 'item level forecast', 'damage incidents projection',
+                    'expiry window forecast', 'supply risk forecast', 'weighted demand analysis',
+                    'incoming anomaly forecast', 'reorder cycle prediction', 'inventory accuracy forecast',
+                    'spoilage hotspot analysis', 'tax liability', 'input tax credit', 'gst input', 'gst output',
+                    'gst payable', 'profit margin', 'net profit', 'gross profit', 'current ratio', 'quick ratio',
+                    'financial health', 'liquidity', 'solvency', 'turnover ratio'
+                ];
+
+                for (const t of types) {
+                    if (fullText.includes(t)) {
+                        reportType = t;
+                        break;
+                    }
                 }
 
-                // 2. Verb Logic: "Give" implies ownership/file, "Show" implies viewing
-                const hasGive = /\b(give|send|generate|get)\b/.test(fullText);
-                const hasShow = /\b(show|view|display)\b/.test(fullText);
-
-                // 3. Keyword Context
-                const impliesHeavyData = /\b(list|details|invoice)\b/.test(fullText);
-
-                // Rule: If "Give" + Heavy Data -> PDF. Else -> Text.
-                const format = (hasGive && impliesHeavyData) ? 'pdf' : 'text';
+                // 2. Format / Destination
+                let format = 'text';
+                if (/\b(pdf|download|comprehensive|detailed)\b/.test(fullText)) format = 'pdf';
+                else if (/\b(excel|csv)\b/.test(fullText)) format = 'excel';
 
                 return {
-                    reportType: matches[1].toLowerCase(),
-                    period: matches[2] ? matches[2].toLowerCase().replace('todays', 'today') : 'today',
+                    reportType: reportType,
+                    period: matches[2] ? matches[2].toLowerCase() : 'today',
                     format: format
                 };
             }
         },
         // BILL LOOKUP: "Show bill 123", "Get invoice 456"
         {
-            regex: /\b(bill|invoice|receipt)\s*(?:no|number|#)?\s*(\d+)/i,
+            regex: /\b(bill|invoice|receipt|no|number|#)\s*(?:no|number|#)?\s*(\d+)/i,
             intent: 'BILL_LOOKUP',
             extract: (matches) => ({
                 billId: matches[2]
             })
+        },
+        // BILL MANAGEMENT: "Hold bill", "Resume last bill"
+        {
+            regex: /\b(hold|pause|save)\s+(?:the\s+)?(bill|invoice|process|transaction)\b/i,
+            intent: 'HOLD_BILL',
+            extract: () => ({})
+        },
+        {
+            regex: /\b(resume|unhold|continue|back\s+to|previous)\s+(?:the\s+)?(bill|invoice|transaction|on-hold)\b/i,
+            intent: 'UNHOLD_BILL',
+            extract: () => ({})
+        },
+        // DISCOUNTS: "Apply 10% discount", "Give 5 percent off"
+        {
+            regex: /\b(apply|give|set|add)\s+(\d+(?:\.\d+)?)\s*(?:%|percent)\s*(?:discount|off)?/i,
+            intent: 'APPLY_DISCOUNT',
+            extract: (matches) => ({
+                discount: parseFloat(matches[2])
+            })
+        },
+        // MODIFY ITEM: "Set quantity of milk to 6", "Change biscuits count to 4"
+        {
+            regex: /\b(set|change|update|make)\s+(?:the\s+)?(?:quantity|qty|count|amount)\s+(?:of|for)?\s+(.+)\s+(?:to|as|is)\s+(\d+)/i,
+            intent: 'MODIFY_ITEM',
+            extract: (matches) => ({
+                productName: matches[2].trim(),
+                quantity: parseInt(matches[3])
+            })
+        },
+        // CUSTOMER LINK: "Add customer John to bill", "Link Rahul"
+        {
+            regex: /\b(add|link|attach|associate|connect)\s+(?:customer\s+)?(.+)\s+(?:to|on|for)\s+(?:the\s+)?(?:bill|invoice|transaction)/i,
+            intent: 'ADD_CUSTOMER_TO_BILL',
+            extract: (matches) => ({
+                customerName: matches[2].trim()
+            })
+        },
+        // NAVIGATE: "Go to settings", "Open billing section"
+        {
+            regex: /\b(go\s+to|open|navigate\s+to|show|move\s+to)\s+(?:the\s+)?(settings|billing|inventory|products|reports|analytics|help|dashboard|offers|low\s+stock|orders|accounting|gst)\b/i,
+            intent: 'NAVIGATE',
+            extract: (matches) => {
+                const section = matches[2].toLowerCase();
+                let route = `/${section}`;
+                if (section === 'low stock') route = '/low-stock';
+                return {
+                    route: route,
+                    label: section.charAt(0).toUpperCase() + section.slice(1)
+                };
+            }
         },
         // CUSTOMER LOOKUP: "Customer John", "Details of Rahul"
         {
@@ -239,6 +393,23 @@ export class IntentEngine {
                 productName: matches[2].trim()
             })
         },
+        // NAVIGATION: MOVED DOWN to prevent shadowing specific "Show/Open" intents
+        // "Go to settings", "Open dashboard", "Show customers"
+        {
+            regex: /\b(go to|open|show|view|navigate to|launch)\s+(.+)/i,
+            intent: 'NAVIGATE',
+            extract: (matches) => {
+                const target = matches[2].toLowerCase();
+                if (target.includes('dashboard') || target.includes('home')) return { route: '/', label: 'Dashboard' };
+                if (target.includes('bill') || target.includes('checkout') || target.includes('sales')) return { route: '/billing', label: 'Billing' };
+                if (target.includes('settings') || target.includes('config')) return { route: '/settings', label: 'Settings' };
+                if (target.includes('customer') || target.includes('client')) return { route: '/customers', label: 'Customers' };
+                if (target.includes('stock') || target.includes('inventory')) return { route: '/stocktake', label: 'Stocktake' };
+                if (target.includes('staff') || target.includes('employee')) return { route: '/staff', label: 'Staff Management' };
+
+                return { route: '/', label: 'Home' }; // Fallback
+            }
+        },
 
         // ADD ITEM: "Add 2 milk", "Give me 5 kg sugar", "Need 1 soap"
         {
@@ -249,6 +420,37 @@ export class IntentEngine {
                 unit: matches[3],
                 productName: matches[4].trim()
             })
+        },
+        // ACCOUNTING: "What is my current ratio?", "Show financial health"
+        {
+            regex: /\b(current\s+ratio|financial\s+health|quick\s+ratio|liquidity|profitability|solvency|turnover)\b/i,
+            intent: 'ANALYTICS_QUERY',
+            extract: (matches) => ({
+                subType: 'SYSTEM_HEALTH'
+            })
+        },
+        // ACCOUNTING: "Forecast sales", "Predict cashflow"
+        {
+            regex: /\b(forecast|predict|projection)\s+(sales|revenue|cashflow|cash|income)\b/i,
+            intent: 'ANALYTICS_QUERY',
+            extract: (matches) => ({
+                subType: 'PREDICT_' + matches[2].toUpperCase()
+            })
+        },
+        // ACCOUNTING: "GST Liability", "Tax Report", "Ageing", "Cashflow", "Daybook"
+        {
+            regex: /\b(gst|tax|ageing|receivables|payables|cashflow|cash\s+flow|day\s+book|daily\s+log)\b/i,
+            intent: 'REPORT_QUERY',
+            extract: (matches) => {
+                const text = matches[0].toLowerCase();
+                let type = 'unknown';
+                if (text.includes('gst') || text.includes('tax')) type = 'gst';
+                else if (text.includes('ageing') || text.includes('receiv') || text.includes('payable')) type = 'ageing';
+                else if (text.includes('cash')) type = 'cashflow';
+                else if (text.includes('day') || text.includes('log')) type = 'daybook';
+
+                return { reportType: type };
+            }
         },
         // ADD ITEM (No Qty, Default 1): "Add milk", "Give soap"
         // THIS IS THE CATCH-ALL FOR "GIVE..." SO IT MUST BE LAST
@@ -276,43 +478,110 @@ export class IntentEngine {
     };
 
     public parse(text: string): POSCommand | null {
-        const cleanedText = this.preprocess(text);
-
+        // 1. Check Regex Patterns first (Strict Precision)
         for (const pattern of this.patterns) {
-            const matches = cleanedText.match(pattern.regex);
+            const matches = text.match(pattern.regex);
             if (matches) {
-                console.log(`[IntentEngine] Matched: ${pattern.intent}`, matches);
+                console.log(`[IntentEngine] Matched Regex: ${pattern.intent}`);
                 const payload = pattern.extract(matches);
-                // Post-process payload (e.g., map aliases in product name)
-                if (payload.productName) {
-                    payload.productName = this.resolveAlias(payload.productName);
-                }
-
-                return {
-                    type: pattern.intent,
-                    payload: payload
-                } as POSCommand;
+                if (payload.productName) payload.productName = this.resolveAlias(payload.productName);
+                return { type: pattern.intent, payload: payload } as POSCommand;
             }
         }
 
-        return null; // No match
+        // 2. Semantic Preprocessing (Normalization)
+        const cleanedText = this.preprocess(text);
+        if (!cleanedText) return null;
+
+        // 3. Fallback: Fuzzy Search Training Data (Extended Semantic Match)
+        if (!this.fuse) {
+            console.warn('[IntentEngine] Fuse not initialized yet. Skipping semantic match.');
+            return null;
+        }
+        const results = this.fuse.search(cleanedText);
+
+        // Lower threshold for direct execution to prevent typos from auto-running
+        if (results.length > 0 && results[0].score !== undefined && results[0].score < 0.1) {
+            const match = results[0].item;
+            const score = results[0].score;
+            console.log(`[IntentEngine] Fuzzy Match: ${match.intent} (Score: ${score.toFixed(3)})`);
+
+            // Initialize entities from training data
+            const payload = { ...match.entities };
+
+            // 4. SMART ENTITY RE-EXTRACTION
+            // If the user provided specific values/names, override the training data's example entities
+            const words = text.toLowerCase().split(/\s+/);
+
+            // Extract Number/Quantity/Price
+            const numMatch = text.match(/(\d+(?:\.\d+)?)/);
+            if (numMatch) {
+                const val = parseFloat(numMatch[0]);
+                if (match.intent === 'ADD_ITEM' || match.intent === 'MODIFY_ITEM') payload.quantity = val;
+                if (match.intent === 'DATA_MODIFICATION') payload.value = val;
+                if (match.intent === 'BILL_LOOKUP') payload.billId = numMatch[0];
+            }
+
+            // Extract Product/Customer Names
+            // We assume names are usually at the end or after a verb
+            const possibleNames = words.filter(w => !this.stopWords.has(w) && isNaN(parseFloat(w)) && w.length > 2);
+            if (possibleNames.length > 0) {
+                const name = this.resolveAlias(possibleNames[possibleNames.length - 1]);
+                if (match.intent === 'ADD_ITEM' || match.intent === 'CHECK_STOCK' || match.intent === 'REMOVE_ITEM') {
+                    payload.productName = name;
+                }
+                if (match.intent === 'ADD_CUSTOMER_TO_BILL') {
+                    payload.customerName = possibleNames[possibleNames.length - 1]; // Keep raw case for names?
+                }
+            }
+
+            return { type: match.intent, payload: payload } as POSCommand;
+        }
+
+        return null;
+    }
+
+    public getSuggestion(text: string): { text: string; intent: string } | null {
+        if (!this.fuse) return null;
+
+        const cleanedText = this.preprocess(text);
+        const results = this.fuse.search(cleanedText);
+
+        // Catch anything that wasn't confident enough for direct execution
+        if (results.length > 0 && results[0].score !== undefined) {
+            const score = results[0].score;
+            if (score >= 0.1 && score < 0.8) {
+                return {
+                    text: results[0].item.text,
+                    intent: results[0].item.intent
+                };
+            }
+        }
+        return null;
     }
 
     private preprocess(text: string): string {
-        // Lowercase, remove special chars?
-        // Keep numbers and alphabets
-        return text.trim().toLowerCase();
+        const words = text.toLowerCase().trim().split(/\s+/);
+
+        // 1. Remove Stop Words & Normalize
+        const filtered = words
+            .filter(w => !this.stopWords.has(w))
+            .map(w => this.canonicalMap[w] || w);
+
+        return filtered.join(' ');
     }
 
     private resolveAlias(word: string): string {
-        // Check dynamic aliases first, then hardcoded (if any left, though we should move hardcoded to init of service)
-        // For now, let's trust aliasService.
-        // We can ALSO keep the hardcoded map if we want fallback, or migrate them.
-        // Let's rely on aliasService + fallback to internal map.
-        const dynamic = aliasService.resolve(word);
-        if (dynamic !== word.toLowerCase()) return dynamic;
-
         const lower = word.toLowerCase();
+
+        // 1. Check Canonical Map (Predefined dialects)
+        if (this.canonicalMap[lower]) return this.canonicalMap[lower];
+
+        // 2. Check Dynamic Aliases (User learned)
+        const dynamic = aliasService.resolve(lower);
+        if (dynamic !== lower) return dynamic;
+
+        // 3. Fallback to hardcoded alias map (legacy/internal)
         return this.aliases[lower] || lower;
     }
 }

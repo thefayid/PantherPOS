@@ -1,5 +1,6 @@
 import { eventBus } from '../utils/EventBus';
 import { toast } from 'react-hot-toast';
+import { databaseService } from './databaseService';
 
 export const proactiveService = {
     init: () => {
@@ -25,7 +26,7 @@ export const proactiveService = {
         try {
             // Find items with stock < min_stock (default 5)
             console.log('[Proactive] Checking for low stock items...');
-            const lowStockItems = await window.electronAPI.dbQuery(`
+            const lowStockItems = await databaseService.query(`
                 SELECT name, stock, min_stock_level FROM products 
                 WHERE stock <= COALESCE(min_stock_level, 5) 
                 LIMIT 3
@@ -65,7 +66,7 @@ export const proactiveService = {
 
         try {
             // 1. Get Top Product
-            const topProducts = await window.electronAPI.dbQuery(`
+            const topProducts = await databaseService.query(`
                 SELECT p.name, SUM(bi.quantity) as total_qty
                 FROM bill_items bi
                 JOIN bills b ON bi.bill_id = b.id
@@ -77,7 +78,7 @@ export const proactiveService = {
             `, [customer.id]);
 
             // 2. Get Last Visit
-            const lastVisit = await window.electronAPI.dbQuery(`
+            const lastVisit = await databaseService.query(`
                 SELECT date FROM bills WHERE customer_id = ? ORDER BY date DESC LIMIT 1
             `, [customer.id]);
 

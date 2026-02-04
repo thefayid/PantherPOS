@@ -20,25 +20,28 @@ export function InventoryStats({ products }: StatsProps) {
     }, [products]);
 
     const statCards = [
-        { label: "Total Products", value: stats.totalItems, icon: Package, color: "#60a5fa", bg: "rgba(96, 165, 250, 0.1)", border: "rgba(96, 165, 250, 0.2)" },
-        { label: "Low Stock Alerts", value: stats.lowStock, icon: TrendingUp, color: "#fb923c", bg: "rgba(251, 146, 60, 0.1)", border: "rgba(251, 146, 60, 0.2)" },
-        { label: "Out of Stock", value: stats.outOfStock, icon: AlertTriangle, color: "#ef4444", bg: "rgba(239, 68, 68, 0.1)", border: "rgba(239, 68, 68, 0.2)" },
-        { label: "Inventory Cost", value: `₹${stats.totalCostValue.toLocaleString('en-IN')}`, icon: DollarSign, color: "#facc15", bg: "rgba(250, 204, 21, 0.1)", border: "rgba(250, 204, 21, 0.2)" },
-        { label: "Retail Value", value: `₹${stats.totalSellValue.toLocaleString('en-IN')}`, icon: TrendingUp, color: "#c084fc", bg: "rgba(192, 132, 252, 0.1)", border: "rgba(192, 132, 252, 0.2)" },
-        { label: "Est. Profit", value: `₹${stats.potentialProfit.toLocaleString('en-IN')}`, icon: DollarSign, color: "#34d399", bg: "rgba(52, 211, 153, 0.1)", border: "rgba(52, 211, 153, 0.2)" }
+        { label: "Total Products", value: stats.totalItems, icon: Package, color: "text-blue-500", bg: "bg-blue-500/10", border: "border-blue-500/20" },
+        { label: "Low Stock Alerts", value: stats.lowStock, icon: TrendingUp, color: "text-orange-500", bg: "bg-orange-500/10", border: "border-orange-500/20" },
+        { label: "Out of Stock", value: stats.outOfStock, icon: AlertTriangle, color: "text-red-500", bg: "bg-red-500/10", border: "border-red-500/20" },
+        { label: "Inventory Cost", value: `₹${(stats.totalCostValue || 0).toLocaleString('en-IN')}`, icon: DollarSign, color: "text-yellow-500", bg: "bg-yellow-500/10", border: "border-yellow-500/20" },
+        { label: "Retail Value", value: `₹${(stats.totalSellValue || 0).toLocaleString('en-IN')}`, icon: TrendingUp, color: "text-purple-500", bg: "bg-purple-500/10", border: "border-purple-500/20" },
+        { label: "Est. Profit", value: `₹${(stats.potentialProfit || 0).toLocaleString('en-IN')}`, icon: DollarSign, color: "text-emerald-500", bg: "bg-emerald-500/10", border: "border-emerald-500/20" }
     ];
 
     return (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '24px' }}>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-6">
             {statCards.map((stat, i) => (
-                <div key={i} style={{ position: 'relative', overflow: 'hidden', borderRadius: '16px', padding: '16px', border: `1px solid ${stat.border}`, background: 'rgba(255, 255, 255, 0.02)', backdropFilter: 'blur(10px)', transition: 'transform 0.2s' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div
+                    key={i}
+                    className={`relative overflow-hidden rounded-2xl p-4 border ${stat.border} bg-surface shadow-sm transition-transform hover:scale-[1.02]`}
+                >
+                    <div className="flex justify-between items-start">
                         <div>
-                            <p style={{ fontSize: '10px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'rgba(255, 255, 255, 0.6)', marginBottom: '4px' }}>{stat.label}</p>
-                            <h3 style={{ fontSize: '24px', fontWeight: 900, color: 'white', margin: 0 }}>{stat.value}</h3>
+                            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">{stat.label}</p>
+                            <h3 className="text-2xl font-black text-foreground">{stat.value}</h3>
                         </div>
-                        <div style={{ padding: '8px', borderRadius: '12px', background: stat.bg }}>
-                            <stat.icon size={20} color={stat.color} />
+                        <div className={`p-2 rounded-xl ${stat.bg} ${stat.color}`}>
+                            <stat.icon size={20} />
                         </div>
                     </div>
                 </div>

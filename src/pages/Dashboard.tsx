@@ -7,7 +7,7 @@ import {
     ShoppingCart,
     Clock,
     PackagePlus,
-    UserPlus
+    UserCircle
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -19,11 +19,18 @@ export default function Dashboard() {
 
     useEffect(() => {
         loadDashboard();
+
+        // Auto-refresh every minute
+        const interval = setInterval(() => {
+            loadDashboard(true);
+        }, 60000);
+
+        return () => clearInterval(interval);
     }, []);
 
-    const loadDashboard = async () => {
+    const loadDashboard = async (isBackground = false) => {
         try {
-            setLoading(true);
+            if (!isBackground) setLoading(true);
             const [dashboardStats, activity] = await Promise.all([
                 reportService.getDashboardStats(),
                 reportService.getRecentActivity()
@@ -33,7 +40,7 @@ export default function Dashboard() {
         } catch (error) {
             console.error('Failed to load dashboard:', error);
         } finally {
-            setLoading(false);
+            if (!isBackground) setLoading(false);
         }
     };
 
@@ -49,15 +56,15 @@ export default function Dashboard() {
     return (
         <div className="p-2 space-y-6">
             {/* Header */}
-            <div className="flex justify-between items-end bg-surface/50 backdrop-blur-lg p-6 rounded-2xl border border-white/5 shadow-lg">
+            <div className="flex justify-between items-end bg-surface/50 backdrop-blur-lg p-6 rounded-2xl border border-border shadow-lg">
                 <div>
-                    <h1 className="text-3xl font-bold mb-2 tracking-tight">Dashboard Overview</h1>
+                    <h1 className="text-3xl font-bold mb-2 tracking-tight text-foreground">Dashboard Overview</h1>
                     <p className="text-sm text-emerald-500 font-bold flex items-center gap-2 bg-emerald-500/10 px-3 py-1 rounded-full w-fit">
                         <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                         System Operational
                     </p>
                 </div>
-                <div className="text-xs font-mono bg-black/40 px-4 py-2 rounded-lg border border-white/10 flex items-center gap-2 text-muted-foreground shadow-inner">
+                <div className="text-xs font-mono bg-muted/40 px-4 py-2 rounded-lg border border-border flex items-center gap-2 text-muted-foreground shadow-inner">
                     <Clock size={14} className="text-primary" />
                     <span>UPDATED: {new Date().toLocaleTimeString()}</span>
                 </div>
@@ -102,9 +109,9 @@ export default function Dashboard() {
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* LEFT: Sales Trend (Visual) */}
-                <div className="bg-surface/50 backdrop-blur-md border border-white/5 rounded-2xl p-6 lg:col-span-2 shadow-lg h-[400px] flex flex-col">
+                <div className="bg-surface/50 backdrop-blur-md border border-border rounded-2xl p-6 lg:col-span-2 shadow-lg h-[400px] flex flex-col">
                     <div className="flex justify-between items-center mb-6">
-                        <h3 className="text-xl font-bold flex items-center gap-3">
+                        <h3 className="text-xl font-bold flex items-center gap-3 text-foreground">
                             <TrendingUp size={20} className="text-primary" />
                             Weekly Trend
                         </h3>
@@ -119,12 +126,12 @@ export default function Dashboard() {
                             const heightPercent = maxVal > 0 ? (day.total / maxVal) * 100 : 0;
                             return (
                                 <div key={idx} className="flex flex-col items-center gap-4 flex-1 h-full justify-end group">
-                                    <div className="w-full bg-white/5 rounded-xl overflow-hidden flex items-end h-full relative group-hover:bg-white/10 transition-colors">
+                                    <div className="w-full bg-muted/30 rounded-xl overflow-hidden flex items-end h-full relative group-hover:bg-muted/50 transition-colors">
                                         <div
                                             style={{ height: `${Math.max(heightPercent, 5)}%` }}
                                             className="w-full bg-gradient-to-t from-primary/50 to-primary transition-all duration-500 rounded-xl relative group-hover:shadow-[0_0_20px_rgba(16,185,129,0.3)]"
                                         >
-                                            <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-black/80 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity font-bold whitespace-nowrap border border-white/10">
+                                            <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-popover text-popover-foreground text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity font-bold whitespace-nowrap border border-border shadow-sm">
                                                 ₹{day.total}
                                             </div>
                                         </div>
@@ -139,9 +146,9 @@ export default function Dashboard() {
                 </div>
 
                 {/* RIGHT: Recent Activity */}
-                <div className="bg-surface/50 backdrop-blur-md border border-white/5 rounded-2xl flex flex-col shadow-lg h-[400px]">
-                    <div className="p-6 border-b border-white/5">
-                        <h3 className="text-xl font-bold flex items-center gap-3">
+                <div className="bg-surface/50 backdrop-blur-md border border-border rounded-2xl flex flex-col shadow-lg h-[400px]">
+                    <div className="p-6 border-b border-border">
+                        <h3 className="text-xl font-bold flex items-center gap-3 text-foreground">
                             <Clock size={20} className="text-purple-400" />
                             Live Feed
                         </h3>
@@ -149,14 +156,14 @@ export default function Dashboard() {
 
                     <div className="flex-1 overflow-auto p-4 flex flex-col gap-3 relative no-scrollbar">
                         {recentActivity.map((item) => (
-                            <div key={item.id} className="p-4 rounded-xl bg-black/20 border border-white/5 flex justify-between items-center hover:bg-white/5 transition-colors group">
+                            <div key={item.id} className="p-4 rounded-xl bg-card border border-border flex justify-between items-center hover:bg-muted transition-colors group">
                                 <div className="flex items-center gap-4">
                                     <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-400 group-hover:scale-110 transition-transform">
                                         <ShoppingCart size={16} />
                                     </div>
                                     <div>
-                                        <div className="text-sm font-bold text-white group-hover:text-blue-300 transition-colors">{item.customer_name || 'Walk-in Customer'}</div>
-                                        <div className="text-[10px] text-muted-foreground font-mono bg-white/5 px-1.5 rounded w-fit mt-1">{item.bill_no}</div>
+                                        <div className="text-sm font-bold text-foreground group-hover:text-blue-500 transition-colors">{item.customer_name || 'Walk-in Customer'}</div>
+                                        <div className="text-[10px] text-muted-foreground font-mono bg-muted/50 px-1.5 rounded w-fit mt-1">{item.bill_no}</div>
                                     </div>
                                 </div>
                                 <div className="text-right">
@@ -168,14 +175,14 @@ export default function Dashboard() {
                     </div>
 
                     {/* Quick Actions Footer */}
-                    <div className="p-4 border-t border-white/5 grid grid-cols-2 gap-3 bg-black/20">
-                        <button onClick={() => navigate('/products')} className="p-3 rounded-xl bg-white/5 border border-white/5 flex items-center justify-center gap-2 hover:bg-white/10 hover:border-primary/30 hover:text-primary transition-all group">
+                    <div className="p-4 border-t border-border grid grid-cols-2 gap-3 bg-muted/20">
+                        <button onClick={() => navigate('/products')} className="p-3 rounded-xl bg-background border border-border flex items-center justify-center gap-2 hover:bg-muted/80 hover:border-primary/30 hover:text-primary transition-all group">
                             <PackagePlus size={16} className="group-hover:scale-110 transition-transform" />
-                            <span className="text-xs font-bold uppercase tracking-wide">Add Item</span>
+                            <span className="text-xs font-bold uppercase tracking-wide text-foreground group-hover:text-primary">Add Item</span>
                         </button>
-                        <button onClick={() => navigate('/customers')} className="p-3 rounded-xl bg-white/5 border border-white/5 flex items-center justify-center gap-2 hover:bg-white/10 hover:border-primary/30 hover:text-primary transition-all group">
-                            <UserPlus size={16} className="group-hover:scale-110 transition-transform" />
-                            <span className="text-xs font-bold uppercase tracking-wide">Add User</span>
+                        <button onClick={() => navigate('/staff')} className="p-3 rounded-xl bg-background border border-border flex items-center justify-center gap-2 hover:bg-muted/80 hover:border-primary/30 hover:text-primary transition-all group">
+                            <UserCircle size={16} className="group-hover:scale-110 transition-transform" />
+                            <span className="text-xs font-bold uppercase tracking-wide text-foreground group-hover:text-primary">Add User</span>
                         </button>
                     </div>
                 </div>
@@ -189,9 +196,9 @@ function StatCard({ title, value, icon: Icon, color, bg, subtext, onClick }: any
         <div
             onClick={onClick}
             className={`
-                bg-surface/50 backdrop-blur-md border border-white/5 rounded-2xl p-6 flex flex-col justify-between h-40 
+                bg-surface/50 backdrop-blur-md border border-border rounded-2xl p-6 flex flex-col justify-between h-40 
                 transition-all duration-300 group
-                ${onClick ? 'cursor-pointer hover:-translate-y-1 hover:shadow-glow hover:border-primary/30' : 'hover:border-white/10'}
+                ${onClick ? 'cursor-pointer hover:-translate-y-1 hover:shadow-glow hover:border-primary/30' : 'hover:border-border'}
             `}
         >
             <div className="flex justify-between items-start">
@@ -202,10 +209,10 @@ function StatCard({ title, value, icon: Icon, color, bg, subtext, onClick }: any
             </div>
 
             <div className="mt-4">
-                <h3 className="text-3xl font-bold text-white tracking-tight">{value}</h3>
+                <h3 className="text-3xl font-bold text-foreground tracking-tight">{value}</h3>
                 {subtext && (
                     <div className="mt-2 flex items-center">
-                        <p className={`text-xs font-bold ${color} bg-black/20 px-2 py-0.5 rounded-md`}>{subtext}</p>
+                        <p className={`text-xs font-bold ${color} bg-muted/50 px-2 py-0.5 rounded-md`}>{subtext}</p>
                     </div>
                 )}
             </div>

@@ -291,6 +291,68 @@ export const initDb = async (log: (msg: string) => void = console.log) => {
             FOREIGN KEY(group_id) REFERENCES product_groups(id) ON DELETE CASCADE,
             FOREIGN KEY(product_id) REFERENCES products(id) ON DELETE CASCADE
         );
+
+        CREATE TABLE IF NOT EXISTS company_settings (
+            id INTEGER PRIMARY KEY CHECK (id = 1),
+            name TEXT,
+            tax_number TEXT,
+            street_name TEXT,
+            building_number TEXT,
+            additional_street_name TEXT,
+            plot_identification TEXT,
+            district TEXT,
+            postal_code TEXT,
+            city TEXT,
+            state TEXT,
+            country TEXT,
+            phone_number TEXT,
+            email TEXT,
+            bank_acc_number TEXT,
+            bank_details TEXT,
+            logo TEXT
+        );
+
+        CREATE TABLE IF NOT EXISTS void_reasons (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            reason TEXT NOT NULL
+        );
+
+        -- ACCOUNTING SYSTEM TABLES
+        CREATE TABLE IF NOT EXISTS accounts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            code TEXT UNIQUE NOT NULL,
+            name TEXT NOT NULL,
+            type TEXT CHECK(type IN ('ASSET', 'LIABILITY', 'INCOME', 'EXPENSE', 'EQUITY')) NOT NULL,
+            category TEXT, -- e.g., 'Current Asset', 'Fixed Asset'
+            balance REAL DEFAULT 0,
+            description TEXT,
+            is_system BOOLEAN DEFAULT 0
+        );
+
+        CREATE TABLE IF NOT EXISTS vouchers (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            voucher_no TEXT UNIQUE NOT NULL,
+            date TEXT NOT NULL,
+            type TEXT CHECK(type IN ('RECEIPT', 'PAYMENT', 'JOURNAL', 'CONTRA', 'SALES', 'PURCHASE')) NOT NULL,
+            total_amount REAL NOT NULL,
+            reference_id TEXT, -- e.g., 'BILL-123', 'PO-456'
+            notes TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+
+        CREATE TABLE IF NOT EXISTS voucher_items (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            voucher_id INTEGER NOT NULL,
+            account_id INTEGER NOT NULL,
+            type TEXT CHECK(type IN ('DEBIT', 'CREDIT')) NOT NULL,
+            amount REAL NOT NULL,
+            description TEXT,
+            FOREIGN KEY(voucher_id) REFERENCES vouchers(id) ON DELETE CASCADE,
+            FOREIGN KEY(account_id) REFERENCES accounts(id)
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_vouchers_date ON vouchers(date);
+        CREATE INDEX IF NOT EXISTS idx_accounts_code ON accounts(code);
         `;
 
         // Initialize schema
@@ -374,6 +436,15 @@ export const initDb = async (log: (msg: string) => void = console.log) => {
         } catch (e) {
             console.error('Migration Error (product_groups):', e);
         }
+
+        // Migration: Add order_type and notes to bills
+        try {
+            db.run("ALTER TABLE bills ADD COLUMN order_type TEXT DEFAULT 'DINE_IN'"); // DINE_IN, TAKEAWAY, DELIVERY
+        } catch (e) { }
+
+        try {
+            db.run("ALTER TABLE bills ADD COLUMN notes TEXT");
+        } catch (e) { }
 
         try {
             db.run(`
@@ -475,12 +546,12 @@ export const initDb = async (log: (msg: string) => void = console.log) => {
             const settingCount = db.exec("SELECT COUNT(*) as count FROM store_settings")[0].values[0][0];
             if (settingCount === 0) {
                 const keys = [
-                    ['store_name', 'QuickPOS Store'],
+                    ['store_name', 'PantherPOS Store'],
                     ['address_line1', '123 Business Avenue'],
                     ['address_line2', 'Tech City'],
                     ['phone', '+91 00000 00000'],
                     ['gstin', 'XXABCDE1234F1Z5'],
-                    ['receipt_header', 'Welcome to QuickPOS'],
+                    ['receipt_header', 'Welcome to PantherPOS'],
                     ['receipt_footer', 'Thank you for your visit!'],
                     ['logo_path', '']
                 ];
@@ -591,6 +662,37 @@ export const initDb = async (log: (msg: string) => void = console.log) => {
             }
         } catch (e) {
             console.error('Error seeding admin:', e);
+        }
+
+        // Seed Initial Chart of Accounts
+        try {
+            const accountCount = db.exec("SELECT COUNT(*) as count FROM accounts")[0].values[0][0];
+            if (accountCount === 0) {
+                log('Seeding initial Chart of Accounts...');
+                const initialAccounts = [
+                    ['1001', 'Cash in Hand', 'ASSET', 'Cash', 1],
+                    ['1002', 'Bank Account', 'ASSET', 'Bank', 1],
+                    ['1003', 'Accounts Receivable', 'ASSET', 'Receivables', 1],
+                    ['1004', 'Inventory', 'ASSET', 'Inventory', 1],
+                    ['2001', 'Accounts Payable', 'LIABILITY', 'Payables', 1],
+                    ['2002', 'GST Payable', 'LIABILITY', 'Duties & Taxes', 1],
+                    ['3001', 'Capital Account', 'EQUITY', 'Equity', 1],
+                    ['4001', 'Sales Revenue', 'INCOME', 'Sales', 1],
+                    ['4002', 'Other Income', 'INCOME', 'Other', 1],
+                    ['5001', 'Cost of Goods Sold', 'EXPENSE', 'Direct Expenses', 1],
+                    ['5002', 'Rent Expense', 'EXPENSE', 'Indirect Expenses', 0],
+                    ['5003', 'Electricity Bill', 'EXPENSE', 'Indirect Expenses', 0],
+                    ['5004', 'Staff Salary', 'EXPENSE', 'Indirect Expenses', 0],
+                    ['5005', 'General Expenses', 'EXPENSE', 'Indirect Expenses', 0]
+                ];
+                for (const [code, name, type, cat, system] of initialAccounts) {
+                    db.run("INSERT INTO accounts (code, name, type, category, is_system) VALUES (?, ?, ?, ?, ?)",
+                        [code, name, type, cat, system]);
+                }
+                log('Chart of Accounts seeded.');
+            }
+        } catch (e: any) {
+            log(`Error seeding accounts: ${e.message}`);
         }
 
         save(); // Save initial schema

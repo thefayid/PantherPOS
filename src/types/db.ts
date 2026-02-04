@@ -3,8 +3,30 @@ export interface User {
     name: string;
     role: 'ADMIN' | 'CASHIER' | 'MANAGER';
     pin: string;
+    salary: number;
+    pending_salary: number;
+    given_salary: number;
     created_at: string;
 }
+
+export interface StaffAttendance {
+    id: number;
+    user_id: number;
+    date: string;
+    check_in: string;
+    check_out?: string;
+    status: 'PRESENT' | 'ABSENT' | 'LEAVE';
+}
+
+export interface StaffPayment {
+    id: number;
+    user_id: number;
+    date: string;
+    amount: number;
+    payment_mode: string;
+    notes?: string;
+}
+
 
 export interface Product {
     id: number;
@@ -126,6 +148,8 @@ export interface Bill {
     points_redeemed: number;
     points_earned: number;
     promotion_id?: number;
+    order_type?: 'DINE_IN' | 'TAKEAWAY' | 'DELIVERY';
+    notes?: string;
 }
 
 export interface BillItem {
@@ -184,4 +208,69 @@ export interface InventoryLog {
     reason?: string;
     date: string;
     user_id?: number;
+}
+
+export interface ChatLog {
+    id: number;
+    sender: 'USER' | 'AI' | 'SYSTEM';
+    text: string;
+    action_taken?: string;
+    timestamp: number;
+    session_id?: string;
+}
+
+export interface CompanySettings {
+    id: number;
+    name: string;
+    tax_number: string;
+    street_name: string;
+    building_number: string;
+    additional_street_name: string;
+    plot_identification: string;
+    district: string;
+    postal_code: string;
+    city: string;
+    state: string;
+    country: string;
+    phone_number: string;
+    email: string;
+    bank_acc_number: string;
+    bank_details: string;
+    logo: string;
+}
+
+export interface VoidReason {
+    id: number;
+    reason: string;
+}
+
+export interface Account {
+    id: number;
+    code: string;
+    name: string;
+    type: 'ASSET' | 'LIABILITY' | 'INCOME' | 'EXPENSE' | 'EQUITY';
+    category?: string;
+    balance: number;
+    description?: string;
+    is_system: boolean;
+}
+
+export interface Voucher {
+    id: number;
+    voucher_no: string;
+    date: string;
+    type: 'RECEIPT' | 'PAYMENT' | 'JOURNAL' | 'CONTRA' | 'SALES' | 'PURCHASE';
+    total_amount: number;
+    reference_id?: string;
+    notes?: string;
+    created_at: string;
+}
+
+export interface VoucherItem {
+    id: number;
+    voucher_id: number;
+    account_id: number;
+    type: 'DEBIT' | 'CREDIT';
+    amount: number;
+    description?: string;
 }

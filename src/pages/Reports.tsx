@@ -72,33 +72,60 @@ export default function Reports() {
     };
 
     const columns = useMemo(() => {
-        const formatCurrency = (val: any) => `₹${(val || 0).toFixed(2)}`;
+        const formatCurrency = (val: any) => `₹${Number(val || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
         switch (activeReport) {
             case 'DAILY': return [
                 { header: 'Date', accessor: 'day', className: 'font-mono' },
-                { header: 'Transactions', accessor: 'count', className: 'center' },
-                { header: 'Total Revenue', accessor: (r: any) => <span style={{ color: '#34d399', fontWeight: 'bold' }}>{formatCurrency(r.total)}</span>, className: 'right' },
+                { header: 'Transactions', accessor: 'count', className: 'center font-bold' },
+                { header: 'Avg Ticket', accessor: (r: any) => formatCurrency(r.avg_ticket), className: 'right' },
+                { header: 'Total Revenue', accessor: (r: any) => <span className="text-emerald-500 font-black">{formatCurrency(r.total)}</span>, className: 'right' },
             ];
             case 'HOURLY': return [
                 { header: 'Time Block', accessor: 'hour', className: 'font-mono' },
-                { header: 'Footfall', accessor: 'count', className: 'center' },
-                { header: 'Sales Volume', accessor: (r: any) => formatCurrency(r.total), className: 'right' },
+                { header: 'Footfall', accessor: 'count', className: 'center font-bold' },
+                { header: 'Sales Volume', accessor: (r: any) => formatCurrency(r.total), className: 'right text-primary font-bold' },
             ];
-            case 'PAYMENTS': return [{ header: 'Method', accessor: 'payment_mode' }, { header: 'Txn Count', accessor: 'count', className: 'center' }, { header: 'Total', accessor: (r: any) => formatCurrency(r.total), className: 'right' }];
-            case 'PRODUCTS': return [{ header: 'Product', accessor: 'name' }, { header: 'Barcode', accessor: 'barcode', className: 'font-mono' }, { header: 'Units', accessor: 'qty', className: 'center' }, { header: 'Revenue', accessor: (r: any) => formatCurrency(r.total), className: 'right' }];
-            case 'PROFIT': return [{ header: 'Product', accessor: 'name' }, { header: 'Qty', accessor: 'qty_sold', className: 'center' }, { header: 'Revenue', accessor: (r: any) => formatCurrency(r.revenue), className: 'right' }, { header: 'Cost', accessor: (r: any) => formatCurrency(r.cost), className: 'right' }, { header: 'Profit', accessor: (r: any) => <span style={{ color: r.profit > 0 ? '#34d399' : '#ef4444', fontWeight: 'bold' }}>{formatCurrency(r.profit)}</span>, className: 'right' }];
-            case 'GST': return [{ header: 'Tax Slab', accessor: (r: any) => `${r.gst_rate}%` }, { header: 'Taxable', accessor: (r: any) => formatCurrency(r.taxable), className: 'right' }, { header: 'GST', accessor: (r: any) => formatCurrency(r.gst), className: 'right' }];
-            case 'HSN': return [{ header: 'HSN', accessor: 'hsn_code', className: 'font-mono' }, { header: 'Taxable', accessor: (r: any) => formatCurrency(r.taxable), className: 'right' }, { header: 'Tax', accessor: (r: any) => formatCurrency(r.gst), className: 'right' }];
-            case 'OUTSTANDING': return [{ header: 'Customer', accessor: 'customer_name' }, { header: 'Contact', accessor: 'customer_phone', className: 'font-mono' }, { header: 'Date', accessor: (r: any) => new Date(r.date).toLocaleDateString() }, { header: 'Due', accessor: (r: any) => <span style={{ color: '#ef4444', fontWeight: 'bold' }}>{formatCurrency(r.total)}</span>, className: 'right' }];
-            case 'TOP_CUSTOMERS': return [{ header: 'Customer', accessor: 'name' }, { header: 'Phone', accessor: 'phone' }, { header: 'Visits', accessor: 'visits', className: 'center' }, { header: 'Spent', accessor: (r: any) => formatCurrency(r.total_spent), className: 'right' }];
-            case 'PURCHASE_PRODUCTS': return [{ header: 'Product', accessor: 'name' }, { header: 'Barcode', accessor: 'barcode' }, { header: 'Qty', accessor: 'qty_bought', className: 'center' }, { header: 'Cost', accessor: (r: any) => formatCurrency(r.total_spent), className: 'right' }];
-            case 'SUPPLIERS': return [{ header: 'Name', accessor: 'name' }, { header: 'Contact', accessor: 'phone' }, { header: 'GSTIN', accessor: 'gstin' }, { header: 'Orders', accessor: 'order_count', className: 'center' }];
-            case 'UNPAID_PURCHASE': return [{ header: 'Order #', accessor: 'order_no' }, { header: 'Date', accessor: (r: any) => new Date(r.date).toLocaleDateString() }, { header: 'Amount', accessor: (r: any) => <span style={{ color: '#ef4444', fontWeight: 'bold' }}>{formatCurrency(r.total_amount)}</span>, className: 'right' }, { header: 'Status', accessor: 'status' }];
-            case 'PURCHASE_INVOICES': return [{ header: 'Inv No', accessor: 'order_no' }, { header: 'Supplier', accessor: 'supplier_name' }, { header: 'Date', accessor: (r: any) => new Date(r.date).toLocaleDateString() }, { header: 'Amount', accessor: (r: any) => formatCurrency(r.total_amount), className: 'right' }];
-            case 'LOW_STOCK': return [{ header: 'Product', accessor: 'name', className: 'text-orange-400' }, { header: 'In Stock', accessor: 'stock', className: 'center' }, { header: 'Min Level', accessor: 'min_stock_level', className: 'center' }];
-            case 'REORDER_LIST': return [{ header: 'Product', accessor: 'name' }, { header: 'Stock', accessor: 'stock', className: 'center' }, { header: 'Reorder', accessor: 'suggested_order', className: 'center' }];
-            case 'LOSS_DAMAGE': return [{ header: 'Date', accessor: (r: any) => new Date(r.date).toLocaleDateString() }, { header: 'Product', accessor: 'product_name' }, { header: 'Type', accessor: 'type' }, { header: 'Reason', accessor: 'reason' }, { header: 'Qty', accessor: (r: any) => Math.abs(r.quantity_change), className: 'right' }];
-            case 'TRANSACTIONS': return [{ header: 'Date', accessor: (r: any) => new Date(r.date).toLocaleString() }, { header: 'Type', accessor: 'type', className: (r: any) => r.type === 'SALE' ? 'text-green-400' : 'text-red-400' }, { header: 'Ref', accessor: 'ref' }, { header: 'Amount', accessor: (r: any) => formatCurrency(r.amount), className: 'right' }];
+            case 'PAYMENTS': return [{ header: 'Method', accessor: 'payment_mode', className: 'font-bold uppercase tracking-tight' }, { header: 'Txn Count', accessor: 'count', className: 'center' }, { header: 'Total', accessor: (r: any) => formatCurrency(r.total), className: 'right font-black text-foreground' }];
+            case 'PRODUCTS': return [{ header: 'Product', accessor: 'name', className: 'font-bold' }, { header: 'Barcode', accessor: 'barcode', className: 'font-mono text-xs opacity-70' }, { header: 'Units', accessor: 'qty', className: 'center font-black text-primary' }, { header: 'Revenue', accessor: (r: any) => formatCurrency(r.total), className: 'right font-bold' }];
+            case 'PROFIT': return [
+                { header: 'Product', accessor: 'name', className: 'font-bold' },
+                { header: 'Qty', accessor: 'qty_sold', className: 'center' },
+                { header: 'Revenue', accessor: (r: any) => formatCurrency(r.revenue), className: 'right' },
+                { header: 'Cost', accessor: (r: any) => formatCurrency(r.cost), className: 'right opacity-60 text-xs' },
+                { header: 'Margin', accessor: (r: any) => `${Number(r.margin_percent || 0).toFixed(1)}%`, className: (r: any) => Number(r.margin_percent || 0) > 20 ? 'text-emerald-500 text-right font-black' : 'text-orange-500 text-right font-black' },
+                { header: 'Profit', accessor: (r: any) => <span className={`font-black ${Number(r.profit) > 0 ? 'text-emerald-500' : 'text-destructive'}`}>{formatCurrency(r.profit)}</span>, className: 'right' }
+            ];
+            case 'GST': return [
+                { header: 'Tax Slab', accessor: (r: any) => `${r.gst_rate}%`, className: 'font-black text-primary' },
+                { header: 'Taxable', accessor: (r: any) => formatCurrency(r.taxable), className: 'right' },
+                { header: 'CGST', accessor: (r: any) => formatCurrency(r.cgst), className: 'right opacity-70' },
+                { header: 'SGST', accessor: (r: any) => formatCurrency(r.sgst), className: 'right opacity-70' },
+                { header: 'Total GST', accessor: (r: any) => formatCurrency(r.gst), className: 'right font-black text-foreground' }
+            ];
+            case 'HSN': return [{ header: 'HSN', accessor: 'hsn_code', className: 'font-mono font-bold' }, { header: 'Taxable', accessor: (r: any) => formatCurrency(r.taxable), className: 'right' }, { header: 'Tax', accessor: (r: any) => formatCurrency(r.gst), className: 'right font-bold text-primary' }];
+            case 'OUTSTANDING': return [
+                { header: 'Customer', accessor: 'customer_name', className: 'font-bold' },
+                { header: 'Contact', accessor: 'customer_phone', className: 'font-mono text-xs opacity-70' },
+                { header: 'Date', accessor: (r: any) => new Date(r.date).toLocaleDateString() },
+                { header: 'Overdue', accessor: (r: any) => `${r.days_overdue} days`, className: 'text-orange-500 font-black italic' },
+                { header: 'Due', accessor: (r: any) => <span className="text-destructive font-black">{formatCurrency(r.total)}</span>, className: 'right' }
+            ];
+            case 'TOP_CUSTOMERS': return [{ header: 'Customer', accessor: 'name', className: 'font-bold' }, { header: 'Phone', accessor: 'phone', className: 'font-mono' }, { header: 'Visits', accessor: 'visits', className: 'center font-black' }, { header: 'Spent', accessor: (r: any) => formatCurrency(r.total_spent), className: 'right font-black text-primary' }];
+            case 'PURCHASE_PRODUCTS': return [{ header: 'Product', accessor: 'name', className: 'font-bold' }, { header: 'Barcode', accessor: 'barcode', className: 'font-xs opacity-50' }, { header: 'Qty', accessor: 'qty_bought', className: 'center font-black' }, { header: 'Cost', accessor: (r: any) => formatCurrency(r.total_spent), className: 'right font-bold' }];
+            case 'SUPPLIERS': return [{ header: 'Name', accessor: 'name', className: 'font-bold uppercase tracking-tight' }, { header: 'Contact', accessor: 'phone', className: 'font-mono' }, { header: 'GSTIN', accessor: 'gstin', className: 'text-xs opacity-70' }, { header: 'Orders', accessor: 'order_count', className: 'center font-black' }];
+            case 'UNPAID_PURCHASE': return [{ header: 'Order #', accessor: 'order_no', className: 'font-mono font-bold' }, { header: 'Date', accessor: (r: any) => new Date(r.date).toLocaleDateString() }, { header: 'Amount', accessor: (r: any) => <span className="text-destructive font-black">{formatCurrency(r.total_amount)}</span>, className: 'right' }, { header: 'Status', accessor: 'status', className: 'uppercase text-[10px] font-black' }];
+            case 'PURCHASE_INVOICES': return [{ header: 'Inv No', accessor: 'order_no', className: 'font-mono font-bold' }, { header: 'Supplier', accessor: 'supplier_name', className: 'font-bold' }, { header: 'Date', accessor: (r: any) => new Date(r.date).toLocaleDateString() }, { header: 'Amount', accessor: (r: any) => formatCurrency(r.total_amount), className: 'right font-black' }];
+            case 'LOW_STOCK': return [{ header: 'Product', accessor: 'name', className: 'text-orange-500 font-black uppercase tracking-tight' }, { header: 'In Stock', accessor: 'stock', className: 'center font-bold' }, { header: 'Min Level', accessor: 'min_stock_level', className: 'center opacity-50' }];
+            case 'REORDER_LIST': return [{ header: 'Product', accessor: 'name', className: 'font-bold' }, { header: 'Stock', accessor: 'stock', className: 'center font-black text-destructive' }, { header: 'Reorder', accessor: 'suggested_order', className: 'center font-black text-emerald-500' }];
+            case 'LOSS_DAMAGE': return [{ header: 'Date', accessor: (r: any) => new Date(r.date).toLocaleDateString() }, { header: 'Product', accessor: 'product_name', className: 'font-black' }, { header: 'Type', accessor: 'type', className: 'text-[10px] uppercase font-bold' }, { header: 'Reason', accessor: 'reason', className: 'italic text-muted-foreground' }, { header: 'Qty', accessor: (r: any) => Math.abs(r.quantity_change), className: 'right font-bold text-destructive' }];
+            case 'TRANSACTIONS': return [
+                { header: 'Timestamp', accessor: (r: any) => new Date(r.date).toLocaleString(), className: 'text-xs opacity-70' },
+                { header: 'RefID', accessor: 'ref', className: 'font-mono font-bold text-primary' },
+                { header: 'Entity', accessor: (r: any) => r.customer_name || 'Walk-in' },
+                { header: 'Type', accessor: (r: any) => <span className={`font-black text-[10px] uppercase tracking-widest ${r.type === 'SALE' ? 'text-emerald-500' : 'text-destructive'}`}>{r.type}</span> },
+                { header: 'Operational Status', accessor: (r: any) => <span className="text-[10px] uppercase font-bold opacity-60 tracking-widest">{r.status}</span> },
+                { header: 'Quantum', accessor: (r: any) => formatCurrency(r.amount), className: 'right font-black' }
+            ];
             default: return [];
         }
     }, [activeReport]);
@@ -113,39 +140,44 @@ export default function Reports() {
         return REPORT_GROUPS.map(group => ({ ...group, items: group.items.filter(item => item.label.toLowerCase().includes(searchTerm.toLowerCase())) })).filter(group => group.items.length > 0);
     }, [searchTerm]);
 
+    const resolveClassName = (classNameConfig: any, row: any) => {
+        if (typeof classNameConfig === 'function') return classNameConfig(row);
+        return classNameConfig || '';
+    };
+
     return (
         <div className="flex h-full gap-6">
             {/* Sidebar Navigation */}
-            <div className="w-64 flex flex-col gap-4 bg-surface/50 backdrop-blur-md border border-white/5 rounded-2xl p-4 shadow-lg overflow-hidden shrink-0">
+            <div className="w-72 flex flex-col gap-5 bg-surface/50 backdrop-blur-xl border border-border rounded-2xl p-5 shadow-2xl overflow-hidden shrink-0">
                 <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={14} />
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
                     <input
-                        className="w-full pl-9 pr-3 py-2 bg-black/40 border border-white/10 rounded-xl text-sm text-white placeholder:text-muted-foreground focus:outline-none focus:border-primary/50"
-                        placeholder="Search reports..."
+                        className="w-full pl-11 pr-4 py-3 bg-muted/20 border border-border rounded-xl text-sm text-foreground font-bold placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all shadow-inner"
+                        placeholder="Search report archives..."
                         value={searchTerm}
                         onChange={e => setSearchTerm(e.target.value)}
                     />
                 </div>
 
-                <div className="flex-1 overflow-y-auto pr-1 no-scrollbar space-y-6">
+                <div className="flex-1 overflow-y-auto pr-1 custom-scrollbar space-y-8">
                     {filteredReportGroups.map((group, idx) => (
-                        <div key={idx}>
-                            <h3 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-3 px-2">{group.title}</h3>
-                            <div className="flex flex-col gap-1">
+                        <div key={idx} className="animate-in fade-in slide-in-from-left-4 duration-500" style={{ animationDelay: `${idx * 100}ms` }}>
+                            <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground mb-4 px-2 opacity-60">{group.title}</h3>
+                            <div className="flex flex-col gap-1.5">
                                 {group.items.map(item => (
                                     <button
                                         key={item.id}
                                         onClick={() => setActiveReport(item.id as ReportType)}
                                         className={`
-                                            flex items-center gap-3 p-2.5 rounded-xl text-sm text-left transition-all duration-200
+                                            flex items-center gap-4 p-3.5 rounded-xl text-xs text-left transition-all duration-300 group
                                             ${activeReport === item.id
-                                                ? 'bg-primary/20 text-primary font-bold shadow-glow border border-primary/20'
-                                                : 'text-gray-400 hover:bg-white/5 hover:text-white border border-transparent'
+                                                ? 'bg-primary/10 text-primary font-black shadow-sm border border-primary/30'
+                                                : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground border border-transparent hover:px-5'
                                             }
                                         `}
                                     >
-                                        <item.icon size={16} strokeWidth={activeReport === item.id ? 2.5 : 2} />
-                                        <span>{item.label}</span>
+                                        <item.icon size={18} strokeWidth={activeReport === item.id ? 2.5 : 2} className={`${activeReport === item.id ? 'text-primary' : 'text-muted-foreground group-hover:text-primary transition-colors'}`} />
+                                        <span className="uppercase tracking-widest">{item.label}</span>
                                     </button>
                                 ))}
                             </div>
@@ -155,39 +187,39 @@ export default function Reports() {
             </div>
 
             {/* Main Content Area */}
-            <div className="flex-1 flex flex-col gap-6 min-w-0">
+            <div className="flex-1 flex flex-col gap-6 min-w-0 animate-in fade-in slide-in-from-bottom-6 duration-500">
                 {/* Toolbar */}
-                <div className="p-4 bg-surface/50 backdrop-blur-md border border-white/5 rounded-2xl flex justify-between items-center shadow-lg">
+                <div className="relative z-30 p-5 bg-surface border border-border rounded-2xl flex justify-between items-center shadow-xl">
                     <div>
-                        <h2 className="text-2xl font-bold text-white tracking-tight">{activeReportLabel}</h2>
-                        <div className="flex items-center gap-2 mt-1">
-                            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                            <p className="text-xs text-muted-foreground font-mono">
-                                PERIOD: {dateFrom || 'ALL TIME'} — {dateTo || 'PRESENT'}
+                        <h2 className="text-2xl font-black text-foreground tracking-tighter uppercase">{activeReportLabel}</h2>
+                        <div className="flex items-center gap-2 mt-1.5">
+                            <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-glow animate-pulse" />
+                            <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest opacity-60">
+                                TEMPORAL RANGE: {dateFrom || 'INFINTY'} — {dateTo || 'PRESENT'}
                             </p>
                         </div>
                     </div>
 
                     <div className="flex items-center gap-4">
-                        <div className="flex items-center gap-2 bg-black/20 p-1 rounded-xl border border-white/10">
-                            <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="bg-transparent text-white text-xs p-2 focus:outline-none font-mono" />
-                            <span className="text-muted-foreground">→</span>
-                            <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="bg-transparent text-white text-xs p-2 focus:outline-none font-mono" />
+                        <div className="flex items-center gap-2 bg-muted/30 p-1.5 rounded-xl border border-border shadow-inner">
+                            <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="bg-transparent text-foreground text-xs p-2 focus:outline-none font-black uppercase tracking-widest cursor-pointer" />
+                            <span className="text-muted-foreground/30 font-black">→</span>
+                            <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="bg-transparent text-foreground text-xs p-2 focus:outline-none font-black uppercase tracking-widest cursor-pointer" />
                         </div>
 
-                        <button onClick={handlePrint} className="p-2.5 bg-black/40 border border-white/10 rounded-xl hover:bg-white/10 text-muted-foreground hover:text-white transition-colors">
-                            <Printer size={18} />
+                        <button onClick={handlePrint} className="p-3 bg-muted/20 border border-border rounded-xl hover:bg-primary/10 text-muted-foreground hover:text-primary transition-all shadow-sm hover:scale-105 active:scale-95">
+                            <Printer size={20} />
                         </button>
 
                         <div className="relative">
-                            <Button onClick={() => setShowExportMenu(!showExportMenu)} className="flex items-center gap-2 bg-primary hover:bg-primary-hover text-white px-4 py-2.5 rounded-xl text-sm font-bold shadow-glow">
-                                <Download size={16} /> Export
+                            <Button onClick={() => setShowExportMenu(!showExportMenu)} className="flex items-center gap-2 bg-primary hover:brightness-110 text-primary-foreground px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-glow">
+                                <Download size={16} /> Finalize Export
                             </Button>
                             {showExportMenu && (
-                                <div className="absolute right-0 top-full mt-2 w-40 bg-[#1a1a1a] border border-white/10 rounded-xl shadow-2xl z-50 flex flex-col overflow-hidden py-1">
-                                    <button onClick={() => handleExport('csv')} className="p-3 text-left hover:bg-white/5 text-sm flex gap-3 items-center text-gray-300 hover:text-white transition-colors"><FileText size={16} className="text-blue-400" /> CSV</button>
-                                    <button onClick={() => handleExport('xlsx')} className="p-3 text-left hover:bg-white/5 text-sm flex gap-3 items-center text-gray-300 hover:text-white transition-colors"><FileSpreadsheet size={16} className="text-emerald-400" /> Excel</button>
-                                    <button onClick={() => handleExport('pdf')} className="p-3 text-left hover:bg-white/5 text-sm flex gap-3 items-center text-gray-300 hover:text-white transition-colors"><FilePdf size={16} className="text-red-400" /> PDF</button>
+                                <div className="absolute right-0 top-full mt-3 w-48 bg-surface border border-border rounded-2xl shadow-2xl z-50 flex flex-col overflow-hidden py-2 animate-in zoom-in-95 duration-200">
+                                    <button onClick={() => handleExport('csv')} className="p-4 text-left hover:bg-muted text-[10px] font-black uppercase tracking-[0.2em] flex gap-4 items-center text-muted-foreground hover:text-foreground transition-all"><div className="w-2 h-2 rounded-full bg-blue-500" /> CSV COMMA SEPARATED</button>
+                                    <button onClick={() => handleExport('xlsx')} className="p-4 text-left hover:bg-muted text-[10px] font-black uppercase tracking-[0.2em] flex gap-4 items-center text-muted-foreground hover:text-foreground transition-all"><div className="w-2 h-2 rounded-full bg-emerald-500" /> EXCEL SPREADSHEET</button>
+                                    <button onClick={() => handleExport('pdf')} className="p-4 text-left hover:bg-muted text-[10px] font-black uppercase tracking-[0.2em] flex gap-4 items-center text-muted-foreground hover:text-foreground transition-all"><div className="w-2 h-2 rounded-full bg-red-500" /> PORTABLE DOCUMENT</button>
                                 </div>
                             )}
                         </div>
@@ -195,36 +227,39 @@ export default function Reports() {
                 </div>
 
                 {/* Report Content */}
-                <div className="flex-1 bg-surface/30 backdrop-blur-sm border border-white/5 rounded-2xl overflow-hidden shadow-2xl relative" ref={componentRef}>
+                <div className="flex-1 bg-surface border border-border rounded-2xl overflow-hidden shadow-2xl relative" ref={componentRef}>
                     <div className="absolute inset-0 overflow-auto custom-scrollbar">
-                        <table className="w-full text-sm text-left">
-                            <thead className="bg-black/40 text-muted-foreground sticky top-0 z-10 backdrop-blur-md border-b border-white/10">
+                        <table className="w-full text-sm text-left border-collapse">
+                            <thead className="bg-muted text-muted-foreground sticky top-0 z-10 backdrop-blur-2xl border-b border-border shadow-sm">
                                 <tr>
                                     {columns.map((col: any, i: number) => (
-                                        <th key={i} className={`p-4 font-bold whitespace-nowrap uppercase tracking-wider text-[11px] ${col.className?.includes('right') ? 'text-right' : col.className?.includes('center') ? 'text-center' : ''}`}>
+                                        <th key={i} className={`p-5 font-black whitespace-nowrap uppercase tracking-[0.1em] text-[10px] ${typeof col.className === 'string' && col.className.includes('right') ? 'text-right' : typeof col.className === 'string' && col.className.includes('center') ? 'text-center' : ''}`}>
                                             {col.header}
                                         </th>
                                     ))}
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-white/5">
+                            <tbody className="divide-y divide-border/50">
                                 {data.length > 0 ? (
                                     data.map((row, rIdx) => (
-                                        <tr key={rIdx} className="hover:bg-white/5 transition-colors group">
-                                            {columns.map((col: any, cIdx: number) => (
-                                                <td key={cIdx} className={`p-4 text-gray-300 font-medium group-hover:text-white transition-colors ${col.className?.includes('right') ? 'text-right' : col.className?.includes('center') ? 'text-center' : ''}`}>
-                                                    {typeof col.accessor === 'function' ? col.accessor(row) : row[col.accessor]}
-                                                </td>
-                                            ))}
+                                        <tr key={rIdx} className="hover:bg-primary/5 transition-colors group">
+                                            {columns.map((col: any, cIdx: number) => {
+                                                const finalClass = resolveClassName(col.className, row);
+                                                return (
+                                                    <td key={cIdx} className={`p-5 text-foreground font-bold transition-all ${finalClass} ${typeof finalClass === 'string' && finalClass.includes('right') || (typeof col.className === 'string' && col.className.includes('right')) ? 'text-right' : typeof finalClass === 'string' && finalClass.includes('center') || (typeof col.className === 'string' && col.className.includes('center')) ? 'text-center' : ''}`}>
+                                                        {typeof col.accessor === 'function' ? col.accessor(row) : row[col.accessor]}
+                                                    </td>
+                                                );
+                                            })}
                                         </tr>
                                     ))
                                 ) : (
                                     <tr>
-                                        <td colSpan={columns.length} className="p-20 text-center text-muted-foreground flex flex-col items-center justify-center gap-4">
-                                            <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center">
-                                                <History size={32} className="opacity-20" />
+                                        <td colSpan={columns.length} className="p-40 text-center">
+                                            <div className="flex flex-col items-center justify-center gap-6 opacity-20">
+                                                <History size={80} strokeWidth={1} />
+                                                <p className="font-black text-xs uppercase tracking-[0.3em]">{loading ? 'INITIALIZING DATA STREAM...' : 'NO ARCHIVED DATA DETECTED FOR PERIOD'}</p>
                                             </div>
-                                            <p>{loading ? 'Loading report data...' : 'No records found for this period.'}</p>
                                         </td>
                                     </tr>
                                 )}
@@ -235,11 +270,16 @@ export default function Reports() {
             </div>
             <style>{`
                 @media print {
-                    @page { size: landscape; margin: 1cm; }
+                    @page { size: landscape; margin: 0.5cm; }
                     body { background: white !important; color: black !important; }
-                    .no-print { display: none !important; }
-                    table { border-collapse: collapse; width: 100%; }
-                    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+                    .no-print, header, nav, aside { display: none !important; }
+                    div, section, table { border: none !important; box-shadow: none !important; background: transparent !important; }
+                    table { border-collapse: collapse; width: 100%; font-size: 10pt; }
+                    th, td { border: 0.5pt solid #eee !important; padding: 6pt; }
+                    th { font-weight: 900; background: #f9f9f9 !important; }
+                    .text-emerald-500 { color: #059669 !important; }
+                    .text-primary { color: #10b981 !important; }
+                    .text-destructive { color: #ef4444 !important; }
                 }
             `}</style>
         </div>

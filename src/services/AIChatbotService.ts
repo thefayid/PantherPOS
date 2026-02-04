@@ -3,7 +3,8 @@ import { intentEngine } from './IntentEngine';
 import { commandGateway } from './CommandGateway';
 import { trainingService } from './trainingService';
 import { knowledgeBase } from './KnowledgeBase';
-// import { eventBus } from '../utils/EventBus';
+import { databaseService } from './databaseService';
+import { accountingAI } from './AccountingAI';
 
 export interface ChatMessage {
     id: string;
@@ -11,6 +12,7 @@ export interface ChatMessage {
     text: string;
     timestamp: number;
     actionTaken?: string;
+    data?: any;
 }
 
 class AIChatbotService {
@@ -27,6 +29,9 @@ class AIChatbotService {
             (text) => this.handleUserMessage(text),
             (status, msg) => this.handleVoiceStatus(status, msg)
         );
+
+
+
     }
 
     public subscribe(callback: (messages: ChatMessage[]) => void) {
@@ -41,20 +46,60 @@ class AIChatbotService {
         return this.messages;
     }
 
-    public addMessage(sender: 'USER' | 'AI' | 'SYSTEM', text: string, actionTaken?: string) {
+    public async loadHistory() {
+        try {
+            const history = await databaseService.query('SELECT * FROM chat_logs ORDER BY timestamp ASC LIMIT 50');
+            if (history && Array.isArray(history)) {
+                this.messages = history.map((row: any) => ({
+                    id: row.id.toString(),
+                    sender: row.sender as 'USER' | 'AI' | 'SYSTEM',
+                    text: row.text,
+                    timestamp: row.timestamp,
+                    actionTaken: row.action_taken
+                }));
+                this.notifyListeners();
+            }
+        } catch (error) {
+            console.error('[AIChatbot] Failed to load history:', error);
+        }
+    }
+
+    private notifyListeners() {
+        this.listeners.forEach(cb => cb(this.messages));
+    }
+
+    public async clearHistory() {
+        this.messages = [];
+        this.notifyListeners();
+
+        try {
+            await databaseService.query('DELETE FROM chat_logs');
+        } catch (error) {
+            console.error('[AIChatbot] Failed to clear history DB:', error);
+        }
+    }
+
+    public async addMessage(sender: 'USER' | 'AI' | 'SYSTEM', text: string, actionTaken?: string, data?: any) {
         const msg: ChatMessage = {
             id: Date.now().toString() + Math.random(),
             sender,
             text,
             timestamp: Date.now(),
-            actionTaken
+            actionTaken,
+            data
         };
         this.messages = [...this.messages, msg];
         this.notifyListeners();
-    }
 
-    private notifyListeners() {
-        this.listeners.forEach(cb => cb(this.messages));
+        // Persist to DB
+        try {
+            await databaseService.query(
+                'INSERT INTO chat_logs (sender, text, action_taken, timestamp) VALUES (?, ?, ?, ?)',
+                [sender, text, actionTaken || null, msg.timestamp]
+            );
+        } catch (error) {
+            console.error('[AIChatbot] Failed to persist message:', error);
+        }
     }
 
     // --- Core Logic ---
@@ -97,6 +142,15 @@ class AIChatbotService {
         // 3. New Intent Parsing
         const command = intentEngine.parse(text);
 
+        // INTELLIGENT ROUTING: Check if Accounting AI should handle this
+        if (command && (command.type === 'ANALYTICS_QUERY' || command.type === 'REPORT_QUERY' || command.type === 'ADD_EXPENSE')) {
+            const response = await accountingAI.resolveIntent(command.type, (command as any).payload);
+            if (response) {
+                this.addMessage('AI', response.explanation || 'Done.', response.action, response.details);
+                return;
+            }
+        }
+
         // Manual Training Trigger
         if (!command && (text.toLowerCase().includes('training') || text.toLowerCase().includes('calibrate'))) {
             const response = trainingService.startTraining();
@@ -104,7 +158,28 @@ class AIChatbotService {
             return;
         }
 
+        // Clear Chat Trigger
+        if (text.toLowerCase().trim() === 'clear' || text.toLowerCase().trim() === 'wipe') {
+            await this.clearHistory();
+            this.addMessage('SYSTEM', 'Chat history cleared.');
+            return;
+        }
+
         if (command) {
+            // Handle Knowledge Queries outside of Gateway
+            if (command.type === 'KNOWLEDGE_QUERY' as any) {
+                const topic = (command as any).payload?.topic;
+                let knowledge = topic ? knowledgeBase.getTopic(topic) : null;
+
+                if (!knowledge) {
+                    knowledge = knowledgeBase.ask(text);
+                }
+
+                if (knowledge) {
+                    this.addMessage('AI', knowledge);
+                    return;
+                }
+            }
             await this.executeCommand(command);
         } else {
             // 4. Knowledge Base Fallback
@@ -114,7 +189,17 @@ class AIChatbotService {
                 return;
             }
 
-            this.addMessage('AI', "I didn't catch that. Try saying 'Add 2 milk' or 'Show sales'.");
+            // 5. Fuzzy Suggestion Fallback
+            const suggestion = intentEngine.getSuggestion(text);
+            if (suggestion) {
+                this.pendingContext = {
+                    type: 'WAITING_FOR_CONFIRMATION',
+                    payload: { suggestion: suggestion }
+                };
+                this.addMessage('AI', `I didn't quite catch that. Did you mean **"${suggestion.text}"**?`);
+            } else {
+                this.addMessage('AI', "I didn't catch that. Try saying 'Add 2 milk' or 'Show sales'.");
+            }
         }
     }
 
@@ -161,6 +246,31 @@ class AIChatbotService {
                 // If text doesn't look like a number, assume they aborted context.
                 this.pendingContext = null;
                 return false; // Continue to normal parsing
+            }
+        }
+
+        if (this.pendingContext?.type === 'WAITING_FOR_CONFIRMATION') {
+            const lower = text.toLowerCase().trim();
+            const isAffirmative = /\b(yes|yeah|yep|ok|okay|sure|do it|correct|confirm|y)\b/i.test(lower);
+            const isNegative = /\b(no|nay|nope|wait|hold|cancel|stop|n)\b/i.test(lower);
+
+            if (isAffirmative) {
+                const suggestion = this.pendingContext.payload.suggestion;
+                this.pendingContext = null;
+                this.addMessage('SYSTEM', `Executing suggested command: ${suggestion.text}...`);
+
+                // Construct the command again
+                const command = intentEngine.parse(suggestion.text);
+                if (command) {
+                    await this.executeCommand(command);
+                } else {
+                    this.addMessage('AI', "Something went wrong. Please try typing the command fully.");
+                }
+                return true;
+            } else if (isNegative) {
+                this.pendingContext = null;
+                this.addMessage('AI', "Okay, I won't do that. What else can I help you with?");
+                return true;
             }
         }
         return false;

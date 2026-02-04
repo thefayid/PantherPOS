@@ -60,8 +60,23 @@ class CartService {
     public updateQuantity(productId: number, delta: number) {
         this.items = this.items.map(item => {
             if (item.id === productId) {
-                const newQty = Math.max(1, item.quantity + delta);
-                return { ...item, quantity: newQty, amount: newQty * item.sell_price };
+                const newQty = Math.max(0.001, item.quantity + delta); // Allow small decimals but keep > 0
+                // simple round to 3 decimal places to avoid float errors
+                const roundedQty = Math.round(newQty * 1000) / 1000;
+                return { ...item, quantity: roundedQty, amount: roundedQty * item.sell_price };
+            }
+            return item;
+        });
+        this.save();
+    }
+
+    public setQuantity(productId: number, quantity: number) {
+        this.items = this.items.map(item => {
+            if (item.id === productId) {
+                const newQty = Math.max(0.001, quantity);
+                // simple round to 3 decimal places
+                const roundedQty = Math.round(newQty * 1000) / 1000;
+                return { ...item, quantity: roundedQty, amount: roundedQty * item.sell_price };
             }
             return item;
         });

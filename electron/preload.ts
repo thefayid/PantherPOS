@@ -5,6 +5,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     printRaw: (data: number[]) => ipcRenderer.invoke('print-raw', data),
     scaleReadWeight: () => ipcRenderer.invoke('scale-read-weight'),
     openWindow: (path: string) => ipcRenderer.invoke('open-window', path),
+    showItemInFolder: (path: string) => ipcRenderer.invoke('show-item-in-folder', path),
 
     // Notification Service
     getNotifications: (unreadOnly?: boolean) => ipcRenderer.invoke('notification-list', unreadOnly),

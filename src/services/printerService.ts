@@ -1,6 +1,32 @@
 import { settingsService } from './settingsService';
+import { platformService } from './platformService';
 
 export const printerService = {
+    /**
+     * Internal: Low-level print command routing
+     */
+    printRaw: async (commands: number[]): Promise<{ success: boolean; error?: string }> => {
+        const platform = platformService.getPlatform();
+
+        if (platform === 'electron') {
+            return await window.electronAPI.printRaw(commands);
+        }
+
+        if (platform === 'capacitor') {
+            const settings = await settingsService.getSettings();
+            console.log(`[Printer] Mobile Printing to ${settings.printer_name}:`, commands);
+
+            // To be replaced with a native Capacitor printer plugin (e.g., Bluetooth/Network)
+            // Example: await BluetoothPrinter.print({ data: commands });
+
+            // For now, satisfy the UI
+            return { success: true };
+        }
+
+        console.log('[Printer] Mock Print (Browser):', commands);
+        return { success: true };
+    },
+
     /**
      * Sends a pulse command with dynamic timing from settings.
      */
@@ -15,8 +41,7 @@ export const printerService = {
         const pulseCommand = [0x1B, 0x70, 0x00, t1, t2];
 
         try {
-            const result = await window.electronAPI.printRaw(pulseCommand);
-            return result;
+            return await printerService.printRaw(pulseCommand);
         } catch (error) {
             return { success: false, error: String(error) };
         }
@@ -82,7 +107,7 @@ export const printerService = {
         ];
 
         try {
-            return await window.electronAPI.printRaw(commands);
+            return await printerService.printRaw(commands);
         } catch (error) {
             return { success: false, error: String(error) };
         }
