@@ -556,6 +556,9 @@ export const databaseService = {
         // 1. If Electron, always run locally
         if (isElectron) {
             const results = await window.electronAPI.dbQuery(sql, params);
+            if (results && results.error) {
+                throw new Error(results.error);
+            }
             const isSelect = sql.trim().toLowerCase().startsWith('select');
             if (isSelect && results && !Array.isArray(results)) {
                 return [results]; // Wrap if it's a single object

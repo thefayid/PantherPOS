@@ -727,9 +727,11 @@ export function query(sql: string, params: any[] = []): any {
         stmt.free();
         return rows;
     } else {
+        console.log(`[DB] Executing Run: ${sql}`);
+        console.log(`[DB] Params: ${JSON.stringify(params)}`);
         db.run(sql, params);
-        save(); // Auto-save on writes
         const changes = db.getRowsModified();
+        save(); // Auto-save on writes
         let lastInsertRowid;
         try {
             lastInsertRowid = db.exec("SELECT last_insert_rowid()")[0].values[0][0];

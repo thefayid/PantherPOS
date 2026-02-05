@@ -3,7 +3,7 @@ import { authService } from '../services/authService';
 import type { User } from '../types/db';
 import { Button } from '../components/Button';
 import { Modal } from '../components/Modal';
-import { Trash2, DollarSign, CalendarCheck, FileEdit } from 'lucide-react';
+import { Trash2, DollarSign, CalendarCheck, FileEdit, Lock } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { staffService } from '../services/staffService';
 import { databaseService } from '../services/databaseService';
@@ -23,6 +23,7 @@ export default function StaffPage() {
     const [selectedUser, setSelectedUser] = useState<User | null>(null);
 
     const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+    const [isPinModalOpen, setIsPinModalOpen] = useState(false);
     const [paymentAmount, setPaymentAmount] = useState('');
     const [paymentMode, setPaymentMode] = useState('CASH');
     const [paymentNotes, setPaymentNotes] = useState('');
@@ -115,6 +116,40 @@ export default function StaffPage() {
         }
     };
 
+    const handlePinUpdate = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!selectedUser || !pin) return;
+
+        const cleanPin = pin.trim();
+        if (!cleanPin) {
+            toast.error('PIN cannot be empty');
+            return;
+        }
+
+        setIsLoading(true);
+        try {
+            console.log(`[StaffPage] Updating PIN for user ${selectedUser.id} (${selectedUser.name}) to '${cleanPin}'`);
+            const changes = await authService.updateUser(selectedUser.id, { pin: cleanPin });
+
+            console.log(`[StaffPage] Update result (changes):`, changes);
+
+            if (changes > 0) {
+                toast.success('PIN updated successfully. Please test login.');
+                setIsPinModalOpen(false);
+                setPin('');
+                setSelectedUser(null);
+                loadUsers(); // Refresh list potentially
+            } else {
+                toast.error('Update failed: Database reported no changes.');
+            }
+        } catch (error: any) {
+            console.error('[StaffPage] Update error:', error);
+            toast.error(error.message || 'Failed to update PIN');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     const handleEditClick = (user: User) => {
         setEditingUser(user);
         setName(user.name);
@@ -179,6 +214,13 @@ export default function StaffPage() {
                                 title="Edit User"
                             >
                                 <FileEdit size={16} />
+                            </button>
+                            <button
+                                onClick={() => { setSelectedUser(user); setPin(''); setIsPinModalOpen(true); }}
+                                className="absolute top-2 right-2 p-2 hover:bg-muted rounded-lg text-muted-foreground hover:text-foreground transition-all"
+                                title="Change PIN"
+                            >
+                                <Lock size={16} />
                             </button>
                         </div>
 
@@ -451,6 +493,28 @@ export default function StaffPage() {
                         )}
                     </div>
                 </div>
+            </Modal>
+
+            <Modal isOpen={isPinModalOpen} onClose={() => { setIsPinModalOpen(false); setPin(''); setSelectedUser(null); }} title={`Change PIN: ${selectedUser?.name}`}>
+                <form onSubmit={handlePinUpdate} className="flex flex-col gap-6 p-1">
+                    <div>
+                        <label className="block text-xs font-bold text-muted-foreground uppercase mb-1.5">New Security PIN</label>
+                        <input
+                            type="password"
+                            placeholder="4-8 digits"
+                            required
+                            maxLength={8}
+                            pattern="[0-9]{4,}"
+                            value={pin}
+                            onChange={e => setPin(e.target.value)}
+                            className="w-full bg-muted/20 border border-border rounded-xl px-4 py-3 text-foreground focus:border-primary/50 focus:outline-none placeholder:text-muted-foreground/30 font-mono tracking-widest text-center text-3xl"
+                            autoFocus
+                        />
+                    </div>
+                    <Button type="submit" disabled={isLoading} className="bg-primary hover:bg-primary/90 text-primary-foreground py-4 text-lg shadow-glow mt-2">
+                        {isLoading ? 'Updating...' : 'Update PIN'}
+                    </Button>
+                </form>
             </Modal>
 
         </div>
