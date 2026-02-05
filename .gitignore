@@ -1,3 +1,8 @@
+# Local runtime files (DB, debug logs)
+pos.db
+pos.db-*
+startup_debug.txt
+
 # Logs
 logs
 *.log
