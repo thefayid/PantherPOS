@@ -6,11 +6,14 @@ electron_1.contextBridge.exposeInMainWorld('electronAPI', {
     printRaw: (data) => electron_1.ipcRenderer.invoke('print-raw', data),
     scaleReadWeight: () => electron_1.ipcRenderer.invoke('scale-read-weight'),
     openWindow: (path) => electron_1.ipcRenderer.invoke('open-window', path),
+    showItemInFolder: (path) => electron_1.ipcRenderer.invoke('show-item-in-folder', path),
     // Notification Service
     getNotifications: (unreadOnly) => electron_1.ipcRenderer.invoke('notification-list', unreadOnly),
     addNotification: (payload) => electron_1.ipcRenderer.invoke('notification-add', payload),
     markNotificationRead: (id) => electron_1.ipcRenderer.invoke('notification-read', id),
     markAllNotificationsRead: () => electron_1.ipcRenderer.invoke('notification-read-all'),
+    // Auto Update
+    checkUpdates: () => electron_1.ipcRenderer.invoke('app-check-updates'),
     // Audit Service
     addAuditLog: (payload) => electron_1.ipcRenderer.invoke('audit-log-add', payload),
     getAuditLogs: (limit) => electron_1.ipcRenderer.invoke('audit-log-list', limit),
@@ -30,7 +33,7 @@ electron_1.contextBridge.exposeInMainWorld('electronAPI', {
     stopAI: () => electron_1.ipcRenderer.send('ai-stop'),
     sendAudioChunk: (buffer) => electron_1.ipcRenderer.send('ai-audio-chunk', buffer),
     on: (channel, callback) => {
-        const subscription = (_event, ...args) => callback(_event, ...args);
+        const subscription = (_event, ...args) => callback(...args);
         electron_1.ipcRenderer.on(channel, subscription);
         return () => {
             electron_1.ipcRenderer.removeListener(channel, subscription);

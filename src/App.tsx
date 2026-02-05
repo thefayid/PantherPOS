@@ -44,6 +44,7 @@ import { eventBus } from './utils/EventBus';
 import { trainingService } from './services/trainingService';
 import { intentEngine } from './services/IntentEngine';
 import TallySync from './pages/TallySync';
+import toast from 'react-hot-toast';
 
 function App() {
   const [user, setUser] = useState<User | null>(null);
@@ -62,6 +63,23 @@ function App() {
     window.onunhandledrejection = (event) => {
       setInitError(`Unhandled Promise Rejection: ${event.reason}`);
     };
+
+    // OTA Update Listener
+    if (window.electronAPI) {
+      const removeListener = window.electronAPI.on('update-message', (text: string) => {
+        console.log("OTA Update:", text);
+        toast(text, {
+          icon: '🔄',
+          style: {
+            borderRadius: '10px',
+            background: '#333',
+            color: '#fff',
+          },
+          duration: 5000
+        });
+      });
+      return () => removeListener();
+    }
   }, []);
 
   useEffect(() => {

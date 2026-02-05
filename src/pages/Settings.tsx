@@ -4,7 +4,7 @@ import { databaseService } from '../services/databaseService';
 import { dbStorage } from '../services/dbStorage';
 import { eventBus } from '../utils/EventBus';
 import { syncService } from '../services/syncService';
-import { Receipt, Database, Percent, Trash2, Plus, Printer, Store, Check, AlertCircle } from 'lucide-react';
+import { Receipt, Database, Percent, Trash2, Plus, Printer, Store, Check, AlertCircle, RefreshCw } from 'lucide-react';
 import { Button } from '../components/Button';
 import { Modal } from '../components/Modal';
 
@@ -140,6 +140,33 @@ export default function Settings() {
                                         <div className="font-black text-slate-900 relative z-10 text-sm uppercase tracking-widest">Bubblegum Light</div>
                                         <div className="text-[10px] text-slate-500 relative z-10 font-bold mt-1">CLEAN & AIRY</div>
                                         <div className="absolute inset-0 bg-gradient-to-br from-pink-500/5 to-transparent opacity-20" />
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="flex flex-col gap-6 border-t border-border/50 pt-6">
+                                <h2 className="text-lg font-black border-b border-border/50 pb-3 text-foreground uppercase tracking-tight">Software Update</h2>
+                                <div className="p-6 bg-emerald-500/5 border border-emerald-500/10 rounded-2xl flex flex-col md:flex-row items-center gap-6">
+                                    <div className="p-4 bg-emerald-500/10 rounded-xl text-emerald-500">
+                                        <RefreshCw size={24} />
+                                    </div>
+                                    <div className="flex-1 text-center md:text-left">
+                                        <div className="font-black text-foreground uppercase tracking-tight text-sm">System Version</div>
+                                        <div className="text-[10px] text-muted-foreground font-medium mt-1">
+                                            Currently running version <span className="text-emerald-500 font-bold">1.0.0</span>. Check for latest features and security patches.
+                                        </div>
+                                    </div>
+                                    <button
+                                        onClick={() => {
+                                            if (window.electronAPI) {
+                                                window.electronAPI.checkUpdates();
+                                            } else {
+                                                alert("Updates only available in Desktop App");
+                                            }
+                                        }}
+                                        className="px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-lg shadow-emerald-500/20 whitespace-nowrap"
+                                    >
+                                        Check For Updates
                                     </button>
                                 </div>
                             </div>
@@ -365,6 +392,6 @@ export default function Settings() {
                     </div>
                 </form>
             </Modal>
-        </div>
+        </div >
     );
 }

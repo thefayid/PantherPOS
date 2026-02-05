@@ -30,7 +30,12 @@ const { startServer } = require('./server');
 const { autoUpdater } = require('electron-updater');
 
 // --- AUTO UPDATE CONFIG ---
-autoUpdater.logger = log;
+autoUpdater.logger = {
+  info: (msg: string) => log(`[INFO] ${msg}`),
+  warn: (msg: string) => log(`[WARN] ${msg}`),
+  error: (msg: string) => log(`[ERROR] ${msg}`),
+  log: (msg: string) => log(`[LOG] ${msg}`)
+};
 autoUpdater.autoDownload = true;
 
 const sendUpdateStatus = (text: string) => {
@@ -167,9 +172,25 @@ app.on('activate', () => {
 });
 
 // IPC handlers
-ipcMain.handle('app-check-updates', () => {
-  autoUpdater.checkForUpdatesAndNotify();
-  return { success: true };
+ipcMain.handle('app-check-updates', async () => {
+  log('[Updater] Manual check requested');
+  sendUpdateStatus('Checking for updates...');
+
+  try {
+    if (process.env.VITE_DEV_SERVER_URL) {
+      log('[Updater] Dev mode detected. Simulating check...');
+      await new Promise(r => setTimeout(r, 2000));
+      sendUpdateStatus('Dev Mode: Update check simulated (Up to date)');
+      return { success: true };
+    }
+
+    await autoUpdater.checkForUpdatesAndNotify();
+    return { success: true };
+  } catch (e: any) {
+    log(`[Updater] Check failed: ${e.message}`);
+    if (mainWindow) mainWindow.webContents.send('update-message', `Update check failed: ${e.message}`);
+    return { success: false, error: e.message };
+  }
 });
 
 ipcMain.handle('db-query', async (event: any, sql: any, params: any) => {

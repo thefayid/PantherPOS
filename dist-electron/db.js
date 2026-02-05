@@ -311,6 +311,43 @@ const initDb = async (log = console.log) => {
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             reason TEXT NOT NULL
         );
+
+        -- ACCOUNTING SYSTEM TABLES
+        CREATE TABLE IF NOT EXISTS accounts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            code TEXT UNIQUE NOT NULL,
+            name TEXT NOT NULL,
+            type TEXT CHECK(type IN ('ASSET', 'LIABILITY', 'INCOME', 'EXPENSE', 'EQUITY')) NOT NULL,
+            category TEXT, -- e.g., 'Current Asset', 'Fixed Asset'
+            balance REAL DEFAULT 0,
+            description TEXT,
+            is_system BOOLEAN DEFAULT 0
+        );
+
+        CREATE TABLE IF NOT EXISTS vouchers (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            voucher_no TEXT UNIQUE NOT NULL,
+            date TEXT NOT NULL,
+            type TEXT CHECK(type IN ('RECEIPT', 'PAYMENT', 'JOURNAL', 'CONTRA', 'SALES', 'PURCHASE')) NOT NULL,
+            total_amount REAL NOT NULL,
+            reference_id TEXT, -- e.g., 'BILL-123', 'PO-456'
+            notes TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+
+        CREATE TABLE IF NOT EXISTS voucher_items (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            voucher_id INTEGER NOT NULL,
+            account_id INTEGER NOT NULL,
+            type TEXT CHECK(type IN ('DEBIT', 'CREDIT')) NOT NULL,
+            amount REAL NOT NULL,
+            description TEXT,
+            FOREIGN KEY(voucher_id) REFERENCES vouchers(id) ON DELETE CASCADE,
+            FOREIGN KEY(account_id) REFERENCES accounts(id)
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_vouchers_date ON vouchers(date);
+        CREATE INDEX IF NOT EXISTS idx_accounts_code ON accounts(code);
         `;
         // Initialize schema
         try {
@@ -619,6 +656,36 @@ const initDb = async (log = console.log) => {
         }
         catch (e) {
             console.error('Error seeding admin:', e);
+        }
+        // Seed Initial Chart of Accounts
+        try {
+            const accountCount = db.exec("SELECT COUNT(*) as count FROM accounts")[0].values[0][0];
+            if (accountCount === 0) {
+                log('Seeding initial Chart of Accounts...');
+                const initialAccounts = [
+                    ['1001', 'Cash in Hand', 'ASSET', 'Cash', 1],
+                    ['1002', 'Bank Account', 'ASSET', 'Bank', 1],
+                    ['1003', 'Accounts Receivable', 'ASSET', 'Receivables', 1],
+                    ['1004', 'Inventory', 'ASSET', 'Inventory', 1],
+                    ['2001', 'Accounts Payable', 'LIABILITY', 'Payables', 1],
+                    ['2002', 'GST Payable', 'LIABILITY', 'Duties & Taxes', 1],
+                    ['3001', 'Capital Account', 'EQUITY', 'Equity', 1],
+                    ['4001', 'Sales Revenue', 'INCOME', 'Sales', 1],
+                    ['4002', 'Other Income', 'INCOME', 'Other', 1],
+                    ['5001', 'Cost of Goods Sold', 'EXPENSE', 'Direct Expenses', 1],
+                    ['5002', 'Rent Expense', 'EXPENSE', 'Indirect Expenses', 0],
+                    ['5003', 'Electricity Bill', 'EXPENSE', 'Indirect Expenses', 0],
+                    ['5004', 'Staff Salary', 'EXPENSE', 'Indirect Expenses', 0],
+                    ['5005', 'General Expenses', 'EXPENSE', 'Indirect Expenses', 0]
+                ];
+                for (const [code, name, type, cat, system] of initialAccounts) {
+                    db.run("INSERT INTO accounts (code, name, type, category, is_system) VALUES (?, ?, ?, ?, ?)", [code, name, type, cat, system]);
+                }
+                log('Chart of Accounts seeded.');
+            }
+        }
+        catch (e) {
+            log(`Error seeding accounts: ${e.message}`);
         }
         save(); // Save initial schema
     }

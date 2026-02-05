@@ -24,7 +24,8 @@ export interface ElectronAPI {
     startAI: () => Promise<void>;
     stopAI: () => Promise<void>;
     sendAudioChunk: (buffer: Int16Array) => Promise<void>;
-    on: (channel: string, callback: Function) => void;
+    checkUpdates: () => Promise<void>;
+    on: (channel: string, callback: Function) => () => void;
 }
 
 declare global {

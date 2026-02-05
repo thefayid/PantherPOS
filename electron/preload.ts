@@ -13,6 +13,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     markNotificationRead: (id: number) => ipcRenderer.invoke('notification-read', id),
     markAllNotificationsRead: () => ipcRenderer.invoke('notification-read-all'),
 
+    // Auto Update
+    checkUpdates: () => ipcRenderer.invoke('app-check-updates'),
+
     // Audit Service
     addAuditLog: (payload: any) => ipcRenderer.invoke('audit-log-add', payload),
     getAuditLogs: (limit?: number) => ipcRenderer.invoke('audit-log-list', limit),
@@ -35,7 +38,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     stopAI: () => ipcRenderer.send('ai-stop'),
     sendAudioChunk: (buffer: Int16Array) => ipcRenderer.send('ai-audio-chunk', buffer),
     on: (channel: string, callback: Function) => {
-        const subscription = (_event: any, ...args: any[]) => callback(_event, ...args);
+        const subscription = (_event: any, ...args: any[]) => callback(...args);
         ipcRenderer.on(channel, subscription);
         return () => {
             ipcRenderer.removeListener(channel, subscription);
