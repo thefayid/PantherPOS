@@ -15,7 +15,13 @@ if (typeof window !== 'undefined' && !window.electronAPI) {
       window.open(window.location.origin + window.location.pathname + '#' + path, '_blank', 'width=1000,height=700');
     },
     printRaw: async () => ({ success: true }),
-    scaleReadWeight: async () => ({ success: true, weight: 1.25 })
+    scaleReadWeight: async () => ({ success: true, weight: 1.25 }),
+
+    // Licensing mocks (browser preview)
+    getLicenseStatus: async () => ({ ok: true }),
+    getDeviceFingerprint: async () => ({ device_hash: 'DEV_MODE', fingerprint_version: 1 }),
+    selectAndImportLicense: async () => ({ ok: true }),
+    importLicenseText: async () => ({ ok: true }),
   };
 }
 

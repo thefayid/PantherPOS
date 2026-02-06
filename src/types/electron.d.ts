@@ -26,6 +26,12 @@ export interface ElectronAPI {
     sendAudioChunk: (buffer: Int16Array) => Promise<void>;
     checkUpdates: () => Promise<void>;
     on: (channel: string, callback: Function) => () => void;
+
+    // Licensing
+    getLicenseStatus: () => Promise<any>;
+    getDeviceFingerprint: () => Promise<any>;
+    selectAndImportLicense: () => Promise<any>;
+    importLicenseText: (licenseText: string) => Promise<any>;
 }
 
 declare global {

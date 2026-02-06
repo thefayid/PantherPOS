@@ -45,6 +45,8 @@ import { trainingService } from './services/trainingService';
 import { intentEngine } from './services/IntentEngine';
 import TallySync from './pages/TallySync';
 import toast from 'react-hot-toast';
+import LicensePage from './pages/License';
+import { chatbotTrainingDataset } from './data/chatbotTrainingDataset';
 
 function App() {
   const [user, setUser] = useState<User | null>(null);
@@ -54,6 +56,19 @@ function App() {
     return (localStorage.getItem('theme') as 'light' | 'dark') || 'dark';
   });
   const [initError, setInitError] = useState<string | null>(null);
+  const [licenseChecked, setLicenseChecked] = useState(false);
+  const [licenseStatus, setLicenseStatus] = useState<any>(null);
+
+  const recheckLicense = async () => {
+    try {
+      const s = await window.electronAPI.getLicenseStatus();
+      setLicenseStatus(s);
+    } catch (e) {
+      setLicenseStatus({ ok: false, reason: 'NO_LICENSE', details: String(e) });
+    } finally {
+      setLicenseChecked(true);
+    }
+  };
 
   useEffect(() => {
     window.onerror = (msg, _url, line, col, _error) => {
@@ -105,8 +120,16 @@ function App() {
   }, []);
 
   useEffect(() => {
+    recheckLicense();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
     const init = async () => {
       try {
+        // If not licensed, we only show the activation screen (no DB/server usage).
+        if (licenseChecked && licenseStatus && licenseStatus.ok === false) return;
+
         await settingsService.init();
         await databaseService.init();
         if (window.electronAPI) {
@@ -115,20 +138,33 @@ function App() {
         if (localStorage.getItem('disableAnimations') === 'true') {
           document.body.classList.add('no-animations');
         }
+        // Fast offline AI init (small dataset) for instant voice/text commands.
+        trainingService.ingestTrainingData(chatbotTrainingDataset);
+        intentEngine.ingestTrainingData(chatbotTrainingDataset);
+
+        // Keep stock checks async and non-blocking.
         setTimeout(() => {
           notificationService.checkStockLevels();
-          import('./data/trainingData').then((module) => {
-            const data = module.trainingData || (module as any).default || [];
-            trainingService.ingestTrainingData(data);
-            intentEngine.ingestTrainingData(data);
-          }).catch(err => console.error("Failed to load training data", err));
-        }, 2000);
+        }, 1000);
+
+        // Optional: load the large training corpus only when explicitly enabled.
+        // This keeps voice assistant fast on low-end POS machines.
+        const enableLarge = localStorage.getItem('ai_large_dataset') === 'true';
+        if (enableLarge) {
+          setTimeout(() => {
+            import('./data/trainingData').then((module) => {
+              const data = module.trainingData || (module as any).default || [];
+              trainingService.ingestTrainingData(data);
+              intentEngine.ingestTrainingData(data);
+            }).catch(err => console.error("Failed to load training data", err));
+          }, 2500);
+        }
       } catch (err) {
         setInitError(`Init Error: ${err}`);
       }
     };
     init();
-  }, []);
+  }, [licenseChecked, licenseStatus]);
 
   const handleLogin = async (loggedInUser: User) => {
     setUser(loggedInUser);
@@ -166,6 +202,18 @@ function App() {
         </div>
       </div>
     );
+  }
+
+  if (!licenseChecked) {
+    return (
+      <div className="h-screen w-screen bg-[#0a0f1c] text-white p-10 font-mono flex items-center justify-center">
+        Loading…
+      </div>
+    );
+  }
+
+  if (licenseStatus && licenseStatus.ok === false) {
+    return <LicensePage status={licenseStatus} onRecheck={recheckLicense} />;
   }
 
   const isStandalone = window.location.href.includes('standalone=true');

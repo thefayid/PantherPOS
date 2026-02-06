@@ -14,6 +14,11 @@ electron_1.contextBridge.exposeInMainWorld('electronAPI', {
     markAllNotificationsRead: () => electron_1.ipcRenderer.invoke('notification-read-all'),
     // Auto Update
     checkUpdates: () => electron_1.ipcRenderer.invoke('app-check-updates'),
+    // Licensing
+    getLicenseStatus: () => electron_1.ipcRenderer.invoke('license-get-status'),
+    getDeviceFingerprint: () => electron_1.ipcRenderer.invoke('license-get-fingerprint'),
+    selectAndImportLicense: () => electron_1.ipcRenderer.invoke('license-select-and-import'),
+    importLicenseText: (licenseText) => electron_1.ipcRenderer.invoke('license-import-text', licenseText),
     // Audit Service
     addAuditLog: (payload) => electron_1.ipcRenderer.invoke('audit-log-add', payload),
     getAuditLogs: (limit) => electron_1.ipcRenderer.invoke('audit-log-list', limit),

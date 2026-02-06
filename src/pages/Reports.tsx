@@ -1,6 +1,8 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { reportService } from '../services/reportService';
 import { exportService } from '../services/exportService';
+import { databaseService } from '../services/databaseService';
+import { settingsService } from '../services/settingsService';
 import { Button } from '../components/Button';
 import {
     FileText, FileSpreadsheet, FileJson as FilePdf, Download, Printer, Search,
@@ -29,14 +31,16 @@ export default function Reports() {
     const [dateFrom, setDateFrom] = useState('');
     const [dateTo, setDateTo] = useState('');
     const componentRef = useRef<HTMLDivElement>(null);
+    const didAutoSeed = useRef(false);
 
     const handlePrint = () => { window.print(); };
 
     const fetchData = async () => {
         setLoading(true);
         try {
-            const from = dateFrom ? new Date(dateFrom).toISOString() : undefined;
-            const to = dateTo ? new Date(dateTo).toISOString() : undefined;
+            // Keep YYYY-MM-DD strings for SQLite date() comparisons.
+            const from = dateFrom || undefined;
+            const to = dateTo || undefined;
             let result: any[] = [];
             switch (activeReport) {
                 case 'DAILY': result = await reportService.getDailySales(from, to); break;
@@ -57,17 +61,97 @@ export default function Reports() {
                 case 'LOSS_DAMAGE': result = await reportService.getLossAndDamage(from, to); break;
                 case 'TRANSACTIONS': result = await reportService.getTransactionHistory(from, to); break;
             }
+
+            // Auto-seed minimal demo data once if reports are empty (and bills are empty).
+            // This prevents a blank Reports screen when the app already has products/customers but no sales yet.
+            if (!didAutoSeed.current && (!result || result.length === 0)) {
+                didAutoSeed.current = true;
+                const seeded = await databaseService.seedDemoReportsIfEmpty();
+                if (seeded) {
+                    switch (activeReport) {
+                        case 'DAILY': result = await reportService.getDailySales(from, to); break;
+                        case 'HOURLY': result = await reportService.getHourlySales(from, to); break;
+                        case 'PAYMENTS': result = await reportService.getPaymentSplit(from, to); break;
+                        case 'PRODUCTS': result = await reportService.getProductSales(from, to); break;
+                        case 'PROFIT': result = await reportService.getProfitMargin(from, to); break;
+                        case 'GST': result = await reportService.getGstSummary(from, to); break;
+                        case 'HSN': result = await reportService.getHsnSummary(from, to); break;
+                        case 'OUTSTANDING': result = await reportService.getOutstandingReceivables(from, to); break;
+                        case 'TOP_CUSTOMERS': result = await reportService.getTopCustomers(from, to); break;
+                        case 'PURCHASE_PRODUCTS': result = await reportService.getPurchaseProducts(from, to); break;
+                        case 'SUPPLIERS': result = await reportService.getSupplierList(); break;
+                        case 'UNPAID_PURCHASE': result = await reportService.getUnpaidPurchases(); break;
+                        case 'PURCHASE_INVOICES': result = await reportService.getPurchaseInvoiceList(from, to); break;
+                        case 'LOW_STOCK': result = await reportService.getLowStockWarning(); break;
+                        case 'REORDER_LIST': result = await reportService.getReorderList(); break;
+                        case 'LOSS_DAMAGE': result = await reportService.getLossAndDamage(from, to); break;
+                        case 'TRANSACTIONS': result = await reportService.getTransactionHistory(from, to); break;
+                    }
+                }
+            }
+
             setData(result || []);
         } catch (error) { console.error(error); } finally { setLoading(false); }
     };
 
     useEffect(() => { fetchData(); }, [activeReport, dateFrom, dateTo]);
 
-    const handleExport = (type: 'xlsx' | 'pdf' | 'csv') => {
+    const handleExport = async (type: 'xlsx' | 'pdf' | 'csv') => {
         const fileName = `${activeReport}_Report_${new Date().toISOString().split('T')[0]}`;
         if (type === 'xlsx') exportService.exportToExcel(`${fileName}.xlsx`, data);
         if (type === 'csv') exportService.exportToCsv(`${fileName}.csv`, data);
-        if (type === 'pdf') exportService.exportToPdf(`${fileName}.pdf`, activeReport.replace(/_/g, ' '), data);
+        if (type === 'pdf') {
+            // Special-case: Daily Sales should export a complete standalone document,
+            // even when the current table result is minimal/empty.
+            if (activeReport === 'DAILY') {
+                const store = await settingsService.getSettings().catch(() => ({ store_name: 'Business' } as any));
+
+                const reportDate = dateTo || dateFrom || new Date().toISOString().split('T')[0];
+                const generatedTime = new Date().toLocaleString();
+
+                const stats = await databaseService.query(
+                    `SELECT COALESCE(SUM(total), 0) as totalSales, COUNT(*) as transactions
+                     FROM bills
+                     WHERE date(date, 'localtime') = ?
+                     AND (status = 'PAID' OR status IS NULL OR status = '')`,
+                    [reportDate]
+                );
+                const totalSales = Number(stats?.[0]?.totalSales || 0);
+                const transactions = Number(stats?.[0]?.transactions || 0);
+                const averageTicket = transactions > 0 ? totalSales / transactions : 0;
+
+                // Previous day (optional)
+                const dt = new Date(reportDate + 'T00:00:00');
+                dt.setDate(dt.getDate() - 1);
+                const prevDate = dt.toISOString().split('T')[0];
+                const prevStats = await databaseService.query(
+                    `SELECT COALESCE(SUM(total), 0) as totalSales, COUNT(*) as transactions
+                     FROM bills
+                     WHERE date(date, 'localtime') = ?
+                     AND (status = 'PAID' OR status IS NULL OR status = '')`,
+                    [prevDate]
+                );
+                const prevTotalSales = Number(prevStats?.[0]?.totalSales || 0);
+                const prevTransactions = Number(prevStats?.[0]?.transactions || 0);
+                const prevAvgTicket = prevTransactions > 0 ? prevTotalSales / prevTransactions : 0;
+
+                await exportService.generateDailySalesReportPdf(
+                    `Daily_Sales_Report_${reportDate}.pdf`,
+                    {
+                        businessName: store.store_name || 'Business',
+                        reportDate,
+                        generatedTime,
+                        totalSales,
+                        transactions,
+                        averageTicket,
+                        previousDay: { totalSales: prevTotalSales, transactions: prevTransactions, averageTicket: prevAvgTicket },
+                        posSoftwareName: 'PantherPOS',
+                    }
+                );
+            } else {
+                exportService.exportToPdf(`${fileName}.pdf`, activeReport.replace(/_/g, ' '), data);
+            }
+        }
         setShowExportMenu(false);
     };
 

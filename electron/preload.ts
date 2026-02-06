@@ -16,6 +16,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
     // Auto Update
     checkUpdates: () => ipcRenderer.invoke('app-check-updates'),
 
+    // Licensing
+    getLicenseStatus: () => ipcRenderer.invoke('license-get-status'),
+    getDeviceFingerprint: () => ipcRenderer.invoke('license-get-fingerprint'),
+    selectAndImportLicense: () => ipcRenderer.invoke('license-select-and-import'),
+    importLicenseText: (licenseText: string) => ipcRenderer.invoke('license-import-text', licenseText),
+
     // Audit Service
     addAuditLog: (payload: any) => ipcRenderer.invoke('audit-log-add', payload),
     getAuditLogs: (limit?: number) => ipcRenderer.invoke('audit-log-list', limit),

@@ -29,6 +29,16 @@ export class IntentEngine {
         // No longer initializes Fuse with trainingData static import
     }
 
+    private escapeRegex(s: string) {
+        return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+
+    /**
+     * Optimized phrase matching for reportType extraction.
+     * Previously this scanned a huge array on every REPORT_QUERY parse, which slowed voice commands.
+     */
+    private reportTypePhraseRegex: RegExp | null = null;
+
     public ingestTrainingData(data: any[]) {
         console.log('[IntentEngine] Ingesting training data for Fuse...', data.length, 'items');
         this.fuse = new Fuse(data, {
@@ -225,7 +235,8 @@ export class IntentEngine {
                 // Look for the "meat" of the report request
                 let reportType = matchedType;
 
-                // If the user mentioned a specific multi-word type that our regex might have partially captured
+                // If the user mentioned a specific multi-word type that our regex might have partially captured.
+                // NOTE: this list is intentionally large, so we compile it ONCE into a regex for speed.
                 const types = [
                     'itemwise sales', 'category sales', 'top products', 'dead stock', 'low stock',
                     'gst', 'customer sales', 'payment mode summary', 'payment mode comparison',
@@ -290,11 +301,15 @@ export class IntentEngine {
                     'financial health', 'liquidity', 'solvency', 'turnover ratio'
                 ];
 
-                for (const t of types) {
-                    if (fullText.includes(t)) {
-                        reportType = t;
-                        break;
-                    }
+                if (!this.reportTypePhraseRegex) {
+                    // Prefer longer phrases first to avoid partial matches (e.g. "stock" before "low stock").
+                    const sorted = [...types].sort((a, b) => b.length - a.length);
+                    this.reportTypePhraseRegex = new RegExp(sorted.map(p => this.escapeRegex(p)).join('|'), 'i');
+                }
+
+                const phraseMatch = fullText.match(this.reportTypePhraseRegex);
+                if (phraseMatch && phraseMatch[0]) {
+                    reportType = phraseMatch[0].toLowerCase();
                 }
 
                 // 2. Format / Destination

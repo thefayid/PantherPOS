@@ -63,7 +63,9 @@ CREATE TABLE IF NOT EXISTS products (
     gst_rate REAL DEFAULT 0,
     hsn_code TEXT,
     min_stock_level INTEGER DEFAULT 5,
-    image TEXT
+    image TEXT,
+    variant_group_id TEXT,
+    attributes TEXT -- JSON string
 );
 CREATE INDEX IF NOT EXISTS idx_products_barcode ON products(barcode);
 CREATE INDEX IF NOT EXISTS idx_products_name ON products(name);
@@ -366,7 +368,12 @@ export const databaseService = {
         const migrationQueries = [
             "ALTER TABLE users ADD COLUMN salary REAL DEFAULT 0",
             "ALTER TABLE users ADD COLUMN pending_salary REAL DEFAULT 0",
-            "ALTER TABLE users ADD COLUMN given_salary REAL DEFAULT 0"
+            "ALTER TABLE users ADD COLUMN given_salary REAL DEFAULT 0",
+
+            // Keep products table aligned with renderer services
+            "ALTER TABLE products ADD COLUMN image TEXT",
+            "ALTER TABLE products ADD COLUMN variant_group_id TEXT",
+            "ALTER TABLE products ADD COLUMN attributes TEXT"
         ];
 
         for (const sql of migrationQueries) {
@@ -523,6 +530,252 @@ export const databaseService = {
                     for (const [k, v] of defaultSettings) {
                         dbInstance.run("INSERT INTO store_settings (key, value) VALUES (?, ?)", [k, v]);
                     }
+                }
+
+                // 4. Seed demo/mock data if database is empty (fresh install / preview)
+                try {
+                    const productCount = dbInstance.exec("SELECT COUNT(*) FROM products")[0].values[0][0];
+                    const customerCount = dbInstance.exec("SELECT COUNT(*) FROM customers")[0].values[0][0];
+                    const billCount = dbInstance.exec("SELECT COUNT(*) FROM bills")[0].values[0][0];
+
+                    // Only seed when the operational tables are empty (avoid polluting real stores).
+                    if (productCount === 0 && customerCount === 0 && billCount === 0) {
+                        log("Seeding demo data (products/customers/sales)...");
+
+                        // Groups
+                        dbInstance.run(
+                            "INSERT INTO product_groups (id, name, description, created_at) VALUES (1, ?, ?, ?)",
+                            ["Beverages", "Tea, coffee, soft drinks", new Date().toISOString()]
+                        );
+                        dbInstance.run(
+                            "INSERT INTO product_groups (id, name, description, created_at) VALUES (2, ?, ?, ?)",
+                            ["Snacks", "Chips, biscuits, quick bites", new Date().toISOString()]
+                        );
+                        dbInstance.run(
+                            "INSERT INTO product_groups (id, name, description, created_at) VALUES (3, ?, ?, ?)",
+                            ["Household", "Everyday essentials", new Date().toISOString()]
+                        );
+
+                        // Products (explicit IDs so we can create demo bills reliably)
+                        const demoProducts: any[] = [
+                            [1, "Arabica Coffee 250g", "8901234500011", 220, 320, 25, 5, "0901", 5],
+                            [2, "Green Tea (25 bags)", "8901234500012", 75, 120, 40, 5, "0902", 8],
+                            [3, "Milk 1L", "8901234500013", 42, 60, 18, 0, "0401", 10],
+                            [4, "Mineral Water 1L", "8901234500014", 10, 20, 55, 0, "2201", 12],
+                            [5, "Cola 500ml", "8901234500015", 18, 35, 30, 12, "2202", 10],
+                            [6, "Potato Chips 90g", "8901234500016", 22, 40, 14, 12, "2005", 6],
+                            // Intentionally low so Low Stock / Reorder reports show data
+                            [7, "Chocolate Biscuit Pack", "8901234500017", 20, 35, 5, 12, "1905", 6],
+                            [8, "Instant Noodles", "8901234500018", 12, 18, 70, 0, "1902", 15],
+                            // Intentionally low so Low Stock / Reorder reports show data
+                            [9, "Dishwash Liquid 500ml", "8901234500019", 58, 89, 3, 18, "3402", 4],
+                            // Intentionally low so Low Stock / Reorder reports show data
+                            [10, "Toilet Paper (6 rolls)", "8901234500020", 90, 140, 2, 12, "4818", 3],
+                            [11, "Hand Sanitizer 200ml", "8901234500021", 45, 79, 12, 18, "3808", 4],
+                            [12, "Bath Soap Bar", "8901234500022", 18, 28, 35, 18, "3401", 10],
+                        ];
+
+                        for (const p of demoProducts) {
+                            dbInstance.run(
+                                `INSERT INTO products (id, name, barcode, cost_price, sell_price, stock, gst_rate, hsn_code, min_stock_level)
+                                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                                p
+                            );
+                        }
+
+                        // Group associations
+                        const groupLinks: any[] = [
+                            [1, 1], [1, 2], [1, 3], [1, 4], [1, 5],
+                            [2, 6], [2, 7], [2, 8],
+                            [3, 9], [3, 10], [3, 11], [3, 12],
+                        ];
+                        for (const [groupId, productId] of groupLinks) {
+                            dbInstance.run("INSERT INTO product_group_items (group_id, product_id) VALUES (?, ?)", [groupId, productId]);
+                        }
+
+                        // Customers
+                        const now = new Date();
+                        const isoDaysAgo = (d: number) => new Date(now.getTime() - d * 24 * 60 * 60 * 1000).toISOString();
+                        const demoCustomers: any[] = [
+                            [1, "Walk-in Customer", null, null, null, isoDaysAgo(30), 0, null, 0, 0],
+                            [2, "Rahul Sharma", "9000011111", "rahul@example.com", "12 Lake View Rd", isoDaysAgo(12), 2480, isoDaysAgo(2), 120, 0],
+                            [3, "Aisha Khan", "9000022222", "aisha@example.com", "44 Market Street", isoDaysAgo(25), 1290, isoDaysAgo(5), 65, 180],
+                            [4, "Suresh Traders", "9000033333", "accounts@sureshtraders.in", "Industrial Area, Phase 2", isoDaysAgo(60), 8450, isoDaysAgo(1), 420, 0],
+                            [5, "Meera Nair", "9000044444", "meera@example.com", "9 Palm Grove", isoDaysAgo(7), 890, isoDaysAgo(0), 25, 0],
+                        ];
+                        for (const c of demoCustomers) {
+                            // customers table supports balance in this schema; keep it deterministic.
+                            dbInstance.run(
+                                `INSERT INTO customers (id, name, phone, email, address, created_at, total_purchases, last_visit, points, balance)
+                                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                                c
+                            );
+                        }
+
+                        // Customer ledger for the one customer with balance due
+                        dbInstance.run(
+                            `INSERT INTO customer_ledger (customer_id, type, amount, balance_after, description, reference_id, date)
+                             VALUES (?, ?, ?, ?, ?, ?, ?)`,
+                            [3, "DEBIT", 180, 180, "Previous Due", null, isoDaysAgo(5)]
+                        );
+
+                        // Bills & bill items (simple demo history)
+                        const demoBills: any[] = [
+                            [1, "INV-0001", isoDaysAgo(5), 440, 0, 0, 0, 0, 440, "CASH", "PAID", 2],
+                            [2, "INV-0002", isoDaysAgo(3), 158, 0, 0, 0, 0, 158, "UPI", "PAID", 3],
+                            [3, "INV-0003", isoDaysAgo(1), 229, 0, 0, 0, 0, 229, "CARD", "PAID", 4],
+                            // A discounted bill
+                            [4, "INV-0004", isoDaysAgo(0), 120, 0, 0, 0, 0, 120, "CASH", "PAID", 5],
+
+                            // A due/unpaid bill so "Outstanding Dues" has data
+                            [5, "INV-0005", isoDaysAgo(2), 180, 0, 0, 0, 0, 180, "CASH", "DUE", 3],
+                        ];
+                        for (const b of demoBills) {
+                            if (b[0] === 4) {
+                                // Insert with discount_amount populated for reports
+                                dbInstance.run(
+                                    `INSERT INTO bills (id, bill_no, date, subtotal, cgst, sgst, igst, gst_total, total, payment_mode, status, customer_id, discount_amount)
+                                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                                    [...b, 10]
+                                );
+                            } else {
+                                dbInstance.run(
+                                    `INSERT INTO bills (id, bill_no, date, subtotal, cgst, sgst, igst, gst_total, total, payment_mode, status, customer_id)
+                                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                                    b
+                                );
+                            }
+                        }
+
+                        const demoBillItems: any[] = [
+                            // bill 1: coffee x1, milk x2
+                            [1, 1, 1, 1, 320, 320, 5, 0],
+                            [2, 1, 3, 2, 60, 120, 0, 0],
+                            // bill 2: chips x2, water x1, biscuit x1
+                            [3, 2, 6, 2, 40, 80, 12, 0],
+                            [4, 2, 4, 1, 20, 20, 0, 0],
+                            [5, 2, 7, 1, 35, 35, 12, 0],
+                            // bill 3: dishwash x1, soap x2
+                            [6, 3, 9, 1, 89, 89, 18, 0],
+                            [7, 3, 12, 2, 28, 56, 18, 0],
+                            // bill 4: green tea x1
+                            [8, 4, 2, 1, 120, 120, 5, 0],
+
+                            // bill 5 (DUE): sanitizer x1, noodles x2
+                            [9, 5, 11, 1, 79, 79, 18, 0],
+                            [10, 5, 8, 2, 18, 36, 0, 0],
+                        ];
+                        for (const bi of demoBillItems) {
+                            dbInstance.run(
+                                `INSERT INTO bill_items (id, bill_id, product_id, quantity, price, taxable_value, gst_rate, gst_amount)
+                                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+                                bi
+                            );
+                        }
+
+                        // Bill tenders (used by Payment Methods report)
+                        const demoTenders: any[] = [
+                            [1, 1, "CASH", 440],
+                            [2, 2, "UPI", 158],
+                            [3, 3, "CARD", 229],
+                            [4, 4, "CASH", 120],
+                            [5, 5, "CASH", 180],
+                        ];
+                        for (const t of demoTenders) {
+                            dbInstance.run(
+                                `INSERT INTO bill_tenders (id, bill_id, mode, amount) VALUES (?, ?, ?, ?)`,
+                                t
+                            );
+                        }
+
+                        // Suppliers + Purchase Orders (so Purchase reports aren't empty)
+                        const demoSuppliers: any[] = [
+                            [1, "FreshFoods Distributors", "9000099991", "contact@freshfoods.in", "Warehouse Rd", "22AAAAA0000A1Z5", new Date().toISOString(), 0],
+                            [2, "DailyNeeds Wholesale", "9000099992", "sales@dailyneeds.in", "Industrial Estate", "22BBBBB0000B1Z5", new Date().toISOString(), 0],
+                        ];
+                        for (const s of demoSuppliers) {
+                            dbInstance.run(
+                                `INSERT INTO suppliers (id, name, phone, email, address, gstin, created_at, balance)
+                                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+                                s
+                            );
+                        }
+
+                        const demoPurchaseOrders: any[] = [
+                            [1, "PO-0001", 1, isoDaysAgo(10), 1320, "RECEIVED", "Weekly restock", isoDaysAgo(9)],
+                            [2, "PO-0002", 2, isoDaysAgo(2), 980, "ORDERED", "Pending delivery", null],
+                        ];
+                        for (const po of demoPurchaseOrders) {
+                            dbInstance.run(
+                                `INSERT INTO purchase_orders (id, order_no, supplier_id, date, total_amount, status, notes, receive_date)
+                                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+                                po
+                            );
+                        }
+
+                        const demoPurchaseItems: any[] = [
+                            // PO-0001 received
+                            [1, 1, 1, 3, 220, 660],
+                            [2, 1, 6, 10, 22, 220],
+                            [3, 1, 9, 5, 58, 290],
+                            [4, 1, 2, 1, 75, 75],
+                            [5, 1, 4, 10, 10, 100],
+
+                            // PO-0002 ordered (unpaid/pending)
+                            [6, 2, 10, 4, 90, 360],
+                            [7, 2, 11, 4, 45, 180],
+                            [8, 2, 12, 10, 18, 180],
+                            [9, 2, 7, 4, 20, 80],
+                            [10, 2, 3, 4, 42, 168],
+                            [11, 2, 5, 2, 18, 36],
+                        ];
+                        for (const poi of demoPurchaseItems) {
+                            dbInstance.run(
+                                `INSERT INTO purchase_order_items (id, purchase_order_id, product_id, quantity, cost_price, total_amount)
+                                 VALUES (?, ?, ?, ?, ?, ?)`,
+                                poi
+                            );
+                        }
+
+                        // Inventory loss/damage logs (Loss & Damage report)
+                        const demoInventoryLogs: any[] = [
+                            [1, 6, "DAMAGE", -1, "Damaged pack", isoDaysAgo(4), 1],
+                            [2, 10, "LOSS", -1, "Lost in transit", isoDaysAgo(8), 1],
+                            [3, 3, "SHRINKAGE", -2, "Expired stock", isoDaysAgo(1), 1],
+                        ];
+                        for (const il of demoInventoryLogs) {
+                            dbInstance.run(
+                                `INSERT INTO inventory_logs (id, product_id, type, quantity_change, reason, date, user_id)
+                                 VALUES (?, ?, ?, ?, ?, ?, ?)`,
+                                il
+                            );
+                        }
+
+                        // Cash sessions + transactions (Cash reconciliation / Staff performance)
+                        dbInstance.run(
+                            `INSERT INTO cash_drawer_sessions (id, user_id, start_time, end_time, start_cash, end_cash, status)
+                             VALUES (?, ?, ?, ?, ?, ?, ?)`,
+                            [1, 1, isoDaysAgo(1), isoDaysAgo(1), 2000, 2600, "CLOSED"]
+                        );
+                        const demoCashTx: any[] = [
+                            [1, 1, "OPENING", 2000, "Opening cash", isoDaysAgo(1)],
+                            [2, 1, "SALE", 440, "INV-0001", isoDaysAgo(5)],
+                            [3, 1, "SALE", 120, "INV-0004", isoDaysAgo(0)],
+                            [4, 1, "PAYOUT", 200, "Electricity bill", isoDaysAgo(1)],
+                            [5, 1, "CLOSING", 2600, "Closing cash", isoDaysAgo(1)],
+                        ];
+                        for (const ct of demoCashTx) {
+                            dbInstance.run(
+                                `INSERT INTO cash_transactions (id, session_id, type, amount, reason, time)
+                                 VALUES (?, ?, ?, ?, ?, ?)`,
+                                ct
+                            );
+                        }
+
+                        log("Demo data seeded.");
+                    }
+                } catch (seedErr: any) {
+                    log(`Demo seed skipped/failed: ${seedErr?.message || seedErr}`);
                 }
 
                 databaseService.save();
@@ -686,6 +939,182 @@ export const databaseService = {
             return true;
         }
         return false;
+    },
+
+    /**
+     * Seeds a minimal dataset specifically for the Reports screen when there are no bills.
+     * This is intentionally conservative: it only runs if the `bills` table is empty.
+     * Returns true if seed happened, false if skipped.
+     */
+    seedDemoReportsIfEmpty: async (): Promise<boolean> => {
+        await databaseService.init();
+
+        const alreadySeeded = localStorage.getItem('demo_reports_seeded_v1') === 'true';
+        if (alreadySeeded) return false;
+
+        const billCountRes = await databaseService.query(`SELECT COUNT(*) as count FROM bills`);
+        const billCount = Number(billCountRes?.[0]?.count || 0);
+        if (billCount > 0) return false;
+
+        // Ensure at least a couple products exist
+        let products = await databaseService.query(
+            `SELECT id, name, sell_price, gst_rate, cost_price
+             FROM products
+             ORDER BY id ASC
+             LIMIT 5`
+        );
+
+        if (!products || products.length < 2) {
+            await databaseService.query(
+                `INSERT INTO products (name, barcode, cost_price, sell_price, stock, gst_rate, hsn_code, min_stock_level)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+                ['Demo Product A', `DEMO-${Date.now()}-A`, 50, 80, 25, 5, '0000', 5]
+            );
+            await databaseService.query(
+                `INSERT INTO products (name, barcode, cost_price, sell_price, stock, gst_rate, hsn_code, min_stock_level)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+                ['Demo Product B', `DEMO-${Date.now()}-B`, 20, 35, 10, 12, '0000', 5]
+            );
+            products = await databaseService.query(
+                `SELECT id, name, sell_price, gst_rate, cost_price
+                 FROM products
+                 ORDER BY id ASC
+                 LIMIT 5`
+            );
+        }
+
+        // Ensure a customer exists (optional for reports, but useful)
+        const custRes = await databaseService.query(`SELECT id FROM customers ORDER BY id ASC LIMIT 1`);
+        let customerId: number | null = custRes?.[0]?.id ?? null;
+        if (!customerId) {
+            await databaseService.query(
+                `INSERT INTO customers (name, phone, email, address, created_at, total_purchases, points, balance)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+                ['Walk-in Customer', null, null, null, new Date().toISOString(), 0, 0, 0]
+            );
+            const c2 = await databaseService.query(`SELECT id FROM customers ORDER BY id ASC LIMIT 1`);
+            customerId = c2?.[0]?.id ?? null;
+        }
+
+        const now = new Date();
+        const isoDaysAgo = (d: number) => new Date(now.getTime() - d * 24 * 60 * 60 * 1000).toISOString();
+        const ymd = now.toISOString().slice(0, 10).replace(/-/g, '');
+
+        // Create 2 bills: PAID and DUE
+        const billNoPaid = `DEMO-${ymd}-P-${String(Date.now()).slice(-6)}`;
+        const billNoDue = `DEMO-${ymd}-D-${String(Date.now() + 1).slice(-6)}`;
+
+        // Bill 1 (PAID)
+        const p1 = products[0];
+        const p2 = products[1];
+        const qty1 = 2;
+        const qty2 = 1;
+        const taxable1 = qty1 * Number(p1.sell_price || 0);
+        const taxable2 = qty2 * Number(p2.sell_price || 0);
+        const gst1 = taxable1 * (Number(p1.gst_rate || 0) / 100);
+        const gst2 = taxable2 * (Number(p2.gst_rate || 0) / 100);
+        const paidSubtotal = taxable1 + taxable2;
+        const paidGst = gst1 + gst2;
+        const paidTotal = paidSubtotal + paidGst;
+
+        await databaseService.query(
+            `INSERT INTO bills (bill_no, date, subtotal, cgst, sgst, igst, gst_total, total, payment_mode, status, customer_id, discount_amount)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [billNoPaid, isoDaysAgo(1), paidSubtotal, paidGst / 2, paidGst / 2, 0, paidGst, paidTotal, 'CASH', 'PAID', customerId, 10]
+        );
+        const billPaidIdRes = await databaseService.query(`SELECT id FROM bills WHERE bill_no = ?`, [billNoPaid]);
+        const billPaidId = billPaidIdRes?.[0]?.id;
+
+        if (billPaidId) {
+            await databaseService.query(
+                `INSERT INTO bill_items (bill_id, product_id, quantity, price, taxable_value, gst_rate, gst_amount)
+                 VALUES (?, ?, ?, ?, ?, ?, ?)`,
+                [billPaidId, p1.id, qty1, Number(p1.sell_price || 0), taxable1, Number(p1.gst_rate || 0), gst1]
+            );
+            await databaseService.query(
+                `INSERT INTO bill_items (bill_id, product_id, quantity, price, taxable_value, gst_rate, gst_amount)
+                 VALUES (?, ?, ?, ?, ?, ?, ?)`,
+                [billPaidId, p2.id, qty2, Number(p2.sell_price || 0), taxable2, Number(p2.gst_rate || 0), gst2]
+            );
+            await databaseService.query(
+                `INSERT INTO bill_tenders (bill_id, mode, amount) VALUES (?, ?, ?)`,
+                [billPaidId, 'CASH', paidTotal]
+            );
+        }
+
+        // Bill 2 (DUE) for Outstanding report
+        const dueSubtotal = Number(p2.sell_price || 0);
+        const dueGst = dueSubtotal * (Number(p2.gst_rate || 0) / 100);
+        const dueTotal = dueSubtotal + dueGst;
+
+        await databaseService.query(
+            `INSERT INTO bills (bill_no, date, subtotal, cgst, sgst, igst, gst_total, total, payment_mode, status, customer_id)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [billNoDue, isoDaysAgo(3), dueSubtotal, dueGst / 2, dueGst / 2, 0, dueGst, dueTotal, 'CASH', 'DUE', customerId]
+        );
+
+        // Purchase seed (supplier + received PO)
+        await databaseService.query(
+            `INSERT OR IGNORE INTO suppliers (name, phone, email, address, gstin, created_at, balance)
+             VALUES (?, ?, ?, ?, ?, ?, ?)`,
+            ['Demo Supplier', '9000000000', 'demo@supplier.test', 'Demo Address', '22DEMO0000D1Z5', new Date().toISOString(), 0]
+        );
+        const supplierRes = await databaseService.query(`SELECT id FROM suppliers ORDER BY id ASC LIMIT 1`);
+        const supplierId = supplierRes?.[0]?.id;
+        if (supplierId) {
+            const poNo = `DEMO-PO-${ymd}-${String(Date.now()).slice(-4)}`;
+            await databaseService.query(
+                `INSERT INTO purchase_orders (order_no, supplier_id, date, total_amount, status, notes, receive_date)
+                 VALUES (?, ?, ?, ?, ?, ?, ?)`,
+                [poNo, supplierId, isoDaysAgo(10), 500, 'RECEIVED', 'Demo restock', isoDaysAgo(9)]
+            );
+            const poRes = await databaseService.query(`SELECT id FROM purchase_orders WHERE order_no = ?`, [poNo]);
+            const poId = poRes?.[0]?.id;
+            if (poId) {
+                await databaseService.query(
+                    `INSERT INTO purchase_order_items (purchase_order_id, product_id, quantity, cost_price, total_amount)
+                     VALUES (?, ?, ?, ?, ?)`,
+                    [poId, p1.id, 2, Number(p1.cost_price || 0), 2 * Number(p1.cost_price || 0)]
+                );
+            }
+        }
+
+        // Loss & damage (inventory logs)
+        await databaseService.query(
+            `INSERT INTO inventory_logs (product_id, type, quantity_change, reason, date, user_id)
+             VALUES (?, ?, ?, ?, ?, ?)`,
+            [p2.id, 'SHRINKAGE', -1, 'Demo shrinkage', isoDaysAgo(2), 1]
+        );
+
+        // Cash session + transactions (for finance-related report helpers)
+        await databaseService.query(
+            `INSERT INTO cash_drawer_sessions (user_id, start_time, end_time, start_cash, end_cash, status)
+             VALUES (?, ?, ?, ?, ?, ?)`,
+            [1, isoDaysAgo(1), isoDaysAgo(1), 2000, 2500, 'CLOSED']
+        );
+        const sessionRes = await databaseService.query(`SELECT id FROM cash_drawer_sessions ORDER BY id DESC LIMIT 1`);
+        const sessionId = sessionRes?.[0]?.id;
+        if (sessionId) {
+            await databaseService.query(
+                `INSERT INTO cash_transactions (session_id, type, amount, reason, time) VALUES (?, ?, ?, ?, ?)`,
+                [sessionId, 'OPENING', 2000, 'Opening cash', isoDaysAgo(1)]
+            );
+            await databaseService.query(
+                `INSERT INTO cash_transactions (session_id, type, amount, reason, time) VALUES (?, ?, ?, ?, ?)`,
+                [sessionId, 'SALE', paidTotal, billNoPaid, isoDaysAgo(1)]
+            );
+            await databaseService.query(
+                `INSERT INTO cash_transactions (session_id, type, amount, reason, time) VALUES (?, ?, ?, ?, ?)`,
+                [sessionId, 'PAYOUT', 200, 'Demo expense', isoDaysAgo(1)]
+            );
+            await databaseService.query(
+                `INSERT INTO cash_transactions (session_id, type, amount, reason, time) VALUES (?, ?, ?, ?, ?)`,
+                [sessionId, 'CLOSING', 2500, 'Closing cash', isoDaysAgo(1)]
+            );
+        }
+
+        localStorage.setItem('demo_reports_seeded_v1', 'true');
+        return true;
     },
 
     createBackup: async (): Promise<string> => {
