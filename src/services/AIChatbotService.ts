@@ -5,6 +5,7 @@ import { trainingService } from './trainingService';
 import { knowledgeBase } from './KnowledgeBase';
 import { databaseService } from './databaseService';
 import { accountingAI } from './AccountingAI';
+import { chatbotTrainingData } from '../data/chatbotTrainingData';
 
 export interface ChatMessage {
     id: string;
@@ -169,23 +170,31 @@ class AIChatbotService {
             // Handle Knowledge Queries outside of Gateway
             if (command.type === 'KNOWLEDGE_QUERY' as any) {
                 const topic = (command as any).payload?.topic;
-                let knowledge = topic ? knowledgeBase.getTopic(topic) : null;
+                let knowledge = topic ? await knowledgeBase.getTopic(topic, text) : null;
 
                 if (!knowledge) {
-                    knowledge = knowledgeBase.ask(text);
+                    knowledge = await knowledgeBase.ask(text);
                 }
 
                 if (knowledge) {
-                    this.addMessage('AI', knowledge);
+                    if (typeof knowledge === 'string') {
+                        this.addMessage('AI', knowledge);
+                    } else {
+                        this.addMessage('AI', knowledge.text, knowledge.action, knowledge.data);
+                    }
                     return;
                 }
             }
             await this.executeCommand(command);
         } else {
             // 4. Knowledge Base Fallback
-            const knowledge = knowledgeBase.ask(text);
+            const knowledge = await knowledgeBase.ask(text);
             if (knowledge) {
-                this.addMessage('AI', knowledge);
+                if (typeof knowledge === 'string') {
+                    this.addMessage('AI', knowledge);
+                } else {
+                    this.addMessage('AI', knowledge.text, knowledge.action, knowledge.data);
+                }
                 return;
             }
 

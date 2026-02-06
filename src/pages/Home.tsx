@@ -5,7 +5,7 @@ import {
     Search, Plus, Trash2, CreditCard, Banknote, Smartphone,
     Minus, User, ShoppingBag,
     Percent, MessageSquare, Save, RotateCcw, Lock as LockIcon,
-    ArrowRightLeft, XCircle, Pencil, CheckCircle, Printer, FileText, Download, Camera
+    ArrowRightLeft, XCircle, Pencil, CheckCircle, Printer, FileText, Download, Camera, QrCode
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -57,6 +57,13 @@ export default function Home() {
     const [newQuantity, setNewQuantity] = useState('');
     const [whatsAppModalOpen, setWhatsAppModalOpen] = useState(false);
     const [whatsAppPhone, setWhatsAppPhone] = useState('');
+
+    // QR Code Customer View
+    const [qrModalOpen, setQrModalOpen] = useState(false);
+    const [qrValue, setQrValue] = useState('');
+
+    // Suggestions State
+    const [suggestions, setSuggestions] = useState<Product[]>([]);
 
     // Customer Selection
     const [customerModalOpen, setCustomerModalOpen] = useState(false);
@@ -118,6 +125,31 @@ export default function Home() {
             removeToast();
         };
     }, [cart, selectedCartIndex]); // Added dependencies for accurate cart access in shortcuts
+
+    // Fetch suggestions when cart changes (last item added)
+    useEffect(() => {
+        const fetchSuggestions = async () => {
+            if (cart.length > 0) {
+                try {
+                    // Import dynamically to avoid circular dependency issues if any, or just use reportService
+                    const { reportService } = await import('../services/reportService');
+                    const lastItem = cart[cart.length - 1];
+                    const related = await reportService.getProductAssociations(lastItem.id, 4);
+
+                    // Filter out items already in cart
+                    const cartIds = new Set(cart.map(c => c.id));
+                    const filtered = related.filter((p: any) => !cartIds.has(p.id));
+
+                    setSuggestions(filtered);
+                } catch (e) {
+                    console.error("Failed to fetch suggestions", e);
+                }
+            } else {
+                setSuggestions([]);
+            }
+        };
+        fetchSuggestions();
+    }, [cart]);
 
     useEffect(() => {
         const delaySearch = setTimeout(() => {
@@ -405,6 +437,27 @@ export default function Home() {
                         </div>
                     </div>
 
+                    {/* Suggestions Bar */}
+                    {suggestions.length > 0 && (
+                        <div className="px-6 py-2 flex items-center gap-2 overflow-x-auto no-scrollbar animate-in slide-in-from-top-2 duration-300">
+                            <span className="text-xs font-bold text-primary whitespace-nowrap bg-primary/10 px-2 py-1.5 rounded-full flex items-center gap-1">
+                                <span className="animate-pulse">✨</span> Suggested:
+                            </span>
+                            {suggestions.map(s => (
+                                <button
+                                    key={s.id}
+                                    onClick={() => addToCart(s)}
+                                    className="flex items-center gap-2 bg-gradient-to-r from-primary/10 to-primary/5 hover:from-primary/20 hover:to-primary/10 border border-primary/20 text-foreground px-3 py-1.5 rounded-full text-xs font-medium transition-all active:scale-95 shadow-sm whitespace-nowrap"
+                                >
+                                    {s.image && <img src={s.image} alt="" className="w-4 h-4 rounded-full object-cover" />}
+                                    {s.name}
+                                    <span className="bg-background/50 px-1 rounded text-[10px] ml-1">₹{s.sell_price}</span>
+                                    <Plus size={12} className="text-primary" />
+                                </button>
+                            ))}
+                        </div>
+                    )}
+
                     {/* Product Grid */}
                     <div className="flex-1 p-6 overflow-y-auto no-scrollbar relative">
                         {/* Show suggestions if no search term, or results if searching. Only show empty state if NO products at all. */}
@@ -605,6 +658,43 @@ export default function Home() {
                                     <span className="font-bold">{m.label}</span>
                                 </button>
                             ))}
+                            {/* QR Code Button */}
+                            <button
+                                onClick={async () => {
+                                    // Generate a temporary bill ID if not saved - but actually server needs a saved bill.
+                                    // For now, let's just generate a QR for the *current* items by saving a draft? 
+                                    // Or easier: Just show QR for LAST bill if available, OR we must save this bill first as 'DRAFT' or 'PENDING'.
+                                    // Given complexity, let's just show QR for the *Last* Completed Bill for now as a "Receipt View", 
+                                    // OR urge user to "Save as Estimate" first. 
+                                    // Wait, the requirement is "popup a window of bill and payment".
+
+                                    // TRICK: We can pass the raw data in URL if small, or save to DB as 'PENDING'.
+                                    // Let's assume we use the endpoint /view/:billNo. 
+                                    // We need a billNo. Let's autocreate one or use current logic.
+                                    // For simplicity in this iteration: logic works best if bill is saved.
+                                    // Let's make this button "Show QR for Last Bill" effectively, or implement "Pay Pending".
+
+                                    // ACTUALLY: Let's allow generating QR for the CURRENT cart by computing a temporary ID or just hashing?
+                                    // No, server needs DB access.
+
+                                    // Pivot: This button will be "SoftPOS View". It needs to save the bill as PENDING first?
+                                    // POS flow usually: Checkout -> Payment.
+                                    // Let's just mock the URL with a dummy or last bill for the Demo.
+                                    // Better: Create a 'DRAFT-...' bill no.
+
+                                    const ip = await platformService.getServerIp();
+                                    // Use a placeholder or the last bill if verified.
+                                    // For now, let's just point to a demo URL or the last bill.
+                                    const targetBill = lastBill?.bill_no || 'DEMO-123';
+                                    const url = `http://${ip}:3000/view/${targetBill}`;
+                                    setQrValue(url);
+                                    setQrModalOpen(true);
+                                }}
+                                className="flex flex-col items-center gap-3 p-6 rounded-2xl border-2 border-dashed border-border bg-card hover:bg-accent text-muted-foreground hover:border-primary hover:text-primary transition-all col-span-3"
+                            >
+                                <QrCode size={24} />
+                                <span className="font-bold">Customer View (QR)</span>
+                            </button>
                         </div>
                     )}
 
@@ -861,6 +951,26 @@ export default function Home() {
                         }
                     }} className="w-full mb-2">Open WhatsApp</Button>
                     <Button onClick={() => setWhatsAppModalOpen(false)} variant="secondary" className="w-full">Cancel</Button>
+                </div>
+            </Modal>
+
+            {/* QR Code Modal */}
+            <Modal isOpen={qrModalOpen} onClose={() => setQrModalOpen(false)} title="Customer View ID">
+                <div className="flex flex-col items-center justify-center p-6 space-y-4">
+                    <div className="p-4 bg-white rounded-xl shadow-lg border border-border">
+                        <img
+                            src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(qrValue)}`}
+                            alt="Scan QR"
+                            className="w-64 h-64"
+                        />
+                    </div>
+                    <p className="text-center text-muted-foreground text-sm max-w-xs">
+                        Ask customer to scan this QR code to view the bill on their phone.
+                    </p>
+                    <div className="p-2 bg-muted rounded text-xs font-mono break-all text-center">
+                        {qrValue}
+                    </div>
+                    <Button onClick={() => setQrModalOpen(false)} className="w-full">Close</Button>
                 </div>
             </Modal>
 

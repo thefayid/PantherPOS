@@ -5,8 +5,28 @@ import { Send, Mic, MicOff, Bot, Loader2, Sparkles } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const AI_SUGGESTIONS_STORAGE = 'pos_ai_command_counts';
-const MAX_SUGGESTIONS = 3;
-const DEFAULT_SUGGESTIONS = ['New Bill', 'Show Profit'];
+const MAX_SUGGESTIONS = 20;
+const DEFAULT_SUGGESTIONS = [
+    // Reports
+    'Show Profit',
+    'Sales Report',
+    'GST Summary',
+    'Low Stock Report',
+    'Top Selling Items',
+    'Customer Ageing',
+    'Expense Report',
+    'Cash Flow Statement',
+    'Daily Transactions',
+    'Monthly Overview',
+    'Tax Liability',
+    'Staff Performance',
+    // Actions
+    'New Bill',
+    'Check Health',
+    'Printer Help',
+    'Scanner Fix',
+    'Tell a Joke'
+];
 
 function recordCommand(cmd: string) {
     const raw = localStorage.getItem(AI_SUGGESTIONS_STORAGE);
@@ -22,9 +42,12 @@ function getTopSuggestions(): string[] {
     const counts: Record<string, number> = raw ? JSON.parse(raw) : {};
     const sorted = Object.entries(counts)
         .sort(([, a], [, b]) => b - a)
-        .map(([cmd]) => cmd)
-        .slice(0, MAX_SUGGESTIONS);
-    return sorted.length > 0 ? sorted : DEFAULT_SUGGESTIONS;
+        .map(([cmd]) => cmd);
+
+    // Merge history with defaults, keeping unique items
+    const combined = Array.from(new Set([...sorted, ...DEFAULT_SUGGESTIONS]));
+
+    return combined.slice(0, MAX_SUGGESTIONS);
 }
 
 export default function AIAssist() {
@@ -40,9 +63,11 @@ export default function AIAssist() {
 
         // Initial Greeting if empty
         if (aiChatbotService.getMessages().length === 0) {
+            const hour = new Date().getHours();
+            const timeOfDay = hour < 12 ? "Morning" : hour < 17 ? "Afternoon" : "Evening";
             aiChatbotService.addMessage(
                 'AI',
-                "**Good Afternoon!** I'm ready to help. Try \"New Bill\" or \"Show Profit\"."
+                `**Good ${timeOfDay}!** I'm ready to help. Try "New Bill" or "Show Profit".`
             );
         }
 
@@ -155,11 +180,11 @@ export default function AIAssist() {
                         <div className="space-y-2">
                             <div className="flex justify-between">
                                 <span>Net Payable</span>
-                                <span className="font-bold text-destructive">₹{data.data.netPayable.toLocaleString()}</span>
+                                <span className="font-bold text-destructive">₹{data.data.netPayable?.toLocaleString() || '0'}</span>
                             </div>
                             <div className="flex justify-between text-xs text-muted-foreground">
                                 <span>Input Credit</span>
-                                <span>₹{data.data.inputTax.toLocaleString()}</span>
+                                <span>₹{data.data.inputTax?.toLocaleString() || '0'}</span>
                             </div>
                         </div>
                     )}
@@ -167,7 +192,7 @@ export default function AIAssist() {
                         <div className="space-y-2">
                             <div className="flex justify-between font-bold border-b border-border pb-1">
                                 <span>Total Due</span>
-                                <span className="text-destructive">₹{data.data.total.toLocaleString()}</span>
+                                <span className="text-destructive">₹{data.data.total?.toLocaleString() || '0'}</span>
                             </div>
                             <div className="max-h-32 overflow-y-auto space-y-1 pr-1 custom-scrollbar">
                                 {data.data.items.slice(0, 5).map((item: any, idx: number) => (
@@ -184,19 +209,19 @@ export default function AIAssist() {
                         <div className="space-y-1.5 text-xs">
                             <div className="flex justify-between items-center p-1.5 bg-green-500/10 border border-green-500/20 rounded">
                                 <span className="font-medium text-green-600 dark:text-green-400">Operating</span>
-                                <span className="font-mono">₹{data.data.operating.toLocaleString()}</span>
+                                <span className="font-mono">₹{data.data.operating?.toLocaleString() || '0'}</span>
                             </div>
                             <div className="flex justify-between items-center p-1.5 bg-blue-500/10 border border-blue-500/20 rounded">
                                 <span className="font-medium text-blue-600 dark:text-blue-400">Investing</span>
-                                <span className="font-mono">₹{data.data.investing.toLocaleString()}</span>
+                                <span className="font-mono">₹{data.data.investing?.toLocaleString() || '0'}</span>
                             </div>
                             <div className="flex justify-between items-center p-1.5 bg-yellow-500/10 border border-yellow-500/20 rounded">
                                 <span className="font-medium text-yellow-600 dark:text-yellow-400">Financing</span>
-                                <span className="font-mono">₹{data.data.financing.toLocaleString()}</span>
+                                <span className="font-mono">₹{data.data.financing?.toLocaleString() || '0'}</span>
                             </div>
                             <div className="flex justify-between font-bold pt-2 border-t border-border mt-1">
                                 <span>Net Change</span>
-                                <span className={data.data.netChange >= 0 ? "text-green-500" : "text-destructive"}>₹{data.data.netChange.toLocaleString()}</span>
+                                <span className={(data.data.netChange || 0) >= 0 ? "text-green-500" : "text-destructive"}>₹{data.data.netChange?.toLocaleString() || '0'}</span>
                             </div>
                         </div>
                     )}
@@ -266,16 +291,17 @@ export default function AIAssist() {
                 <div ref={messagesEndRef} />
             </div>
 
-            <div className="mb-3 flex items-center gap-2 overflow-x-auto pb-1 scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground shrink-0 flex items-center gap-1.5">
-                    <Sparkles size={12} className="text-primary" /> Suggestions
+            <div className="mb-4 space-y-2">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5 px-1">
+                    <Sparkles size={12} className="text-primary" /> Suggested Reports & Actions
                 </span>
-                <div className="flex gap-2 flex-wrap min-w-0">
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 max-h-[140px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent">
                     {suggestions.map((cmd) => (
                         <button
                             key={cmd}
                             onClick={() => handleSuggestionClick(cmd)}
-                            className="px-3 py-1.5 text-xs font-medium rounded-full bg-muted/80 hover:bg-primary/20 hover:text-primary border border-border/50 hover:border-primary/30 text-foreground/90 transition-all duration-200 shrink-0"
+                            className="px-3 py-2 text-xs font-medium rounded-lg bg-surface hover:bg-primary/10 hover:text-primary border border-border/50 hover:border-primary/30 text-muted-foreground hover:text-foreground transition-all duration-200 text-left truncate"
+                            title={cmd}
                         >
                             {cmd}
                         </button>

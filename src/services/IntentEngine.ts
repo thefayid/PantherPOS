@@ -46,6 +46,27 @@ export class IntentEngine {
     }
 
     private patterns: IntentPattern[] = [
+        // KNOWLEDGE OVERRIDES: Specific commands we want to handle via KnowledgeBase actions (High Priority)
+        {
+            regex: /\b(low stock report|gst summary|top selling items|customer ageing|expense report|cash flow statement|daily transactions|show daybook|check health|tax liability|staff performance|revenue|sales report|profit report|inventory forecast|stock prediction|stockout prediction|churn|inactive customer|lost customer|who stopped visiting|what to order|reorder|restock|what should i buy|what sells with|what goes with|frequently bought with|suggest item for)\b/i,
+            intent: 'KNOWLEDGE_QUERY' as POSCommand['type'], // Cast to avoid type error if KNOWLEDGE_QUERY isn't in main type union
+            extract: (matches) => {
+                const text = matches[0].toLowerCase();
+                let topic = text;
+                if (text.includes('revenue') || text.includes('sales')) topic = 'Sales Report';
+                if (text.includes('profit')) topic = 'Profit';
+                if (text.includes('forecast') || text.includes('prediction') || text.includes('order') || text.includes('buy') || text.includes('restock')) topic = 'Inventory Forecast';
+                if (text.includes('churn') || text.includes('inactive') || text.includes('lost') || text.includes('stopped')) topic = 'Churn Report';
+                if (text.includes('sells with') || text.includes('goes with') || text.includes('bought with') || text.includes('suggest item')) topic = 'Product Association';
+                return { topic: topic };
+            }
+        },
+        // [OLD INVENTORY FORECAST REMOVED OR REPURPOSED]
+        {
+            regex: /\b(when|run\s+out|how\s+long)\s+.*\b(stock|inventory|last)\b/i,
+            intent: 'KNOWLEDGE_QUERY' as POSCommand['type'],
+            extract: () => ({ topic: 'Inventory Forecast' })
+        },
         // EXPENSE: Top priority to prevent "expense" being treated as a product
         {
             regex: /\b(add|log|record)\s+(expense|cost|spending|payout)\b(.*)/i,

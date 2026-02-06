@@ -298,6 +298,29 @@ export const reportService = {
         return await databaseService.query(sql, params);
     },
 
+    getChurnRiskCustomers: async (daysInactive: number = 30) => {
+        // Find customers who:
+        // 1. Have visited at least 3 times (Regulars)
+        // 2. Have NOT visited in the last 'daysInactive' days
+        return await databaseService.query(`
+            SELECT 
+                c.name, 
+                c.phone, 
+                COUNT(b.id) as total_visits, 
+                MAX(date(b.date)) as last_visit,
+                SUM(b.total) as lifetime_value,
+                CAST((julianday('now') - julianday(MAX(b.date))) AS INTEGER) as days_since_last_visit
+            FROM bills b
+            JOIN customers c ON b.customer_id = c.id
+            WHERE b.status = 'PAID'
+            GROUP BY c.id
+            HAVING total_visits >= 3 
+            AND date(MAX(b.date), 'localtime') <= date('now', '-' || ? || ' days', 'localtime')
+            ORDER BY lifetime_value DESC
+            LIMIT 50
+        `, [daysInactive]);
+    },
+
     // --- PURCHASE REPORTS ---
     getPurchaseProducts: async (startDate?: string, endDate?: string) => {
         let sql = `
@@ -551,6 +574,22 @@ export const reportService = {
             ORDER BY p.stock DESC
             LIMIT 50
         `, [days]);
+    },
+
+    // --- INTELLIGENT ANALYTICS (AI) ---
+    getProductAssociations: async (productId: number, limit: number = 3) => {
+        // Find products often bought in the same bill as the given productId
+        return await databaseService.query(`
+            SELECT p.id, p.name, p.sell_price, p.image, COUNT(bi_other.product_id) as frequency
+            FROM bill_items bi_source
+            JOIN bill_items bi_other ON bi_source.bill_id = bi_other.bill_id
+            JOIN products p ON bi_other.product_id = p.id
+            WHERE bi_source.product_id = ? 
+            AND bi_other.product_id != ? -- Exclude the item itself
+            GROUP BY p.id
+            ORDER BY frequency DESC
+            LIMIT ?
+        `, [productId, productId, limit]);
     },
 
     getInventoryForecast: async () => {

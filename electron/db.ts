@@ -222,6 +222,9 @@ export const initDb = async (log: (msg: string) => void = console.log) => {
             name TEXT NOT NULL,
             role TEXT NOT NULL,
             pin TEXT UNIQUE NOT NULL,
+            salary REAL DEFAULT 0,
+            pending_salary REAL DEFAULT 0,
+            given_salary REAL DEFAULT 0,
             created_at TEXT NOT NULL
         );
 
@@ -585,6 +588,19 @@ export const initDb = async (log: (msg: string) => void = console.log) => {
         } catch (e) {
             console.error("Migration failed: supplier_ledger", e);
         }
+
+        // Phase 4b: Staff Salary Migrations
+        try {
+            db.run("ALTER TABLE users ADD COLUMN salary REAL DEFAULT 0");
+        } catch (e) { }
+
+        try {
+            db.run("ALTER TABLE users ADD COLUMN pending_salary REAL DEFAULT 0");
+        } catch (e) { }
+
+        try {
+            db.run("ALTER TABLE users ADD COLUMN given_salary REAL DEFAULT 0");
+        } catch (e) { }
 
         // Phase 5: Advanced Inventory (Variants)
         try {

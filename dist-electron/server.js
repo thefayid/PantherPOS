@@ -141,6 +141,113 @@ const startServer = async (dbModule, log = console.log) => {
             return reply.code(500).send({ success: false, error: e.message });
         }
     });
+    // 7. Customer View (Mobile Bill)
+    server.get('/view/:billNo', async (request, reply) => {
+        try {
+            const { billNo } = request.params;
+            const bills = await dbModule.query("SELECT * FROM bills WHERE bill_no = ?", [billNo]);
+            if (!bills || bills.length === 0) {
+                return reply.type('text/html').send('<h1>Bill Not Found</h1>');
+            }
+            const bill = bills[0];
+            const items = await dbModule.query("SELECT * FROM bill_items WHERE bill_id = ?", [bill.id]);
+            const products = await dbModule.query("SELECT id, name FROM products");
+            const productMap = new Map(products.map((p) => [p.id, p.name]));
+            // Generate HTML
+            const itemsHtml = items.map((item) => `
+                <div class="item">
+                    <div class="row">
+                        <span class="name">${productMap.get(item.product_id) || 'Unknown Item'}</span>
+                        <span class="price">₹${item.price}</span>
+                    </div>
+                    <div class="row sub">
+                        <span>x${item.quantity}</span>
+                        <span>₹${item.taxable_value + item.gst_amount}</span>
+                    </div>
+                </div>
+            `).join('');
+            const html = `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bill ${billNo}</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f4f4f5; margin: 0; padding: 20px; color: #18181b; }
+        .card { background: white; border-radius: 16px; padding: 24px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); max-width: 400px; margin: 0 auto; }
+        .header { text-align: center; margin-bottom: 24px; }
+        .store-name { font-size: 24px; font-weight: 800; color: #27272a; margin-bottom: 4px; }
+        .bill-no { color: #71717a; font-size: 14px; font-family: monospace; }
+        .divider { height: 1px; background: #e4e4e7; margin: 16px 0; border: none; }
+        .item { margin-bottom: 12px; }
+        .row { display: flex; justify-content: space-between; align-items: baseline; }
+        .name { font-weight: 500; }
+        .sub { font-size: 13px; color: #71717a; margin-top: 2px; }
+        .total-section { background: #f8fafc; margin: 20px -24px -24px; padding: 24px; border-radius: 0 0 16px 16px; border-top: 1px dashed #e2e8f0; }
+        .total-row { display: flex; justify-content: space-between; font-size: 18px; font-weight: 800; margin-bottom: 16px; }
+        .pay-btn { display: block; width: 100%; background: #22c55e; color: white; text-align: center; padding: 16px; border-radius: 12px; text-decoration: none; font-weight: 700; font-size: 16px; box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3); }
+        .pay-btn:active { transform: scale(0.98); }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="header">
+            <div class="store-name">PantherPOS Store</div>
+            <div class="bill-no">#${billNo}</div>
+        </div>
+        
+        <div class="items">
+            ${itemsHtml}
+        </div>
+
+        <div class="total-section">
+            <div class="total-row">
+                <span>Total Payload</span>
+                <span>₹${bill.total}</span>
+            </div>
+            <!-- UPI Deep Link (Mock ID) -->
+            <a href="upi://pay?pa=mockmerchant@upi&pn=PantherPOS&am=${bill.total}&tr=${billNo}&tn=Bill ${billNo}" class="pay-btn">
+                Pay ₹${bill.total} with UPI
+            </a>
+        </div>
+    </div>
+</body>
+</html>
+            `;
+            return reply.type('text/html').send(html);
+        }
+        catch (e) {
+            return reply.code(500).send(`Error: ${e.message}`);
+        }
+    });
+    // 8. IP Address Discovery
+    log('Registering /api/ip endpoint...');
+    server.get('/api/ip', async (request, reply) => {
+        try {
+            log('Hit /api/ip endpoint');
+            const networks = os_1.default.networkInterfaces();
+            let bestIp = 'localhost';
+            for (const name of Object.keys(networks)) {
+                for (const net of networks[name] || []) {
+                    // Skip internal (127.0.0.1) and non-IPv4
+                    if (net.family === 'IPv4' && !net.internal) {
+                        // Prefer 192.168.x.x or 10.x.x.x
+                        if (net.address.startsWith('192.168.') || net.address.startsWith('10.')) {
+                            log(`Found preferred IP: ${net.address}`);
+                            return { ip: net.address };
+                        }
+                        bestIp = net.address;
+                    }
+                }
+            }
+            log(`Returning best match IP: ${bestIp}`);
+            return { ip: bestIp };
+        }
+        catch (e) {
+            log(`Error in /api/ip: ${e.message}`);
+            return { ip: 'localhost' };
+        }
+    });
     // Start Listening
     try {
         const port = 3000;
