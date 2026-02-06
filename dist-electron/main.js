@@ -26,6 +26,7 @@ if (process.env.ELECTRON_RUN_AS_NODE) {
 const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const { startServer } = require('./server');
 const { autoUpdater } = require('electron-updater');
+const licensing = require('./licensing');
 // --- AUTO UPDATE CONFIG ---
 autoUpdater.logger = {
     info: (msg) => log(`[INFO] ${msg}`),
@@ -71,6 +72,7 @@ process.on('uncaughtException', (error) => {
     log(`Uncaught Exception: ${error.stack || error.message}`);
 });
 let mainWindow = null;
+let licenseStatus = { ok: false, reason: 'NO_LICENSE' };
 const createWindow = () => {
     log('Creating window...');
     // Create the browser window.
@@ -129,6 +131,48 @@ let dbModule = null;
 app.on('ready', async () => {
     log('App ready event received');
     try {
+        // Enforce offline license before starting services.
+        // In dev (VITE_DEV_SERVER_URL) we bypass licensing for smoother iteration.
+        if (process.env.VITE_DEV_SERVER_URL) {
+            licenseStatus = { ok: true, payload: { license_type: 'dev', enabled_features: ['*'] } };
+        }
+        else {
+            licenseStatus = await licensing.validateCachedLicenseOffline();
+        }
+        // Register licensing IPC early so activation UI can work.
+        ipcMain.handle('license-get-status', async () => licenseStatus);
+        ipcMain.handle('license-get-fingerprint', async () => licensing.getDeviceFingerprintV1());
+        ipcMain.handle('license-import-text', async (_event, licenseText) => {
+            const res = await licensing.validateLicenseTextOffline(licenseText);
+            if (res?.ok) {
+                licensing.saveLicenseFileText(licenseText);
+                licenseStatus = res;
+            }
+            return res;
+        });
+        ipcMain.handle('license-select-and-import', async () => {
+            const { canceled, filePaths } = await dialog.showOpenDialog({
+                title: 'Select License File',
+                filters: [{ name: 'License Files', extensions: ['lic', 'json'] }],
+                properties: ['openFile'],
+            });
+            if (canceled || !filePaths || filePaths.length === 0)
+                return { ok: false, reason: 'NO_LICENSE', details: 'Canceled' };
+            const fs = require('fs');
+            const text = fs.readFileSync(filePaths[0], 'utf8');
+            const res = await licensing.validateLicenseTextOffline(text);
+            if (res?.ok) {
+                licensing.saveLicenseFileText(text);
+                licenseStatus = res;
+            }
+            return res;
+        });
+        if (!licenseStatus?.ok) {
+            log(`License blocked startup: ${JSON.stringify(licenseStatus)}`);
+            // Do not start DB/server. Renderer will show activation screen.
+            createWindow();
+            return;
+        }
         log('Requiring DB module...');
         dbModule = require('./db');
         const { initDb } = dbModule;

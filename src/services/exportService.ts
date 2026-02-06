@@ -1,8 +1,11 @@
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { getAccountingSalesReportNarrative } from './accountingSalesReportContent';
+import { formatInr, generatePosReportPdf, sanitizeAscii } from './posReportPdfEngine';
 
 export const exportService = {
+    generatePosReportPdf,
     generateCataloguePdf: async (filename: string, title: string, products: any[], layout: 'grid' | 'list' = 'grid') => {
         const doc = new jsPDF();
 
@@ -11,7 +14,7 @@ export const exportService = {
             doc.setFontSize(10);
             doc.setTextColor(150);
             const dateStr = new Date().toLocaleDateString();
-            doc.text(`${title} • ${dateStr}`, 14, 15);
+            doc.text(`${sanitizeAscii(title)} - ${sanitizeAscii(dateStr)}`, 14, 15);
             doc.text(`Page ${pageNo}`, 195, 290, { align: 'right' });
             doc.setDrawColor(240);
             doc.line(14, 285, 196, 285);
@@ -94,7 +97,7 @@ export const exportService = {
 
                 doc.setFontSize(10);
                 doc.setTextColor(16, 185, 129); // Price Color
-                doc.text(`Rs. ${Number(p.sell_price).toLocaleString()}`, curX + (cardWidth / 2), y + cardHeight - 5, { align: 'center' });
+                doc.text(`INR ${Number(p.sell_price).toLocaleString('en-IN')}`, curX + (cardWidth / 2), y + cardHeight - 5, { align: 'center' });
 
                 // Grid Logic
                 col++;
@@ -117,7 +120,7 @@ export const exportService = {
                 body: products.map(p => [
                     p.image || '',
                     p.name + `\n${p.barcode}`, // Stacked Name & Code
-                    `Rs. ${Number(p.sell_price).toLocaleString()}`,
+                    `INR ${Number(p.sell_price).toLocaleString('en-IN')}`,
                     p.stock > 0 ? 'In Stock' : 'Out'
                 ]),
                 theme: 'plain', // Minimalist
@@ -261,6 +264,316 @@ export const exportService = {
         }
     },
 
+    generateDailySalesReportPdf: async (filename: string, input: {
+        businessName: string;
+        reportDate: string;
+        generatedTime: string;
+        totalSales: number;
+        transactions: number;
+        averageTicket: number;
+        previousDay?: { totalSales: number; transactions: number; averageTicket: number };
+        posSoftwareName?: string;
+    }) => {
+        const safeNum = (n: any) => (typeof n === 'number' && Number.isFinite(n) ? n : Number(n) || 0);
+        const totalSales = Math.max(0, safeNum(input.totalSales));
+        const transactions = Math.max(0, Math.floor(safeNum(input.transactions)));
+        const avgTicket = Math.max(0, safeNum(input.averageTicket));
+
+        const activityLevel =
+            transactions === 0 ? 'Low Activity Day' :
+                transactions <= 5 ? 'Light Activity Day' :
+                    'Active Day';
+
+        const executiveSummary =
+            totalSales === 0 || transactions === 0
+                ? "Business activity remained minimal today, with limited transactions recorded. Quiet days are common and provide time to review operations and prepare for busier periods."
+                : "Sales activity was recorded today with completed transactions contributing to overall revenue. Performance remained within expected operational range.";
+
+        const observations: string[] = (() => {
+            const o1 =
+                transactions === 0
+                    ? "Transaction volume was minimal today."
+                    : transactions <= 5
+                        ? "Transaction volume was limited today."
+                        : "Transaction volume was active today.";
+
+            const o2 =
+                totalSales === 0
+                    ? "Revenue remained minimal due to low transaction activity."
+                    : "Revenue reflects completed sales activity for the day.";
+
+            const o3 =
+                transactions === 0
+                    ? "Average ticket value is not applicable today because no transactions were recorded."
+                    : avgTicket < 100
+                        ? "Average ticket value suggests controlled spending and smaller baskets."
+                        : avgTicket < 500
+                            ? "Average ticket value suggests moderate customer spending per visit."
+                            : "Average ticket value suggests higher-value baskets per transaction.";
+
+            return [o1, o2, o3];
+        })();
+
+        const suggestions = [
+            "Review pricing and in-store offers.",
+            "Ensure fast-moving items are well stocked.",
+            "Prepare promotions for upcoming days.",
+        ];
+
+        const prev = input.previousDay;
+        const prevSales = prev ? Math.max(0, safeNum(prev.totalSales)) : null;
+        const prevTxn = prev ? Math.max(0, Math.floor(safeNum(prev.transactions))) : null;
+        const prevAvg = prev ? Math.max(0, safeNum(prev.averageTicket)) : null;
+
+        return await generatePosReportPdf(filename, {
+            posName: input.posSoftwareName || 'PantherPOS',
+            title: 'Daily Sales Report',
+            businessName: input.businessName || 'Business',
+            reportDate: input.reportDate,
+            generatedTime: input.generatedTime,
+            introduction: "This report summarizes the day's business activity.",
+            executiveSummary,
+            kpis: [
+                { label: 'Total Sales', value: formatInr(totalSales), explanation: 'Total Sales represent revenue recorded for the day based on completed transactions.' },
+                { label: 'Total Transactions', value: String(transactions), explanation: 'Transactions represent completed checkouts recorded locally.' },
+                { label: 'Average Ticket Value', value: formatInr(avgTicket), explanation: 'Average Ticket Value indicates typical spend per transaction.' },
+                { label: 'Activity Level', value: activityLevel, explanation: 'Activity Level is derived from transaction count (0 low, 1-5 light, 6+ active).' },
+            ],
+            observations,
+            suggestions,
+            tables: [
+                {
+                    title: 'Today vs Previous Day',
+                    headers: ['Metric', 'Today', 'Previous Day'],
+                    rows: [
+                        ['Total Sales', formatInr(totalSales), prevSales === null ? 'Not available' : formatInr(prevSales)],
+                        ['Transactions', String(transactions), prevTxn === null ? 'Not available' : String(prevTxn)],
+                        ['Average Ticket Value', formatInr(avgTicket), prevAvg === null ? 'Not available' : formatInr(prevAvg)],
+                    ],
+                    includeTotalsRow: false,
+                }
+            ],
+            closingLine: 'This report is intended for internal accounting and financial review purposes.',
+        });
+    },
+
+    /**
+     * Generates an accountant-friendly Accounting Sales Report PDF.
+     * IMPORTANT: This function does NOT modify table data. It only adds supporting text and lays out the tables.
+     */
+    generateAccountingSalesReportPdf: async (filename: string, input: {
+        posSoftwareName?: string;
+        businessName: string;
+        reportDate: string;
+        generatedTime: string;
+        totalSalesLabel?: string; // e.g. "Total Sales"
+        totalSalesValue: string;  // pre-formatted value from existing report (do not recompute)
+        salesByDepartment: { headers: string[]; rows: (string | number | null | undefined)[][] };
+        salesByCustomerGroup: { headers: string[]; rows: (string | number | null | undefined)[][] };
+    }) => {
+        const posName = input.posSoftwareName || 'PantherPOS';
+        const narrative = getAccountingSalesReportNarrative();
+
+        const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+        const pageWidth = 210;
+        const marginX = 14;
+        const contentWidth = pageWidth - marginX * 2;
+
+        const setBody = () => {
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(10);
+            doc.setTextColor(17, 24, 39);
+        };
+
+        const setMuted = () => {
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(9);
+            doc.setTextColor(107, 114, 128);
+        };
+
+        const setHeading = () => {
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(11);
+            doc.setTextColor(55, 65, 81);
+        };
+
+        const drawDivider = (y: number) => {
+            doc.setDrawColor(230);
+            doc.line(marginX, y, marginX + contentWidth, y);
+        };
+
+        const drawBox = (y: number, height: number) => {
+            doc.setDrawColor(230);
+            doc.setFillColor(250);
+            doc.roundedRect(marginX, y, contentWidth, height, 3, 3, 'FD');
+        };
+
+        const ensureSpace = (y: number, needed: number) => {
+            if (y + needed > 282) {
+                doc.addPage();
+                return 20;
+            }
+            return y;
+        };
+
+        // --- Header / Cover ---
+        doc.setFillColor(255, 255, 255);
+        doc.rect(0, 0, 210, 297, 'F');
+
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(20);
+        doc.setTextColor(17, 24, 39);
+        doc.text('Accounting Sales Report', marginX, 22);
+
+        doc.setFontSize(14);
+        doc.text(sanitizeAscii(input.businessName || 'Business'), marginX, 31);
+
+        setMuted();
+        doc.text(`Report date: ${sanitizeAscii(input.reportDate)}`, marginX, 38);
+        doc.text(`Generated: ${sanitizeAscii(input.generatedTime)}`, marginX, 43);
+
+        drawDivider(48);
+
+        // 1) Report Introduction
+        setBody();
+        const introLines = doc.splitTextToSize(narrative.introduction, contentWidth);
+        doc.text(introLines, marginX, 56);
+
+        let y = 56 + (introLines.length * 5) + 4;
+
+        // 2) Total Sales + explanation
+        y = ensureSpace(y, 26);
+        setHeading();
+        doc.text((input.totalSalesLabel || 'Total Sales').toUpperCase(), marginX, y);
+        y += 5;
+
+        drawBox(y, 18);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(16);
+        doc.setTextColor(17, 24, 39);
+        doc.text(sanitizeAscii(String(input.totalSalesValue || '').replace(/\u20B9/g, 'INR ')), marginX + 5, y + 8);
+
+        setMuted();
+        doc.text(doc.splitTextToSize(narrative.totalSalesExplanation, contentWidth - 10), marginX + 5, y + 14);
+        y += 26;
+
+        // 3) Sales by Department description (above department table)
+        y = ensureSpace(y, 26);
+        setHeading();
+        doc.text('SALES BY DEPARTMENT', marginX, y);
+        y += 5;
+        setBody();
+        const deptDescLines = doc.splitTextToSize(narrative.salesByDepartmentDescription, contentWidth);
+        doc.text(deptDescLines, marginX, y);
+        y += (deptDescLines.length * 5) + 2;
+
+        // Department table (existing data; do not change values)
+        y = ensureSpace(y, 60);
+        drawBox(y, 8); // visual anchor behind header
+        const deptRows = (input.salesByDepartment.rows && input.salesByDepartment.rows.length > 0)
+            ? input.salesByDepartment.rows.map(r => (r || []).map(c => sanitizeAscii(String(c ?? 'Not available'))))
+            : [new Array(input.salesByDepartment.headers.length || 1).fill('Not available')];
+
+        autoTable(doc, {
+            startY: y + 2,
+            margin: { left: marginX, right: marginX },
+            tableWidth: contentWidth,
+            head: [input.salesByDepartment.headers.map(h => sanitizeAscii(String(h ?? '')))],
+            body: deptRows,
+            theme: 'grid',
+            styles: { fontSize: 8, textColor: [17, 24, 39] },
+            headStyles: { fillColor: [245, 246, 247], textColor: [55, 65, 81], fontStyle: 'bold' },
+        });
+        y = (doc as any).lastAutoTable.finalY + 6;
+
+        // 4) Post-table insight (Department Summary)
+        y = ensureSpace(y, 22);
+        setBody();
+        const deptInsightLines = doc.splitTextToSize(narrative.salesByDepartmentPostInsight, contentWidth);
+        drawBox(y, (deptInsightLines.length * 5) + 6);
+        doc.text(deptInsightLines, marginX + 5, y + 8);
+        y += (deptInsightLines.length * 5) + 10;
+
+        // 5) Sales by Customer Group description (above customer group table)
+        y = ensureSpace(y, 26);
+        setHeading();
+        doc.text('SALES BY CUSTOMER GROUP', marginX, y);
+        y += 5;
+        setBody();
+        const cgDescLines = doc.splitTextToSize(narrative.salesByCustomerGroupDescription, contentWidth);
+        doc.text(cgDescLines, marginX, y);
+        y += (cgDescLines.length * 5) + 2;
+
+        // Customer group table (existing data; do not change values)
+        y = ensureSpace(y, 60);
+        drawBox(y, 8);
+        const cgRows = (input.salesByCustomerGroup.rows && input.salesByCustomerGroup.rows.length > 0)
+            ? input.salesByCustomerGroup.rows.map(r => (r || []).map(c => sanitizeAscii(String(c ?? 'Not available'))))
+            : [new Array(input.salesByCustomerGroup.headers.length || 1).fill('Not available')];
+
+        autoTable(doc, {
+            startY: y + 2,
+            margin: { left: marginX, right: marginX },
+            tableWidth: contentWidth,
+            head: [input.salesByCustomerGroup.headers.map(h => sanitizeAscii(String(h ?? '')))],
+            body: cgRows,
+            theme: 'grid',
+            styles: { fontSize: 8, textColor: [17, 24, 39] },
+            headStyles: { fillColor: [245, 246, 247], textColor: [55, 65, 81], fontStyle: 'bold' },
+        });
+        y = (doc as any).lastAutoTable.finalY + 6;
+
+        // 6) Post-table insight (Customer Group Summary)
+        y = ensureSpace(y, 22);
+        setBody();
+        const cgInsightLines = doc.splitTextToSize(narrative.salesByCustomerGroupPostInsight, contentWidth);
+        drawBox(y, (cgInsightLines.length * 5) + 6);
+        doc.text(cgInsightLines, marginX + 5, y + 8);
+        y += (cgInsightLines.length * 5) + 10;
+
+        // 7) Accounting Notes (new section near bottom)
+        y = ensureSpace(y, 36);
+        setHeading();
+        doc.text(narrative.accountingNotesTitle.toUpperCase(), marginX, y);
+        y += 5;
+        drawBox(y, 28);
+        setBody();
+        const notesLines = narrative.accountingNotes.map(line => `- ${line}`);
+        doc.text(notesLines, marginX + 5, y + 8);
+        y += 34;
+
+        // 8) Professional closing line above footer
+        y = ensureSpace(y, 16);
+        setMuted();
+        doc.text(narrative.closingLine, marginX, y);
+
+        // Standard footer appears once (last page only)
+        doc.setPage(doc.internal.getNumberOfPages());
+        doc.setDrawColor(220);
+        doc.line(marginX, 282, marginX + contentWidth, 282);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(9);
+        doc.setTextColor(90);
+        doc.text(`Generated by ${sanitizeAscii(posName)}`, marginX, 288);
+        doc.text(`Generated on ${sanitizeAscii(input.generatedTime)}`, marginX, 293);
+        doc.text('For internal use only', marginX + contentWidth, 293, { align: 'right' });
+
+        const buffer = doc.output('arraybuffer');
+        if (window.electronAPI) {
+            try {
+                const res: any = await window.electronAPI.saveFile(filename, buffer);
+                if (res.success) console.log(`[exportService] Accounting sales report saved: ${res.path}`);
+                return true;
+            } catch (err) {
+                console.error('[exportService] Accounting sales report PDF save error', err);
+                return false;
+            }
+        } else {
+            doc.save(filename);
+            return true;
+        }
+    },
+
     // ... other methods kept same but with improved error handling ...
     generateComprehensivePdf: (filename: string, reportData: any) => {
         const doc = new jsPDF();
@@ -293,7 +606,7 @@ export const exportService = {
         autoTable(doc, {
             startY: yPos,
             head: [['Date', 'Total Revenue', 'Transaction Count', 'Avg Ticket']],
-            body: reportData.salesSummary.map((s: any) => [s.day, `₹${Number(s.total || 0).toLocaleString()}`, s.count, `₹${Number(s.avg_ticket || 0).toFixed(2)}`]),
+            body: reportData.salesSummary.map((s: any) => [s.day, formatInr(Number(s.total || 0)), s.count, formatInr(Number(s.avg_ticket || 0))]),
             theme: 'striped',
             headStyles: { fillColor: [16, 185, 129] }
         });
@@ -306,7 +619,7 @@ export const exportService = {
         autoTable(doc, {
             startY: yPos,
             head: [['Payment Mode', 'Total Amount', 'Count']],
-            body: reportData.paymentSplit.map((p: any) => [p.payment_mode, `₹${Number(p.total || 0).toLocaleString()}`, p.count]),
+            body: reportData.paymentSplit.map((p: any) => [p.payment_mode, formatInr(Number(p.total || 0)), p.count]),
             theme: 'grid',
             headStyles: { fillColor: [59, 130, 246] } // Blue
         });
@@ -319,7 +632,7 @@ export const exportService = {
         autoTable(doc, {
             startY: yPos,
             head: [['Rate', 'Taxable Value', 'GST Amount', 'CGST', 'SGST']],
-            body: reportData.taxDetails.map((t: any) => [`${t.gst_rate}%`, `₹${Number(t.taxable || 0).toLocaleString()}`, `₹${Number(t.gst || 0).toLocaleString()}`, `₹${Number(t.cgst || 0).toLocaleString()}`, `₹${Number(t.sgst || 0).toLocaleString()}`]),
+            body: reportData.taxDetails.map((t: any) => [`${t.gst_rate}%`, formatInr(Number(t.taxable || 0)), formatInr(Number(t.gst || 0)), formatInr(Number(t.cgst || 0)), formatInr(Number(t.sgst || 0))]),
             theme: 'striped',
             headStyles: { fillColor: [100, 116, 139] }
         });
@@ -332,7 +645,7 @@ export const exportService = {
         autoTable(doc, {
             startY: yPos,
             head: [['Product Name', 'Barcode', 'Qty Sold', 'Total Revenue']],
-            body: reportData.productAnalysis.slice(0, 15).map((p: any) => [p.name, p.barcode, p.qty, `₹${Number(p.total || 0).toLocaleString()}`]),
+            body: reportData.productAnalysis.slice(0, 15).map((p: any) => [p.name, p.barcode, p.qty, formatInr(Number(p.total || 0))]),
             theme: 'striped',
             headStyles: { fillColor: [16, 185, 129] }
         });
@@ -345,7 +658,7 @@ export const exportService = {
         autoTable(doc, {
             startY: yPos,
             head: [['Hour', 'Trans Count', 'Revenue']],
-            body: reportData.timeAnalysis.map((h: any) => [h.hour, h.count, `₹${Number(h.total || 0).toLocaleString()}`]),
+            body: reportData.timeAnalysis.map((h: any) => [h.hour, h.count, formatInr(Number(h.total || 0))]),
             theme: 'grid',
             styles: { fontSize: 8 }
         });
@@ -358,7 +671,7 @@ export const exportService = {
         autoTable(doc, {
             startY: yPos,
             head: [['Item', 'Revenue', 'COGS', 'Profit', 'Margin %']],
-            body: reportData.profitMargins.slice(0, 10).map((p: any) => [p.name, `₹${Number(p.revenue || 0).toLocaleString()}`, `₹${Number(p.cost || 0).toLocaleString()}`, `₹${Number(p.profit || 0).toLocaleString()}`, `${Number(p.margin_percent || 0).toFixed(1)}%`]),
+            body: reportData.profitMargins.slice(0, 10).map((p: any) => [p.name, formatInr(Number(p.revenue || 0)), formatInr(Number(p.cost || 0)), formatInr(Number(p.profit || 0)), `${Number(p.margin_percent || 0).toFixed(1)}%`]),
             theme: 'striped',
             headStyles: { fillColor: [245, 158, 11] } // Amber
         });
@@ -371,7 +684,7 @@ export const exportService = {
         const refund = reportData.refunds[0] || { count: 0, total: 0 };
         doc.setFontSize(10);
         doc.text(`Total Refund Count: ${refund.count}`, 20, yPos);
-        doc.text(`Total Amount Refunded: ₹${Number(refund.total || 0).toLocaleString()}`, 20, yPos + 5);
+        doc.text(`Total Amount Refunded: ${formatInr(Number(refund.total || 0))}`, 20, yPos + 5);
         yPos += 20;
 
         // 8. Discounts
@@ -382,7 +695,7 @@ export const exportService = {
         const discount = reportData.discounts[0] || { count: 0, total_discount: 0 };
         doc.setFontSize(10);
         doc.text(`Total Bills with Discount: ${discount.count}`, 20, yPos);
-        doc.text(`Total Discount Value: ₹${Number(discount.total_discount || 0).toLocaleString()}`, 20, yPos + 5);
+        doc.text(`Total Discount Value: ${formatInr(Number(discount.total_discount || 0))}`, 20, yPos + 5);
         yPos += 20;
 
         // 9. Customers
@@ -393,7 +706,7 @@ export const exportService = {
         autoTable(doc, {
             startY: yPos,
             head: [['Customer', 'Phone', 'Visits', 'Total Spent']],
-            body: reportData.customerDetails.map((c: any) => [c.name, c.phone, c.visits, `₹${Number(c.total_spent || 0).toLocaleString()}`]),
+            body: reportData.customerDetails.map((c: any) => [c.name, c.phone, c.visits, formatInr(Number(c.total_spent || 0))]),
             theme: 'striped'
         });
         yPos = (doc as any).lastAutoTable.finalY + 15;
@@ -405,7 +718,7 @@ export const exportService = {
         autoTable(doc, {
             startY: yPos,
             head: [['Session ID', 'Start', 'End', 'Opening', 'Closing', 'Status']],
-            body: reportData.cashReconciliation.map((s: any) => [s.id, s.start_time.split(' ')[1], s.end_time?.split(' ')[1] || 'OPEN', `₹${s.opening_cash}`, `₹${s.closing_cash || 0}`, s.status]),
+            body: reportData.cashReconciliation.map((s: any) => [s.id, s.start_time.split(' ')[1], s.end_time?.split(' ')[1] || 'OPEN', formatInr(Number(s.opening_cash || 0)), formatInr(Number(s.closing_cash || 0)), s.status]),
             theme: 'grid',
             styles: { fontSize: 8 }
         });
@@ -418,7 +731,7 @@ export const exportService = {
         autoTable(doc, {
             startY: yPos,
             head: [['Staff Name', 'Bills Processed', 'Total Sales (Cash)']],
-            body: reportData.staffPerformance.map((s: any) => [s.name, s.txn_count, `₹${Number(s.total_cash_sales || 0).toLocaleString()}`]),
+            body: reportData.staffPerformance.map((s: any) => [s.name, s.txn_count, formatInr(Number(s.total_cash_sales || 0))]),
             theme: 'striped'
         });
         yPos = (doc as any).lastAutoTable.finalY + 15;
@@ -497,10 +810,10 @@ export const exportService = {
                     index + 1,
                     item.product_name,
                     item.quantity,
-                    `₹${Number(item.price || 0).toLocaleString()}`,
+                    formatInr(Number(item.price || 0)),
                     `${item.gst_rate}%`,
-                    `₹${Number(item.gst_amount || 0).toLocaleString()}`,
-                    `₹${Number(item.total || 0).toLocaleString()}`
+                    formatInr(Number(item.gst_amount || 0)),
+                    formatInr(Number(item.total || 0))
                 ]),
                 theme: 'striped',
                 headStyles: { fillColor: [44, 62, 80] },
@@ -512,21 +825,21 @@ export const exportService = {
             // Summary
             doc.setFontSize(11);
             doc.text(`Sub-Total:`, 140, finalY);
-            doc.text(`₹${Number((bill.total || 0) - (bill.total_gst || 0)).toLocaleString()}`, 180, finalY, { align: 'right' });
+            doc.text(formatInr(Number((bill.total || 0) - (bill.total_gst || 0))), 180, finalY, { align: 'right' });
 
             doc.text(`Total Tax:`, 140, finalY + 6);
-            doc.text(`₹${Number(bill.total_gst || 0).toLocaleString()}`, 180, finalY + 6, { align: 'right' });
+            doc.text(formatInr(Number(bill.total_gst || 0)), 180, finalY + 6, { align: 'right' });
 
             if (bill.discount_amount > 0) {
                 doc.text(`Discount:`, 140, finalY + 12);
-                doc.text(`- ₹${Number(bill.discount_amount || 0).toLocaleString()}`, 180, finalY + 12, { align: 'right' });
+                doc.text(`- ${formatInr(Number(bill.discount_amount || 0))}`, 180, finalY + 12, { align: 'right' });
                 finalY += 6;
             }
 
             doc.setFontSize(14);
             doc.setTextColor(16, 185, 129);
             doc.text(`Grand Total:`, 140, finalY + 14);
-            doc.text(`₹${Number(bill.total || 0).toLocaleString()}`, 180, finalY + 14, { align: 'right' });
+            doc.text(formatInr(Number(bill.total || 0)), 180, finalY + 14, { align: 'right' });
 
             // Footer
             doc.setFontSize(10);
