@@ -111,7 +111,8 @@ class AIChatbotService {
 
         // --- TRAINER INTERCEPTION ---
         if (trainingService.isActive()) {
-            await new Promise(r => setTimeout(r, 600));
+            // Keep voice assistant responsive (no artificial latency).
+            await new Promise(r => setTimeout(r, 50));
             const response = trainingService.handleInput(text);
             this.addMessage('AI', response);
             return;

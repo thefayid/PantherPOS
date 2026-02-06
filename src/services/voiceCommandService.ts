@@ -50,9 +50,16 @@ class VoiceCommandService {
 
             recognizer.on("result", (mn: any) => {
                 if (mn.result && mn.result.text) {
-                    const text = mn.result.text;
-                    if (text && this.onResultCallback) {
-                        this.onResultCallback(text);
+                    const text = String(mn.result.text || '').trim();
+                    if (!text) return;
+
+                    // Faster UX: stop listening after a finalized result so we don't capture multiple commands.
+                    this.setStatus('PROCESSING');
+                    try {
+                        if (this.onResultCallback) this.onResultCallback(text);
+                    } finally {
+                        // Small delay to allow UI to render the captured command first.
+                        setTimeout(() => this.stopListening(), 50);
                     }
                 }
             });

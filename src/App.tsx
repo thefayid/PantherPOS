@@ -46,6 +46,7 @@ import { intentEngine } from './services/IntentEngine';
 import TallySync from './pages/TallySync';
 import toast from 'react-hot-toast';
 import LicensePage from './pages/License';
+import { chatbotTrainingDataset } from './data/chatbotTrainingDataset';
 
 function App() {
   const [user, setUser] = useState<User | null>(null);
@@ -137,14 +138,27 @@ function App() {
         if (localStorage.getItem('disableAnimations') === 'true') {
           document.body.classList.add('no-animations');
         }
+        // Fast offline AI init (small dataset) for instant voice/text commands.
+        trainingService.ingestTrainingData(chatbotTrainingDataset);
+        intentEngine.ingestTrainingData(chatbotTrainingDataset);
+
+        // Keep stock checks async and non-blocking.
         setTimeout(() => {
           notificationService.checkStockLevels();
-          import('./data/trainingData').then((module) => {
-            const data = module.trainingData || (module as any).default || [];
-            trainingService.ingestTrainingData(data);
-            intentEngine.ingestTrainingData(data);
-          }).catch(err => console.error("Failed to load training data", err));
-        }, 2000);
+        }, 1000);
+
+        // Optional: load the large training corpus only when explicitly enabled.
+        // This keeps voice assistant fast on low-end POS machines.
+        const enableLarge = localStorage.getItem('ai_large_dataset') === 'true';
+        if (enableLarge) {
+          setTimeout(() => {
+            import('./data/trainingData').then((module) => {
+              const data = module.trainingData || (module as any).default || [];
+              trainingService.ingestTrainingData(data);
+              intentEngine.ingestTrainingData(data);
+            }).catch(err => console.error("Failed to load training data", err));
+          }, 2500);
+        }
       } catch (err) {
         setInitError(`Init Error: ${err}`);
       }
