@@ -4,8 +4,12 @@ import type { Product } from '../types/db';
 import { Search, Printer, Trash2, Grid, Plus, Minus, Barcode, Settings2, ScanBarcode, RotateCcw } from 'lucide-react';
 import { BarcodeLabel } from '../components/BarcodeLabel';
 import { useReactToPrint } from 'react-to-print';
+<<<<<<< HEAD
 import LabelDesigner, { type LabelConfig } from '../components/LabelDesigner';
 import { QuickAddProductModal } from '../components/QuickAddProductModal';
+=======
+import LabelDesigner, { type LabelConfig } from '../components/SimpleLabelDesigner';
+>>>>>>> c2439d0 (latest changes)
 
 export default function Barcodes() {
     const STORAGE_KEY = 'barcodes_last_state_v1';

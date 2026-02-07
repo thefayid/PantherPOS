@@ -41,6 +41,17 @@ export interface Product {
     image?: string;
     variant_group_id?: string;
     attributes?: string; // JSON string
+    is_bundle?: number; // 0 or 1, computed
+    is_batch_tracked?: number; // 0 or 1
+}
+
+export interface ProductBatch {
+    id: number;
+    product_id: number;
+    batch_code: string;
+    expiry_date: string;
+    quantity: number;
+    created_at: string;
 }
 
 export interface Customer {
@@ -54,6 +65,8 @@ export interface Customer {
     last_visit?: string;
     points: number;
     balance: number;
+    gstin?: string;
+    state?: string;
 }
 
 export interface CustomerLedger {
@@ -206,7 +219,7 @@ export interface StocktakeItem {
 export interface InventoryLog {
     id: number;
     product_id: number;
-    type: 'SALE' | 'RETURN' | 'RESTOCK' | 'SHRINKAGE' | 'STOCKTAKE_ADJUSTMENT';
+    type: 'SALE' | 'RETURN' | 'RESTOCK' | 'SHRINKAGE' | 'STOCKTAKE_ADJUSTMENT' | 'ADJUSTMENT' | 'BUNDLE_USAGE';
     quantity_change: number;
     reason?: string;
     date: string;

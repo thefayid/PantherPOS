@@ -65,10 +65,35 @@ CREATE TABLE IF NOT EXISTS products (
     min_stock_level INTEGER DEFAULT 5,
     image TEXT,
     variant_group_id TEXT,
-    attributes TEXT -- JSON string
+    attributes TEXT, -- JSON string
+    is_batch_tracked INTEGER DEFAULT 0 -- 0 or 1
 );
 CREATE INDEX IF NOT EXISTS idx_products_barcode ON products(barcode);
 CREATE INDEX IF NOT EXISTS idx_products_name ON products(name);
+
+-- Product Batches
+CREATE TABLE IF NOT EXISTS product_batches (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    product_id INTEGER NOT NULL,
+    batch_code TEXT NOT NULL,
+    expiry_date TEXT NOT NULL,
+    quantity REAL DEFAULT 0,
+    created_at TEXT NOT NULL,
+    FOREIGN KEY(product_id) REFERENCES products(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_batches_product ON product_batches(product_id);
+CREATE INDEX IF NOT EXISTS idx_batches_expiry ON product_batches(expiry_date);
+
+-- Product Bundles
+CREATE TABLE IF NOT EXISTS product_bundles (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    parent_product_id INTEGER NOT NULL,
+    child_product_id INTEGER NOT NULL,
+    quantity REAL NOT NULL,
+    FOREIGN KEY(parent_product_id) REFERENCES products(id) ON DELETE CASCADE,
+    FOREIGN KEY(child_product_id) REFERENCES products(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_bundles_parent ON product_bundles(parent_product_id);
 
 -- Sales & Billing
 CREATE TABLE IF NOT EXISTS bills (
@@ -90,7 +115,9 @@ CREATE TABLE IF NOT EXISTS bills (
     promotion_id INTEGER,
     order_type TEXT DEFAULT 'DINE_IN',
     notes TEXT,
-    template_type TEXT DEFAULT 'THERMAL'
+    template_type TEXT DEFAULT 'THERMAL',
+    place_of_supply TEXT,
+    customer_gstin TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_bills_bill_no ON bills(bill_no);
 
@@ -135,7 +162,9 @@ CREATE TABLE IF NOT EXISTS customers (
     total_purchases REAL DEFAULT 0,
     last_visit TEXT,
     points REAL DEFAULT 0,
-    balance REAL DEFAULT 0
+    balance REAL DEFAULT 0,
+    gstin TEXT,
+    state TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_customers_phone ON customers(phone);
 CREATE INDEX IF NOT EXISTS idx_customers_name ON customers(name);
@@ -442,10 +471,18 @@ export const databaseService = {
             // WhatsApp automation support
             "ALTER TABLE company_settings ADD COLUMN owner_whatsapp TEXT",
 
+<<<<<<< HEAD
             // Cash management enhancements
             "ALTER TABLE cash_drawer_sessions ADD COLUMN expected_cash REAL",
             "ALTER TABLE cash_drawer_sessions ADD COLUMN variance REAL",
             "ALTER TABLE cash_transactions ADD COLUMN meta_json TEXT"
+=======
+            // GST Report Support
+            "ALTER TABLE bills ADD COLUMN place_of_supply TEXT",
+            "ALTER TABLE bills ADD COLUMN customer_gstin TEXT",
+            "ALTER TABLE customers ADD COLUMN gstin TEXT",
+            "ALTER TABLE customers ADD COLUMN state TEXT"
+>>>>>>> c2439d0 (latest changes)
         ];
 
         for (const sql of migrationQueries) {

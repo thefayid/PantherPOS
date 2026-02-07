@@ -25,46 +25,48 @@ if (process.env.ELECTRON_RUN_AS_NODE) {
 }
 const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const { startServer } = require('./server');
-const { autoUpdater } = require('electron-updater');
+// const { autoUpdater } = require('electron-updater');
 const licensing = require('./licensing');
 // --- AUTO UPDATE CONFIG ---
-autoUpdater.logger = {
-    info: (msg) => log(`[INFO] ${msg}`),
-    warn: (msg) => log(`[WARN] ${msg}`),
-    error: (msg) => log(`[ERROR] ${msg}`),
-    log: (msg) => log(`[LOG] ${msg}`)
-};
-autoUpdater.autoDownload = true;
+// autoUpdater.logger = {
+//   info: (msg: string) => log(`[INFO] ${msg}`),
+//   warn: (msg: string) => log(`[WARN] ${msg}`),
+//   error: (msg: string) => log(`[ERROR] ${msg}`),
+//   log: (msg: string) => log(`[LOG] ${msg}`)
+// };
+// autoUpdater.autoDownload = true;
 const sendUpdateStatus = (text) => {
     log(`[Updater] ${text}`);
     if (mainWindow)
         mainWindow.webContents.send('update-message', text);
 };
-autoUpdater.on('checking-for-update', () => sendUpdateStatus('Checking for updates...'));
-autoUpdater.on('update-available', () => sendUpdateStatus('Update available. Downloading...'));
-autoUpdater.on('update-not-available', () => sendUpdateStatus('Up to date.'));
-autoUpdater.on('error', (err) => sendUpdateStatus(`Error in auto-updater: ${err}`));
-autoUpdater.on('download-progress', (progressObj) => {
-    let log_message = 'Download speed: ' + progressObj.bytesPerSecond;
-    log_message = log_message + ' - Downloaded ' + progressObj.percent + '%';
-    log_message = log_message + ' (' + progressObj.transferred + '/' + progressObj.total + ')';
-    sendUpdateStatus(log_message);
-});
-autoUpdater.on('update-downloaded', () => {
-    sendUpdateStatus('Update downloaded. Restarting now...');
-    // Force restart immediately for simple UX
-    setTimeout(() => {
-        autoUpdater.quitAndInstall();
-    }, 3000);
-});
+// autoUpdater.on('checking-for-update', () => sendUpdateStatus('Checking for updates...'));
+// autoUpdater.on('update-available', () => sendUpdateStatus('Update available. Downloading...'));
+// autoUpdater.on('update-not-available', () => sendUpdateStatus('Up to date.'));
+// autoUpdater.on('error', (err: any) => sendUpdateStatus(`Error in auto-updater: ${err}`));
+// autoUpdater.on('download-progress', (progressObj: any) => {
+//   let log_message = 'Download speed: ' + progressObj.bytesPerSecond;
+//   log_message = log_message + ' - Downloaded ' + progressObj.percent + '%';
+//   log_message = log_message + ' (' + progressObj.transferred + '/' + progressObj.total + ')';
+//   sendUpdateStatus(log_message);
+// });
+// autoUpdater.on('update-downloaded', () => {
+//   sendUpdateStatus('Update downloaded. Restarting now...');
+//   // Force restart immediately for simple UX
+//   setTimeout(() => {
+//     autoUpdater.quitAndInstall();
+//   }, 3000);
+// });
 try {
     fs.writeFileSync(logFile, "--- BOOT SEQUENCE STARTS ---\n");
     log(`Process ExecPath: ${process.execPath}`);
+    log(`CWD: ${process.cwd()}`);
     log(`ELECTRON_RUN_AS_NODE: ${process.env.ELECTRON_RUN_AS_NODE}`);
+    log(`VITE_DEV_SERVER_URL: ${process.env.VITE_DEV_SERVER_URL}`);
     log(`Electron Version: ${process.versions.electron}`);
-    log(`Chrome Version: ${process.versions.chrome}`);
-    log(`Node Version: ${process.versions.node}`);
     log(`App available: ${!!app}`);
+    if (app)
+        log(`App isPackaged: ${app.isPackaged}`);
     log(`BrowserWindow available: ${!!BrowserWindow}`);
 }
 catch (e) { /* ignore */ }
@@ -96,7 +98,7 @@ const createWindow = () => {
         }
         // Check for updates once window is ready
         if (!process.env.VITE_DEV_SERVER_URL) {
-            autoUpdater.checkForUpdatesAndNotify();
+            // autoUpdater.checkForUpdatesAndNotify();
         }
     });
     // and load the index.html of the app.
@@ -132,8 +134,9 @@ app.on('ready', async () => {
     log('App ready event received');
     try {
         // Enforce offline license before starting services.
-        // In dev (VITE_DEV_SERVER_URL) we bypass licensing for smoother iteration.
-        if (process.env.VITE_DEV_SERVER_URL) {
+        // In dev we bypass licensing for smoother iteration.
+        const isDev = (app && !app.isPackaged) || !!process.env.VITE_DEV_SERVER_URL;
+        if (isDev) {
             licenseStatus = { ok: true, payload: { license_type: 'dev', enabled_features: ['*'] } };
         }
         else {
@@ -210,7 +213,7 @@ ipcMain.handle('app-check-updates', async () => {
             sendUpdateStatus('Dev Mode: Update check simulated (Up to date)');
             return { success: true };
         }
-        await autoUpdater.checkForUpdatesAndNotify();
+        // await autoUpdater.checkForUpdatesAndNotify();
         return { success: true };
     }
     catch (e) {
@@ -228,9 +231,10 @@ ipcMain.handle('db-query', async (event, sql, params) => {
         return result;
     }
     catch (err) {
-        log(`Database error: ${err.message}`);
-        console.error('Database error:', err);
-        return { error: err.message };
+        if (!err.message?.includes('duplicate column name')) {
+            log(`Database error: ${err.message} \nStack: ${err.stack}`);
+        }
+        throw err;
     }
 });
 ipcMain.handle('print-raw', async (event, data) => {

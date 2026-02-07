@@ -7,7 +7,7 @@ import { Table } from '../components/Table';
 import { Button } from '../components/Button';
 import { Modal } from '../components/Modal';
 import { ProductForm } from '../components/ProductForm';
-import { Plus, Pencil, Trash2, Barcode, TrendingDown, Folder, Package, Search, Printer, FileText, Tag, ArrowUpDown, TrendingUp, Download, Upload, HelpCircle, FileSpreadsheet, Code, ClipboardList, Zap, LayoutGrid, List, Maximize2, Minimize2, Sparkles } from 'lucide-react';
+import { Plus, Pencil, Trash2, Barcode, TrendingDown, Folder, Package, Search, Printer, FileText, Tag, ArrowUpDown, TrendingUp, Download, Upload, HelpCircle, FileSpreadsheet, Code, ClipboardList, Zap, LayoutGrid, List, Maximize2, Minimize2, Sparkles, X } from 'lucide-react';
 import { useKeyboard } from '../hooks/useKeyboard';
 import { commandGateway } from '../services/CommandGateway';
 import { BarcodeLabel } from '../components/BarcodeLabel';
@@ -43,6 +43,16 @@ export default function Products() {
     const [exportType, setExportType] = useState<'csv' | 'xml'>('csv');
     const [isGridView, setIsGridView] = useState(false);
     const [isFullScreen, setIsFullScreen] = useState(false);
+
+    // Bulk Edit State
+    const [selectedProductIds, setSelectedProductIds] = useState<number[]>([]);
+    const [isBulkEditModalOpen, setIsBulkEditModalOpen] = useState(false);
+    const [bulkAction, setBulkAction] = useState<'EDIT' | 'DELETE' | 'PRINT'>('EDIT');
+    const [bulkEditConfig, setBulkEditConfig] = useState<{
+        field: 'sell_price' | 'cost_price' | 'stock' | 'gst_rate' | 'min_stock_level',
+        operation: 'SET' | 'ADD' | 'SUBTRACT' | 'MULTIPLY',
+        value: number
+    }>({ field: 'sell_price', operation: 'SET', value: 0 });
 
     const loadProducts = useCallback(async () => {
         try {
@@ -117,8 +127,140 @@ export default function Products() {
         }
     };
 
+    const handleSelectAll = (checked: boolean) => {
+        if (checked) {
+            setSelectedProductIds(processedProducts.map(p => p.id));
+        } else {
+            setSelectedProductIds([]);
+        }
+    };
+
+    const handleSelectOne = (id: number, checked: boolean) => {
+        if (checked) {
+            setSelectedProductIds(prev => [...prev, id]);
+        } else {
+            setSelectedProductIds(prev => prev.filter(pid => pid !== id));
+        }
+    };
+
+    const executeBulkEdit = async () => {
+        if (!selectedProductIds.length) return;
+        if (!confirm(`Are you sure you want to update ${selectedProductIds.length} products?`)) return;
+
+        const toastId = toast.loading('Applying bulk updates...');
+        try {
+            if (bulkEditConfig.operation === 'SET') {
+                // Simple update
+                await productService.bulkUpdate(selectedProductIds, { [bulkEditConfig.field]: bulkEditConfig.value });
+            } else {
+                // Formula update
+                await productService.bulkFormulaUpdate(selectedProductIds, bulkEditConfig.field as any, bulkEditConfig.operation, bulkEditConfig.value);
+            }
+            toast.success('Bulk update complete!', { id: toastId });
+            setIsBulkEditModalOpen(false);
+            setSelectedProductIds([]);
+            loadProducts();
+        } catch (e) {
+            console.error(e);
+            toast.error('Failed to update products', { id: toastId });
+        }
+    };
+
+    const executeBulkDelete = async () => {
+        if (!selectedProductIds.length) return;
+        if (!confirm(`WARNING: You are about to DELETE ${selectedProductIds.length} products. This cannot be undone. Confirm?`)) return;
+
+        const toastId = toast.loading('Deleting products...');
+        try {
+            for (const id of selectedProductIds) {
+                await productService.delete(id);
+            }
+            await auditService.log('BULK_DELETE', { count: selectedProductIds.length, ids: selectedProductIds });
+            toast.success('Products deleted', { id: toastId });
+            setSelectedProductIds([]);
+            loadProducts();
+        } catch (e) {
+            toast.error('Failed to delete some products', { id: toastId });
+        }
+    };
+
     return (
-        <div className="h-full bg-background text-foreground overflow-hidden">
+        <div className="h-full bg-background text-foreground overflow-hidden relative">
+
+            {/* Bulk Action Bar (Floating) */}
+            {selectedProductIds.length > 0 && (
+                <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 bg-background border border-primary/50 shadow-2xl rounded-full px-6 py-3 flex items-center gap-4 animate-in slide-in-from-top-4 duration-300">
+                    <span className="font-bold text-primary">{selectedProductIds.length} Selected</span>
+                    <div className="h-4 w-px bg-border" />
+                    <Button size="sm" onClick={() => { setBulkAction('EDIT'); setIsBulkEditModalOpen(true); }} className="rounded-full">
+                        <Pencil size={14} className="mr-2" /> Bulk Edit
+                    </Button>
+                    <Button size="sm" variant="secondary" onClick={() => alert('Coming soon')} className="rounded-full">
+                        <Barcode size={14} className="mr-2" /> Print Labels
+                    </Button>
+                    <Button size="sm" variant="danger" onClick={executeBulkDelete} className="rounded-full">
+                        <Trash2 size={14} className="mr-2" /> Delete
+                    </Button>
+                    <div className="h-4 w-px bg-border" />
+                    <button onClick={() => setSelectedProductIds([])} className="text-muted-foreground hover:text-foreground">
+                        <X size={16} />
+                    </button>
+                </div>
+            )}
+
+            {/* Bulk Edit Modal */}
+            <Modal isOpen={isBulkEditModalOpen} onClose={() => setIsBulkEditModalOpen(false)} title={`Bulk Edit ${selectedProductIds.length} Products`}>
+                <div className="space-y-4 p-4">
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-sm font-medium mb-1">Field to Update</label>
+                            <select
+                                className="w-full p-2 border rounded bg-background"
+                                value={bulkEditConfig.field}
+                                onChange={e => setBulkEditConfig({ ...bulkEditConfig, field: e.target.value as any })}
+                            >
+                                <option value="sell_price">Selling Price</option>
+                                <option value="cost_price">Cost Price</option>
+                                <option value="stock">Stock Quantity</option>
+                                <option value="gst_rate">GST Rate (%)</option>
+                                <option value="min_stock_level">Min Stock Level</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium mb-1">Action</label>
+                            <select
+                                className="w-full p-2 border rounded bg-background"
+                                value={bulkEditConfig.operation}
+                                onChange={e => setBulkEditConfig({ ...bulkEditConfig, operation: e.target.value as any })}
+                            >
+                                <option value="SET">Set To (Fixed Value)</option>
+                                <option value="ADD">Increase By (+)</option>
+                                <option value="SUBTRACT">Decrease By (-)</option>
+                                {['sell_price', 'cost_price'].includes(bulkEditConfig.field) && (
+                                    <option value="MULTIPLY">Multiply By (e.g. 1.10 for +10%)</option>
+                                )}
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium mb-1">Value</label>
+                        <input
+                            type="number"
+                            className="w-full p-2 border rounded bg-background"
+                            value={bulkEditConfig.value}
+                            onChange={e => setBulkEditConfig({ ...bulkEditConfig, value: parseFloat(e.target.value) })}
+                        />
+                        <p className="text-xs text-muted-foreground mt-1">
+                            {bulkEditConfig.operation === 'MULTIPLY' ? 'Example: 1.10 = +10%, 0.90 = -10%' : 'Enter the value to apply'}
+                        </p>
+                    </div>
+                    <div className="flex justify-end gap-2 mt-4">
+                        <Button variant="secondary" onClick={() => setIsBulkEditModalOpen(false)}>Cancel</Button>
+                        <Button onClick={executeBulkEdit}>Apply Updates</Button>
+                    </div>
+                </div>
+            </Modal>
+
             {/* Mobile View */}
             <div className="md:hidden h-full">
                 <MobileInventory
@@ -379,9 +521,27 @@ export default function Products() {
                                         data={processedProducts}
                                         columns={[
                                             {
-                                                header: 'Product Details',
+                                                header: (
+                                                    <div className="flex items-center gap-2">
+                                                        <input
+                                                            type="checkbox"
+                                                            className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary"
+                                                            checked={selectedProductIds.length === processedProducts.length && processedProducts.length > 0}
+                                                            onChange={e => handleSelectAll(e.target.checked)}
+                                                        />
+                                                        <span>Product Details</span>
+                                                    </div>
+                                                ),
                                                 accessor: (p) => (
                                                     <div className="flex items-start gap-3">
+                                                        <div className="flex items-center h-full pt-2" onClick={e => e.stopPropagation()}>
+                                                            <input
+                                                                type="checkbox"
+                                                                className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary"
+                                                                checked={selectedProductIds.includes(p.id)}
+                                                                onChange={e => handleSelectOne(p.id, e.target.checked)}
+                                                            />
+                                                        </div>
                                                         <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-muted to-background border border-border flex items-center justify-center flex-shrink-0">
                                                             <span className="text-lg font-bold text-muted-foreground group-hover:text-primary transition-colors">
                                                                 {p.name.charAt(0).toUpperCase()}

@@ -1,8 +1,11 @@
-import type { Product } from '../types/db';
+
+import type { Product, User } from '../types/db';
 import { cashService } from './cashService';
 import { customerService } from './customerService';
 import { eventBus } from '../utils/EventBus';
 import { databaseService } from './databaseService';
+import { inventoryService } from './inventoryService';
+import { authService } from './authService';
 import toast from 'react-hot-toast';
 
 export interface TransactionData {
@@ -22,6 +25,8 @@ export interface TransactionData {
     order_type?: 'DINE_IN' | 'TAKEAWAY' | 'DELIVERY';
     notes?: string;
     originalBillId?: number;
+    place_of_supply?: string;
+    customer_gstin?: string;
 }
 
 export const billService = {
@@ -30,20 +35,20 @@ export const billService = {
         const yyyy = date.getFullYear();
         const mm = String(date.getMonth() + 1).padStart(2, '0');
         const dd = String(date.getDate()).padStart(2, '0');
-        const prefix = `BILL-${yyyy}${mm}${dd}`;
+        const prefix = `BILL - ${yyyy}${mm}${dd} `;
 
         // Get count of bills today to generate sequence
         const result = await databaseService.query(
-            `SELECT count(*) as count FROM bills WHERE bill_no LIKE ?`,
-            [`${prefix}%`]
+            `SELECT count(*) as count FROM bills WHERE bill_no LIKE ? `,
+            [`${prefix}% `]
         );
 
         const count = (result[0]?.count || 0) + 1;
         const sequence = String(count).padStart(4, '0');
-        return `${prefix}-${sequence}`;
+        return `${prefix} -${sequence} `;
     },
 
-    saveBill: async (data: TransactionData): Promise<string> => {
+    saveBill: async (data: TransactionData, user?: User): Promise<string> => {
         const billNo = await billService.generateBillNo();
         const dateStr = new Date().toISOString();
 
@@ -69,14 +74,14 @@ export const billService = {
         // toast('Debug: Saving Bill ' + status + ' ₹' + data.grandTotal, { icon: '🐛' });
 
         const insertResult = await databaseService.query(
-            `INSERT INTO bills (bill_no, date, subtotal, cgst, sgst, igst, gst_total, total, payment_mode, customer_id, discount_amount, points_redeemed, points_earned, promotion_id, order_type, notes, status)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [billNo, dateStr, data.subtotal, cgst, sgst, igst, data.totalTax, data.grandTotal, primaryPaymentMode, data.customer_id || null, data.discount_amount, data.points_redeemed, data.points_earned, data.promotion_id || null, data.order_type || 'DINE_IN', data.notes || '', status]
+            `INSERT INTO bills(bill_no, date, subtotal, cgst, sgst, igst, gst_total, total, payment_mode, customer_id, discount_amount, points_redeemed, points_earned, promotion_id, order_type, notes, status, place_of_supply, customer_gstin)
+VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [billNo, dateStr, data.subtotal, cgst, sgst, igst, data.totalTax, data.grandTotal, primaryPaymentMode, data.customer_id || null, data.discount_amount, data.points_redeemed, data.points_earned, data.promotion_id || null, data.order_type || 'DINE_IN', data.notes || '', status, data.place_of_supply || null, data.customer_gstin || null]
         );
 
         if (insertResult.error) {
             toast.error('Debug: DB Insert Failed: ' + insertResult.error);
-            throw new Error(`Database Insert Error: ${insertResult.error}`);
+            throw new Error(`Database Insert Error: ${insertResult.error} `);
         }
 
         console.log('[billService] Insert Result:', insertResult);
@@ -110,7 +115,7 @@ export const billService = {
         // 1b. Insert Tenders
         for (const tender of data.tenders) {
             await databaseService.query(
-                `INSERT INTO bill_tenders (bill_id, mode, amount) VALUES (?, ?, ?)`,
+                `INSERT INTO bill_tenders(bill_id, mode, amount) VALUES(?, ?, ?)`,
                 [billId, tender.mode, tender.amount]
             );
 
@@ -119,7 +124,7 @@ export const billService = {
                 // Import dynamically to avoid circular dependency if possible, or assume it's safe since billService doesn't import customerService yet.
                 // Actually better to import at top if simple.
                 // Assuming customerService is imported.
-                await customerService.updateBalance(data.customer_id, tender.amount, 'DEBIT', `Bill Sale: ${billNo}`, billId);
+                await customerService.updateBalance(data.customer_id, tender.amount, 'DEBIT', `Bill Sale: ${billNo} `, billId);
             }
         }
 
@@ -152,16 +157,59 @@ export const billService = {
             }
 
             await databaseService.query(
-                `INSERT INTO bill_items (bill_id, product_id, quantity, price, taxable_value, gst_rate, gst_amount)
-                 VALUES (?, ?, ?, ?, ?, ?, ?)`,
+                `INSERT INTO bill_items(bill_id, product_id, quantity, price, taxable_value, gst_rate, gst_amount)
+VALUES(?, ?, ?, ?, ?, ?, ?)`,
                 [billId, item.id, item.quantity, item.sell_price, taxableValue, item.gst_rate, gstAmount]
             );
 
-            // 3. Update Stock
-            await databaseService.query(
-                `UPDATE products SET stock = stock - ? WHERE id = ?`,
-                [item.quantity, item.id]
-            );
+            // 3. Update Stock (Handle Bundles)
+            // Import dynamically to avoid circular issues if any, though likely fine. 
+            // Better yet, just query bundle table directly here to keep it self-contained or use service.
+            // Let's use direct query for performance and simplicity in this loop.
+            const bundleComponents = await databaseService.query('SELECT * FROM product_bundles WHERE parent_product_id = ?', [item.id]);
+
+            if (bundleComponents.length > 0) {
+                // It is a bundle - deduct from children
+                console.log(`[billService] Item ${item.id} is a bundle. Deducting from ${bundleComponents.length} components.`);
+                for (const comp of bundleComponents) {
+                    const qtyToDeduct = item.quantity * comp.quantity;
+
+                    if (comp.is_batch_tracked) {
+                        await inventoryService.removeBatchStock(comp.child_product_id, qtyToDeduct, `Used in Bundle Sale: Bill #${billNo}`, user?.id);
+                    } else {
+                        await databaseService.query(
+                            `UPDATE products SET stock = stock - ? WHERE id = ? `,
+                            [qtyToDeduct, comp.child_product_id]
+                        );
+                        // Log Inventory Change for Component
+                        await inventoryService.addLog(
+                            comp.child_product_id,
+                            'BUNDLE_USAGE',
+                            -qtyToDeduct,
+                            `Used in Bundle Sale: Bill #${billNo}`,
+                            user?.id
+                        );
+                    }
+                }
+            } else {
+                // Regular product
+                if (item.is_batch_tracked) {
+                    await inventoryService.removeBatchStock(item.id, item.quantity, `Bill #${billNo}`, user?.id);
+                } else {
+                    await databaseService.query(
+                        `UPDATE products SET stock = stock - ? WHERE id = ? `,
+                        [item.quantity, item.id]
+                    );
+                    // Log Inventory Change
+                    await inventoryService.addLog(
+                        item.id,
+                        'SALE',
+                        -item.quantity,
+                        `Bill #${billNo}`,
+                        user?.id
+                    );
+                }
+            }
         }
 
         // 4. Record Cash Transaction if applicable
@@ -176,7 +224,7 @@ export const billService = {
                     session.id,
                     type,
                     Math.abs(totalCash),
-                    `Bill ${type === 'SALE' ? 'Sale' : 'Refund'}: ${billNo}`
+                    `Bill ${type === 'SALE' ? 'Sale' : 'Refund'}: ${billNo} `
                 );
             } else {
                 console.error('No active cash session found for bill:', billNo);
@@ -201,7 +249,7 @@ export const billService = {
                     account_id: salesAcc.id,
                     type: 'CREDIT' as const,
                     amount: data.subtotal,
-                    description: `Sales Revenue - ${billNo}`
+                    description: `Sales Revenue - ${billNo} `
                 });
 
                 // Credit GST
@@ -210,7 +258,7 @@ export const billService = {
                         account_id: gstAcc.id,
                         type: 'CREDIT' as const,
                         amount: data.totalTax,
-                        description: `GST collected - ${billNo}`
+                        description: `GST collected - ${billNo} `
                     });
                 }
 
@@ -225,7 +273,7 @@ export const billService = {
                             account_id: accId,
                             type: 'DEBIT' as const,
                             amount: tender.amount,
-                            description: `Payment ${tender.mode} - ${billNo}`
+                            description: `Payment ${tender.mode} - ${billNo} `
                         });
                     }
                 }
@@ -295,7 +343,7 @@ export const billService = {
         const dateStr = new Date().toISOString();
         const itemsJson = JSON.stringify(items);
         await databaseService.query(
-            `INSERT INTO held_bills (customer_name, date, items_json) VALUES (?, ?, ?)`,
+            `INSERT INTO held_bills(customer_name, date, items_json) VALUES(?, ?, ?)`,
             [customerName || 'Walk-in Customer', dateStr, itemsJson]
         );
     },
@@ -305,7 +353,7 @@ export const billService = {
     },
 
     deleteHeldBill: async (id: number): Promise<void> => {
-        await databaseService.query(`DELETE FROM held_bills WHERE id = ?`, [id]);
+        await databaseService.query(`DELETE FROM held_bills WHERE id = ? `, [id]);
     },
 
     // Alias for consistency
@@ -348,15 +396,15 @@ export const billService = {
         else { cgst = data.totalTax / 2; sgst = data.totalTax / 2; }
 
         await databaseService.query(
-            `UPDATE bills SET subtotal=?, cgst=?, sgst=?, igst=?, gst_total=?, total=?, payment_mode=?, customer_id=?, discount_amount=?, status=?
-             WHERE id=?`,
+            `UPDATE bills SET subtotal =?, cgst =?, sgst =?, igst =?, gst_total =?, total =?, payment_mode =?, customer_id =?, discount_amount =?, status =?
+    WHERE id =? `,
             [data.subtotal, cgst, sgst, igst, data.totalTax, data.grandTotal, data.tenders[0]?.mode || 'CASH', data.customer_id || null, data.discount_amount, 'PAID', billId]
         );
 
         // 5. Insert New Tenders
         for (const tender of data.tenders) {
             await databaseService.query(
-                `INSERT INTO bill_tenders (bill_id, mode, amount) VALUES (?, ?, ?)`,
+                `INSERT INTO bill_tenders(bill_id, mode, amount) VALUES(?, ?, ?)`,
                 [billId, tender.mode, tender.amount]
             );
         }
@@ -376,13 +424,13 @@ export const billService = {
             }
 
             await databaseService.query(
-                `INSERT INTO bill_items (bill_id, product_id, quantity, price, taxable_value, gst_rate, gst_amount)
-                 VALUES (?, ?, ?, ?, ?, ?, ?)`,
+                `INSERT INTO bill_items(bill_id, product_id, quantity, price, taxable_value, gst_rate, gst_amount)
+VALUES(?, ?, ?, ?, ?, ?, ?)`,
                 [billId, item.id, item.quantity, item.sell_price, taxableValue, item.gst_rate, gstAmount]
             );
 
             await databaseService.query(
-                `UPDATE products SET stock = stock - ? WHERE id = ?`,
+                `UPDATE products SET stock = stock - ? WHERE id = ? `,
                 [item.quantity, item.id]
             );
         }
@@ -395,7 +443,7 @@ export const billService = {
             FROM bills b
             LEFT JOIN customers c ON b.customer_id = c.id
             WHERE b.bill_no = ? OR b.id = ?
-        `;
+    `;
         const result = await databaseService.query(sql, [identifier, identifier]);
 
         if (result.length === 0) return null;
@@ -407,7 +455,7 @@ export const billService = {
             `SELECT bi.*, p.name as product_name 
              FROM bill_items bi
              LEFT JOIN products p ON bi.product_id = p.id
-             WHERE bi.bill_id = ?`,
+             WHERE bi.bill_id = ? `,
             [bill.id]
         );
 
@@ -427,7 +475,7 @@ export const billService = {
             FROM bills b
             LEFT JOIN customers c ON b.customer_id = c.id
             WHERE b.bill_no = ?
-        `;
+    `;
         const bills = await databaseService.query(billQuery, [billNo]);
 
         if (!bills || bills.length === 0) return null;
@@ -452,7 +500,7 @@ export const billService = {
             FROM bill_items bi
             LEFT JOIN products p ON bi.product_id = p.id
             WHERE bi.bill_id = ?
-        `;
+    `;
         const items = await databaseService.query(itemsQuery, [bill.id]);
 
         return { ...bill, items };

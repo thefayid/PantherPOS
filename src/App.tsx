@@ -148,7 +148,11 @@ function App() {
         // Keep stock checks async and non-blocking.
         setTimeout(() => {
           notificationService.checkStockLevels();
+<<<<<<< HEAD
           notificationService.checkOverdueStocktake(7);
+=======
+          notificationService.checkExpiry();
+>>>>>>> c2439d0 (latest changes)
         }, 1000);
 
         // Optional: load the large training corpus only when explicitly enabled.

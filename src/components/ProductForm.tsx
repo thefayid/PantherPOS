@@ -1,8 +1,11 @@
+
 import React, { useEffect, useState } from 'react';
-import type { Product } from '../types/db';
+import type { Product, InventoryLog } from '../types/db';
 import { Button } from './Button';
-import { Upload, X, Copy, RefreshCw } from 'lucide-react';
+import { Plus, X, Upload, Trash2, Copy, RefreshCw, Box, Layers, History, Calendar } from 'lucide-react';
+import { BatchManager } from './BatchManager';
 import { productService } from '../services/productService';
+import { inventoryService } from '../services/inventoryService';
 import clsx from 'clsx';
 import { Table } from './Table';
 import { generatePlaceholder } from '../utils/imageGenerator';
@@ -17,7 +20,7 @@ interface ProductFormProps {
 }
 
 export function ProductForm({ initialData, onSubmit, onCancel }: ProductFormProps) {
-    const [activeTab, setActiveTab] = useState<'GENERAL' | 'VARIANTS'>('GENERAL');
+    const [activeTab, setActiveTab] = useState<'GENERAL' | 'VARIANTS' | 'BUNDLE' | 'HISTORY' | 'BATCHES'>('GENERAL');
 
     // Form State
     const [formData, setFormData] = useState<Omit<Product, 'id'>>({
@@ -37,7 +40,18 @@ export function ProductForm({ initialData, onSubmit, onCancel }: ProductFormProp
     const [variantAttributes, setVariantAttributes] = useState({ Size: '', Color: '' });
     const [newVariantBarcode, setNewVariantBarcode] = useState('');
     const [loadingVariants, setLoadingVariants] = useState(false);
+
     const [isFetchingInfo, setIsFetchingInfo] = useState(false);
+
+    // Bundle State
+    const [isBundle, setIsBundle] = useState(false);
+    const [bundleComponents, setBundleComponents] = useState<{ id: number, name: string, quantity: number }[]>([]);
+    const [componentSearch, setComponentSearch] = useState('');
+    const [foundComponents, setFoundComponents] = useState<Product[]>([]);
+
+    // History State
+    const [historyLogs, setHistoryLogs] = useState<InventoryLog[]>([]);
+    const [loadingHistory, setLoadingHistory] = useState(false);
 
     // Track if the current image is auto-generated
     const [isAutoImage, setIsAutoImage] = useState(true);
@@ -88,11 +102,75 @@ export function ProductForm({ initialData, onSubmit, onCancel }: ProductFormProp
             setVariants(others);
         } catch (e) { console.error(e); }
         finally { setLoadingVariants(false); }
+
     };
+
+    // Load Bundle Components
+    useEffect(() => {
+        if (initialData?.id && initialData.is_bundle) {
+            setIsBundle(true);
+            productService.getBundleComponents(initialData.id).then(comps => {
+                setBundleComponents(comps.map(c => ({ id: c.product.id, name: c.product.name, quantity: c.quantity })));
+            });
+        }
+    }, [initialData]);
+
+    const handleComponentSearch = async (q: string) => {
+        setComponentSearch(q);
+        if (q.length > 1) {
+            const results = await productService.search(q);
+            // Filter self and already added
+            const filtered = results.filter(p => p.id !== initialData?.id && !bundleComponents.find(c => c.id === p.id));
+            setFoundComponents(filtered);
+        } else {
+            setFoundComponents([]);
+        }
+    };
+
+    const addComponent = (product: Product) => {
+        setBundleComponents(prev => [...prev, { id: product.id, name: product.name, quantity: 1 }]);
+        setComponentSearch('');
+        setFoundComponents([]);
+    };
+
+    const removeComponent = (id: number) => {
+        setBundleComponents(prev => prev.filter(c => c.id !== id));
+    };
+
+    const updateComponentQty = (id: number, qty: number) => {
+        setBundleComponents(prev => prev.map(c => c.id === id ? { ...c, quantity: qty } : c));
+    };
+
+    const loadHistory = async () => {
+        if (!initialData?.id) return;
+        setLoadingHistory(true);
+        try {
+            const logs = await inventoryService.getLogs(initialData.id);
+            setHistoryLogs(logs);
+        } catch (e) {
+            console.error('Failed to load history', e);
+        } finally {
+            setLoadingHistory(false);
+        }
+    };
+
+    useEffect(() => {
+        if (activeTab === 'HISTORY' && initialData?.id) {
+            loadHistory();
+        }
+    }, [activeTab, initialData]);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        onSubmit(formData);
+        const finalData = { ...formData };
+        if (isBundle) {
+            // Bundle logic: Stock is 0 or managed? Usually 0 effectively, or computed.
+            // Cost price = sum of components?
+            // Let's keep manual override for now, or sum it up.
+            // Pass components to service
+            (finalData as any).components = bundleComponents.map(c => ({ id: c.id, quantity: c.quantity }));
+        }
+        onSubmit(finalData);
     };
 
     const handleChange = (field: keyof Omit<Product, 'id'>, value: string | number) => {
@@ -206,11 +284,68 @@ export function ProductForm({ initialData, onSubmit, onCancel }: ProductFormProp
                 >
                     Variants {variants.length > 0 && `(${variants.length})`}
                 </button>
+                <button
+                    onClick={() => setActiveTab('BUNDLE')}
+                    disabled={!isBundle && !initialData?.id} // Only if marked as bundle or editing
+                    className={clsx(
+                        "py-2 px-4 border-b-2 text-sm font-bold transition-all",
+                        activeTab === 'BUNDLE'
+                            ? "border-primary text-primary"
+                            : (!isBundle && !initialData?.id) ? "border-transparent text-muted-foreground/30 cursor-not-allowed hidden" : "border-transparent text-muted-foreground hover:text-foreground",
+                        isBundle && "inline-flex"
+                    )}
+                >
+                    Bundle Items {bundleComponents.length > 0 && `(${bundleComponents.length})`}
+                </button>
+                <button
+                    onClick={() => setActiveTab('HISTORY')}
+                    disabled={!initialData?.id}
+                    className={clsx(
+                        "py-2 px-4 border-b-2 text-sm font-bold transition-all",
+                        activeTab === 'HISTORY'
+                            ? "border-primary text-primary"
+                            : !initialData?.id ? "border-transparent text-muted-foreground/30 cursor-not-allowed" : "border-transparent text-muted-foreground hover:text-foreground"
+                    )}
+                >
+                    Stock History
+                </button>
+                {formData.is_batch_tracked === 1 && (
+                    <button
+                        type="button"
+                        onClick={() => setActiveTab('BATCHES')}
+                        disabled={!initialData?.id}
+                        className={clsx(
+                            "py-2 px-4 border-b-2 text-sm font-bold transition-all",
+                            activeTab === 'BATCHES'
+                                ? "border-primary text-primary"
+                                : !initialData?.id ? "border-transparent text-muted-foreground/30 cursor-not-allowed" : "border-transparent text-muted-foreground hover:text-foreground"
+                        )}
+                    >
+                        Batches
+                    </button>
+                )}
             </div>
 
             {/* TAB CONTENT: GENERAL */}
             {activeTab === 'GENERAL' && (
                 <form onSubmit={handleSubmit} className="space-y-4">
+                    <div className="flex items-center gap-2 mb-4 bg-muted/20 p-3 rounded-lg border border-border">
+                        <input
+                            type="checkbox"
+                            id="is_bundle"
+                            checked={isBundle}
+                            onChange={e => {
+                                setIsBundle(e.target.checked);
+                                if (e.target.checked) setActiveTab('BUNDLE');
+                            }}
+                            className="w-4 h-4 text-primary rounded border-gray-300 focus:ring-primary"
+                        />
+                        <label htmlFor="is_bundle" className="text-sm font-bold text-foreground">
+                            This is a Bundle / Combo Product
+                        </label>
+                        <span className="text-xs text-muted-foreground ml-2">(Stock will be calculated based on components)</span>
+                    </div>
+
                     <div className="flex flex-col md:flex-row gap-4">
                         {/* Image Upload Section */}
                         <div className="w-full md:w-1/3 space-y-2">
@@ -356,6 +491,19 @@ export function ProductForm({ initialData, onSubmit, onCancel }: ProductFormProp
                                     onChange={e => handleChange('min_stock_level', parseInt(e.target.value) || 5)}
                                 />
                             </div>
+
+                            <div className="md:col-span-2 flex items-center space-x-2 pt-2">
+                                <input
+                                    type="checkbox"
+                                    id="is_batch_tracked"
+                                    checked={formData.is_batch_tracked === 1}
+                                    onChange={(e) => setFormData(prev => ({ ...prev, is_batch_tracked: e.target.checked ? 1 : 0 }))}
+                                    className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary"
+                                />
+                                <label htmlFor="is_batch_tracked" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                                    Enable Batch Tracking (Expiry Dates)
+                                </label>
+                            </div>
                         </div>
                     </div>
 
@@ -407,12 +555,165 @@ export function ProductForm({ initialData, onSubmit, onCancel }: ProductFormProp
                                     { header: 'Variant Name', accessor: 'name' },
                                     { header: 'Barcode', accessor: 'barcode' },
                                     { header: 'Stock', accessor: 'stock' },
-                                    { header: 'Price', accessor: (p) => `₹${p.sell_price}` }
+                                    { header: 'Price', accessor: (p) => `₹${p.sell_price} ` }
                                 ]}
                                 emptyMessage="No other variants found."
                             />
                         )}
                     </div>
+                </div>
+            )}
+
+            {/* TAB CONTENT: BUNDLE */}
+            {activeTab === 'BUNDLE' && (
+                <div className="space-y-6 h-full flex flex-col">
+                    <div className="bg-primary/5 p-4 rounded-xl border border-primary/20 space-y-3">
+                        <h4 className="text-sm font-bold text-primary">Add Components to Bundle</h4>
+                        <div className="relative">
+                            <div className="flex gap-2">
+                                <Search className="absolute left-3 top-2.5 text-muted-foreground w-4 h-4" />
+                                <input
+                                    className="pl-9 w-full bg-background border border-border rounded-lg py-2 text-sm"
+                                    placeholder="Search products to add..."
+                                    value={componentSearch}
+                                    onChange={e => handleComponentSearch(e.target.value)}
+                                />
+                            </div>
+                            {foundComponents.length > 0 && (
+                                <div className="absolute z-10 w-full mt-1 bg-surface border border-border rounded-lg shadow-xl max-h-60 overflow-y-auto">
+                                    {foundComponents.map(p => (
+                                        <button
+                                            key={p.id}
+                                            type="button"
+                                            onClick={() => addComponent(p)}
+                                            className="w-full text-left px-4 py-3 hover:bg-muted border-b border-border/50 last:border-0 flex justify-between items-center group"
+                                        >
+                                            <div>
+                                                <div className="font-bold text-sm text-foreground">{p.name}</div>
+                                                <div className="text-xs text-muted-foreground">Qty: {p.stock} | ₹{p.sell_price}</div>
+                                            </div>
+                                            <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity">Add</span>
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto border border-border rounded-xl">
+                        <div className="bg-muted p-3 text-xs font-bold uppercase text-muted-foreground grid grid-cols-12 gap-2">
+                            <div className="col-span-6">Product</div>
+                            <div className="col-span-3 text-center">Qty Needed</div>
+                            <div className="col-span-3 text-right">Actions</div>
+                        </div>
+                        {bundleComponents.length === 0 ? (
+                            <div className="p-8 text-center text-muted-foreground text-sm">
+                                No components added yet. Search above to add items to this bundle.
+                            </div>
+                        ) : (
+                            <div className="divide-y divide-border">
+                                {bundleComponents.map((c, i) => (
+                                    <div key={c.id} className="grid grid-cols-12 gap-2 p-3 items-center hover:bg-muted/10">
+                                        <div className="col-span-6 font-medium text-sm truncate" title={c.name}>{c.name}</div>
+                                        <div className="col-span-3 flex justify-center">
+                                            <input
+                                                type="number"
+                                                min="1"
+                                                className="w-16 bg-background border border-border rounded p-1 text-center text-sm"
+                                                value={c.quantity}
+                                                onChange={e => updateComponentQty(c.id, parseFloat(e.target.value))}
+                                            />
+                                        </div>
+                                        <div className="col-span-3 flex justify-end">
+                                            <button
+                                                onClick={() => removeComponent(c.id)}
+                                                className="text-destructive hover:bg-destructive/10 p-1.5 rounded"
+                                                title="Remove"
+                                            >
+                                                <X size={16} />
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                    <div className="p-4 bg-muted/10 rounded-xl border border-border text-xs text-muted-foreground">
+                        <strong>Note:</strong> When you sell this bundle, stock will be deducted from the individual components listed above.
+                    </div>
+
+                    <div className="flex justify-end pt-4">
+                        <Button onClick={handleSubmit}>Save Bundle</Button>
+                    </div>
+                </div>
+            )}
+
+            {/* TAB CONTENT: HISTORY */}
+            {activeTab === 'HISTORY' && (
+                <div className="space-y-4 h-full flex flex-col overflow-hidden">
+                    <div className="bg-primary/5 p-4 rounded-xl border border-primary/20 flex justify-between items-center">
+                        <h4 className="text-sm font-bold text-primary">Stock Movement History</h4>
+                        <Button variant="secondary" size="sm" onClick={loadHistory} disabled={loadingHistory}>
+                            <RefreshCw className={clsx("w-4 h-4 mr-2", loadingHistory && "animate-spin")} /> Refresh
+                        </Button>
+                    </div>
+
+                    <div className="flex-1 border border-border rounded-xl overflow-hidden flex flex-col">
+                        <div className="bg-muted p-3 text-xs font-bold uppercase text-muted-foreground grid grid-cols-12 gap-2">
+                            <div className="col-span-3">Date</div>
+                            <div className="col-span-2">Type</div>
+                            <div className="col-span-2 text-right">Change</div>
+                            <div className="col-span-3">Reason</div>
+                            <div className="col-span-2">User</div>
+                        </div>
+                        <div className="flex-1 overflow-y-auto">
+                            {loadingHistory ? (
+                                <div className="p-8 text-center text-muted-foreground">Loading history...</div>
+                            ) : historyLogs.length === 0 ? (
+                                <div className="p-8 text-center text-muted-foreground">No stock history found.</div>
+                            ) : (
+                                <div className="divide-y divide-border">
+                                    {historyLogs.map(log => (
+                                        <div key={log.id} className="grid grid-cols-12 gap-2 p-3 text-sm hover:bg-muted/10 items-center">
+                                            <div className="col-span-3 text-muted-foreground text-xs">
+                                                {new Date(log.date).toLocaleString()}
+                                            </div>
+                                            <div className="col-span-2">
+                                                <span className={clsx(
+                                                    "px-2 py-0.5 rounded text-[10px] font-bold uppercase",
+                                                    log.type === 'SALE' ? "bg-green-100 text-green-700" :
+                                                        log.type === 'RETURN' ? "bg-red-100 text-red-700" :
+                                                            log.type === 'RESTOCK' ? "bg-blue-100 text-blue-700" :
+                                                                log.type === 'SHRINKAGE' ? "bg-orange-100 text-orange-700" :
+                                                                    "bg-gray-100 text-gray-700"
+                                                )}>
+                                                    {log.type.replace('_', ' ')}
+                                                </span>
+                                            </div>
+                                            <div className={clsx(
+                                                "col-span-2 text-right font-mono font-medium",
+                                                log.quantity_change > 0 ? "text-green-600" : "text-destructive"
+                                            )}>
+                                                {log.quantity_change > 0 ? '+' : ''}{log.quantity_change}
+                                            </div>
+                                            <div className="col-span-3 truncate text-muted-foreground" title={log.reason}>
+                                                {log.reason || '-'}
+                                            </div>
+                                            <div className="col-span-2 text-xs text-muted-foreground truncate">
+                                                {log.user_id ? `User #${log.user_id}` : 'System'}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {activeTab === 'BATCHES' && initialData && (
+                <div className="h-full overflow-hidden">
+                    <BatchManager product={initialData as Product} />
                 </div>
             )}
         </div>

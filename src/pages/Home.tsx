@@ -1,16 +1,21 @@
+
 import { useState, useEffect, useRef } from 'react';
 import toast from 'react-hot-toast';
-import { customerService } from '../services/customerService';
+
 import {
-    Search, Plus, Trash2, CreditCard, Banknote, Smartphone,
-    Minus, User, ShoppingBag,
-    Percent, MessageSquare, Save, RotateCcw, Lock as LockIcon,
-    ArrowRightLeft, XCircle, Pencil, CheckCircle, Printer, FileText, Download, Camera, QrCode, Star, DollarSign, Clock,
-    LayoutGrid, List
+    Search, ShoppingBag, Plus, Minus, Trash2,
+    Settings, LogOut, FileText, User, ChevronRight,
+    LayoutGrid, List, Tag, AlertCircle, RefreshCw,
+    Maximize2, Minimize2, CheckCircle, Calculator,
+    Printer, X, MessageCircle, XCircle, Percent, Save,
+    Banknote, MessageSquare, DollarSign, Lock as LockIcon,
+    RotateCcw, Camera, Star, CreditCard, Smartphone,
+    ArrowRightLeft, QrCode, Pencil, Clock
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 import { estimateService } from '../services/estimateService';
+import { customerService } from '../services/customerService';
 import { cartService } from '../services/cartService';
 import { productService } from '../services/productService';
 import { billService } from '../services/billService';
@@ -28,6 +33,8 @@ import { RefundModal } from '../components/RefundModal';
 import { QuickAddProductModal } from '../components/QuickAddProductModal';
 import { accountingService } from '../services/accountingService';
 import { whatsappService } from '../services/whatsappService';
+import { GSTBreakdownPanel } from '../components/GSTBreakdownPanel';
+import { gstService } from '../services/gstService';
 
 import { groupService, type ProductGroup } from '../services/groupService';
 import type { Product, Customer } from '../types/db';
@@ -93,6 +100,14 @@ export default function Home() {
     const [overridePrice, setOverridePrice] = useState<string>('');
     const [processing, setProcessing] = useState(false);
 
+    // GST Features - Phase 1
+    const [taxInclusive, setTaxInclusive] = useState(() => {
+        const saved = localStorage.getItem('pos_tax_inclusive');
+        return saved ? JSON.parse(saved) : true;
+    });
+    const [isInterState, setIsInterState] = useState(false);
+    const [placeOfSupply, setPlaceOfSupply] = useState<string>('');
+
     const updateItemPrice = (index: number, newPrice: number) => {
         setCart(prev => {
             const next = [...prev];
@@ -142,6 +157,7 @@ export default function Home() {
     const [heldBillsModalOpen, setHeldBillsModalOpen] = useState(false);
     const [heldBills, setHeldBills] = useState<HeldBill[]>([]);
     const [moreActionsOpen, setMoreActionsOpen] = useState(false);
+
 
     // FAVORITES & Quick Access
     const [activeTab, setActiveTab] = useState<'ALL' | 'FAVORITES'>('ALL');
@@ -304,7 +320,7 @@ export default function Home() {
         // Ensure UI knows we are in Return Mode
         setIsReturnMode(true);
         setOriginalBillId(bill.id);
-        setBillNotes(`Refund for Bill No: ${bill.bill_no}`);
+        setBillNotes(`Refund for Bill No: ${bill.bill_no} `);
 
         console.log('[Home] handleRefundConfirm - Items:', bill.items.length);
         const newCartItems: CartItem[] = [];
@@ -386,7 +402,7 @@ export default function Home() {
 
         const action = isReturnMode ? 'Returned' : 'Added';
         const icon = isReturnMode ? '↩️' : '🛒';
-        toast.success(`${action} ${product.name}`, { icon, position: 'bottom-center' });
+        toast.success(`${action} ${product.name} `, { icon, position: 'bottom-center' });
 
         setSearchTerm('');
         searchInputRef.current?.focus();
@@ -464,6 +480,68 @@ export default function Home() {
             setPointsRedeemed(maxRedeemablePoints);
         }
     }, [subtotal, billDiscount, customer, pointsRedeemed, maxRedeemablePoints]);
+
+    // Persist tax inclusive preference
+    useEffect(() => {
+        localStorage.setItem('pos_tax_inclusive', JSON.stringify(taxInclusive));
+    }, [taxInclusive]);
+
+    // Auto-detect place of supply from customer GSTIN - Phase 2 GST
+    const [companyState, setCompanyState] = useState<string>('');
+
+    useEffect(() => {
+        // Fetch Company State on Mount
+        const loadSettings = async () => {
+            const settings = await import('../services/settingsService').then(m => m.settingsService.getSettings());
+            // Try to find state in address, or default to a known value if configured
+            // For now, simple heuristic or manual override if needed. 
+            // Best approach: Add 'State' to settings. For now, assume a default or extract.
+            // Let's check if GSTIN is in settings!
+            if (settings.gst_no) {
+                const state = gstService.extractStateFromGSTIN(settings.gst_no);
+                if (state) setCompanyState(state);
+            }
+        };
+        loadSettings();
+    }, []);
+
+    useEffect(() => {
+        if (customer?.gstin) {
+            const validation = gstService.validateGSTIN(customer.gstin);
+            if (validation.valid) {
+                // Auto-fill place of supply from customer's state
+                const customerState = gstService.extractStateFromGSTIN(customer.gstin);
+                if (customerState) {
+                    setPlaceOfSupply(customerState);
+
+                    // Auto-detect Inter-State
+                    if (companyState) {
+                        const companyCode = gstService.getStateCode(companyState);
+                        const customerCode = gstService.getStateCode(customerState);
+                        if (companyCode && customerCode) {
+                            const isInter = companyCode !== customerCode;
+                            setIsInterState(isInter);
+                            if (isInter) {
+                                toast.success('Inter-State Transaction Detected', { icon: 'Truck', duration: 2000 });
+                            } else {
+                                // toast.success('Intra-State Transaction', { icon: 'Home', duration: 2000 });
+                            }
+                        }
+                    }
+                }
+            }
+        } else if (customer?.state) {
+            // Fallback: use manually entered state
+            setPlaceOfSupply(customer.state);
+            if (companyState) {
+                setIsInterState(companyState !== customer.state);
+            }
+        } else {
+            // No customer or no state info
+            setPlaceOfSupply('');
+            setIsInterState(false); // Default to local
+        }
+    }, [customer, companyState]);
 
     const grandTotal = subtotal - billDiscount - (pointsRedeemed * POINT_VALUE);
     const pointsEarned = Math.floor(grandTotal / POINTS_EARN_RATE);
@@ -655,7 +733,9 @@ export default function Home() {
 
             const billNo = await billService.saveBill({
                 items: cart, subtotal, totalTax: 0, grandTotal, paymentMode, tenders: tenders,
-                taxInclusive: true, isInterState: false, customer_id: customer?.id,
+                taxInclusive, isInterState,
+                place_of_supply: placeOfSupply, customer_gstin: customer?.gstin,
+                customer_id: customer?.id,
                 discount_amount: (billDiscount + (pointsRedeemed * POINT_VALUE)), points_redeemed: pointsRedeemed, points_earned: pointsEarned,
                 order_type: orderType, notes: billNotes, originalBillId: originalBillId || undefined
             });
@@ -687,7 +767,7 @@ export default function Home() {
                 };
             }
 
-            toast.success(`Bill Saved: ${billNo}`);
+            toast.success(`Bill Saved: ${billNo} `);
             setLastBill(details);
             setPaymentStep('RECEIPT_OPTIONS');
         } catch (error: any) {
@@ -1134,8 +1214,14 @@ export default function Home() {
                                 <div>
                                     <h2 className={cn("font-bold text-foreground", isTouchMode ? "text-xl" : "text-lg")}>Current Bill</h2>
                                     {customer ? (
-                                        <div className={cn("flex items-center gap-1 text-primary font-bold animate-in fade-in", isTouchMode ? "text-sm" : "text-xs")}>
-                                            <User size={isTouchMode ? 14 : 12} /> {customer.name}
+                                        <div className={cn("flex items-center gap-2 text-primary font-bold animate-in fade-in", isTouchMode ? "text-sm" : "text-xs")}>
+                                            <User size={isTouchMode ? 14 : 12} />
+                                            <span>{customer.name}</span>
+                                            {customer.gstin && (
+                                                <span className={cn("px-1.5 py-0.5 rounded text-[8px] uppercase tracking-wider font-black", gstService.isB2B(customer.gstin) ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-600")}>
+                                                    {gstService.isB2B(customer.gstin) ? 'B2B' : 'B2C'}
+                                                </span>
+                                            )}
                                             <button onClick={() => setCustomer(null)} className="hover:text-destructive ml-1"><XCircle size={isTouchMode ? 14 : 12} /></button>
                                         </div>
                                     ) : (
@@ -1193,6 +1279,79 @@ export default function Home() {
                             ))
                         )}
                     </div>
+
+                    {/* GST Controls & Breakdown - Phase 1 */}
+                    {cart.length > 0 && (
+                        <div className="px-4 py-3 space-y-3 border-t border-border bg-background/50">
+                            {/* Tax Inclusive/Exclusive Toggle */}
+                            <div className="flex items-center justify-between">
+                                <span className="text-xs font-bold text-muted-foreground uppercase tracking-wide">Tax Mode:</span>
+                                <button
+                                    onClick={() => setTaxInclusive(!taxInclusive)}
+                                    className={cn(
+                                        "px-3 py-1.5 rounded-lg text-xs font-bold transition-all border-2",
+                                        taxInclusive
+                                            ? "bg-green-50 text-green-700 border-green-200"
+                                            : "bg-blue-50 text-blue-700 border-blue-200"
+                                    )}
+                                >
+                                    {taxInclusive ? 'Inclusive' : 'Exclusive'}
+                                </button>
+                            </div>
+
+                            {/* Place of Supply */}
+                            <div className="flex items-center justify-between">
+                                <span className="text-xs font-bold text-muted-foreground uppercase tracking-wide">Place of Supply:</span>
+                                <select
+                                    value={placeOfSupply}
+                                    onChange={(e) => setPlaceOfSupply(e.target.value)}
+                                    className="px-2 py-1.5 text-xs border border-border rounded-lg bg-surface min-w-[120px]"
+                                >
+                                    <option value="">-- Select --</option>
+                                    {gstService.getAllStates().map(state => (
+                                        <option key={state.code} value={state.name}>{state.name}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            {/* Inter-State Selection */}
+                            <div className="flex items-center justify-between">
+                                <span className="text-xs font-bold text-muted-foreground uppercase tracking-wide">Transaction Type:</span>
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={() => setIsInterState(false)}
+                                        className={cn(
+                                            "px-3 py-1.5 rounded-lg text-xs font-bold transition-all border-2",
+                                            !isInterState
+                                                ? "bg-green-50 text-green-700 border-green-200"
+                                                : "bg-muted text-muted-foreground border-border"
+                                        )}
+                                    >
+                                        Intra-State
+                                    </button>
+                                    <button
+                                        onClick={() => setIsInterState(true)}
+                                        className={cn(
+                                            "px-3 py-1.5 rounded-lg text-xs font-bold transition-all border-2",
+                                            isInterState
+                                                ? "bg-blue-50 text-blue-700 border-blue-200"
+                                                : "bg-muted text-muted-foreground border-border"
+                                        )}
+                                    >
+                                        Inter-State
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* GST Breakdown Panel */}
+                            <GSTBreakdownPanel
+                                items={cart}
+                                isInterState={isInterState}
+                                taxInclusive={taxInclusive}
+                                discount={billDiscount + (pointsRedeemed * POINT_VALUE)}
+                            />
+                        </div>
+                    )}
 
                     {/* Totals Section - Unified into F10 */}
                     <div className={cn("px-4 bg-muted/20 border-t border-border", isTouchMode ? "py-1" : "py-0.5")}>
@@ -1339,7 +1498,7 @@ export default function Home() {
                             {heldBills.map(bill => (
                                 <div key={bill.id} className="relative group bg-card hover:bg-accent/50 border border-border rounded-2xl flex flex-col justify-between transition-all hover:shadow-xl h-auto min-h-[13rem] overflow-hidden active:scale-[0.99]">
                                     {/* Left Accent Bar based on time */}
-                                    <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${getTimeElapsed(bill.date).includes('d') ? 'bg-red-500' : getTimeElapsed(bill.date).includes('h') ? 'bg-orange-500' : 'bg-green-500'}`}></div>
+                                    <div className={`absolute left - 0 top - 0 bottom - 0 w - 1.5 ${getTimeElapsed(bill.date).includes('d') ? 'bg-red-500' : getTimeElapsed(bill.date).includes('h') ? 'bg-orange-500' : 'bg-green-500'} `}></div>
 
                                     <div className="p-4 flex-1 flex col">
                                         {/* Header */}
@@ -1497,7 +1656,7 @@ export default function Home() {
 
             {/* Payment Modal */}
             <Modal isOpen={paymentModalOpen} onClose={() => { if (paymentStep !== 'RECEIPT_OPTIONS') { setPaymentModalOpen(false); setPaymentStep('SELECT_MODE'); } }} title={
-                paymentStep === 'SELECT_MODE' ? `Collect Payment: ₹${grandTotal.toFixed(2)}` :
+                paymentStep === 'SELECT_MODE' ? `Collect Payment: ₹${grandTotal.toFixed(2)} ` :
                     paymentStep === 'CONFIRM_AMOUNT' ? `Confirm ${paymentMode} Payment` :
                         'Payment Successful'
             }>
@@ -1560,252 +1719,256 @@ export default function Home() {
                             >
                                 <QrCode size={24} />
                                 <span className="font-bold">Customer View (QR)</span>
-                            </button>
-                        </div>
+                            </button >
+                        </div >
                     )}
 
-                    {paymentStep === 'CONFIRM_AMOUNT' && (
-                        <div className="space-y-6 animate-in fade-in slide-in-from-right-10 duration-200">
-                            {/* LOYALTY POINTS UI */}
-                            {customer && (
-                                <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-xl flex justify-between items-center">
-                                    <div>
-                                        <p className="text-sm text-yellow-800 font-medium">Loyalty Points Available</p>
-                                        <p className="text-2xl font-bold text-yellow-900">{customer.points} <span className="text-sm font-normal text-yellow-700">(Value: ₹{(customer.points / 10).toFixed(2)})</span></p>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <input
-                                            type="number"
-                                            className="w-20 p-2 border border-yellow-300 rounded text-right font-bold"
-                                            placeholder="Pts"
-                                            value={pointsRedeemed > 0 ? pointsRedeemed : ''}
-                                            onChange={(e) => {
-                                                const val = parseInt(e.target.value) || 0;
-                                                const maxRedeemable = Math.min(customer.points, Math.floor(grandTotal * 10)); // Max redeemable is lesser of available points or Total * 10 (since 10pts=1rs)
-
-                                                if (val <= maxRedeemable) {
-                                                    setPointsRedeemed(val);
-                                                } else {
-                                                    toast.error(`Max redeemable: ${maxRedeemable} pts`);
-                                                }
-                                            }}
-                                        />
-                                        <Button
-                                            size="sm"
-                                            variant="secondary"
-                                            onClick={() => setPointsRedeemed(pointsRedeemed > 0 ? 0 : Math.min(customer.points, Math.floor(grandTotal * 10)))}
-                                        >
-                                            {pointsRedeemed > 0 ? 'Remove' : 'Redeem All'}
-                                        </Button>
-                                    </div>
-                                </div>
-                            )}
-
-                            {paymentMode === 'SPLIT' ? (
-                                // SPLIT PAYMENT UI
-                                <div className="space-y-4">
-                                    <div className="flex justify-between items-center text-lg bg-muted/30 p-4 rounded-xl">
-                                        <span className="text-muted-foreground">Total Payable</span>
-                                        <div className="text-right">
-                                            {pointsRedeemed > 0 && <div className="text-sm text-green-600 line-through">₹{grandTotal.toFixed(2)}</div>}
-                                            <span className="font-bold text-foreground">₹{(grandTotal - (pointsRedeemed * POINT_VALUE)).toFixed(2)}</span>
+                    {
+                        paymentStep === 'CONFIRM_AMOUNT' && (
+                            <div className="space-y-6 animate-in fade-in slide-in-from-right-10 duration-200">
+                                {/* LOYALTY POINTS UI */}
+                                {customer && (
+                                    <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-xl flex justify-between items-center">
+                                        <div>
+                                            <p className="text-sm text-yellow-800 font-medium">Loyalty Points Available</p>
+                                            <p className="text-2xl font-bold text-yellow-900">{customer.points} <span className="text-sm font-normal text-yellow-700">(Value: ₹{(customer.points / 10).toFixed(2)})</span></p>
                                         </div>
-                                    </div>
-
-                                    <div className="grid grid-cols-1 gap-3">
-                                        {['CASH', 'CARD', 'UPI'].map(mode => (
-                                            <div key={mode} className="flex items-center gap-4 border p-3 rounded-lg">
-                                                <div className="w-24 font-semibold">{mode}</div>
-                                                <input
-                                                    type="number"
-                                                    className="flex-1 text-right bg-transparent text-xl font-bold focus:outline-none"
-                                                    value={splitPayment[mode] || ''}
-                                                    placeholder="0"
-                                                    onChange={e => setSplitPayment(prev => ({ ...prev, [mode]: parseFloat(e.target.value) || 0 }))}
-                                                />
-                                            </div>
-                                        ))}
-                                    </div>
-
-                                    <div className="flex justify-between items-center text-lg pt-2">
-                                        <span className="text-muted-foreground">Total Entered</span>
-                                        <span className={`font-bold text-xl ${(Object.values(splitPayment).reduce((a, b) => a + b, 0) - (grandTotal - (pointsRedeemed * POINT_VALUE))) >= -0.01 ? 'text-emerald-500' : 'text-destructive'}`}>
-                                            ₹{Object.values(splitPayment).reduce((a, b) => a + b, 0).toFixed(2)}
-                                        </span>
-                                    </div>
-                                    <div className="flex justify-between items-center text-sm">
-                                        <span className="text-muted-foreground">Remaining</span>
-                                        <span className="font-bold text-foreground">
-                                            ₹{Math.max(0, (grandTotal - (pointsRedeemed * POINT_VALUE)) - Object.values(splitPayment).reduce((a, b) => a + b, 0)).toFixed(2)}
-                                        </span>
-                                    </div>
-                                </div>
-                            ) : (
-                                // STANDARD PAYMENT UI
-                                <div className="bg-muted/30 p-4 rounded-xl space-y-3">
-                                    <div className="flex justify-between items-center text-lg">
-                                        <span className="text-muted-foreground">Total Payable</span>
-                                        <div className="text-right">
-                                            {pointsRedeemed > 0 && <div className="text-sm text-green-600 line-through">₹{grandTotal.toFixed(2)}</div>}
-                                            <span className="font-bold text-foreground">₹{(grandTotal - (pointsRedeemed * POINT_VALUE)).toFixed(2)}</span>
-                                        </div>
-                                    </div>
-                                    <div className="flex justify-between items-center text-lg">
-                                        <span className="text-muted-foreground flex items-center gap-2">
-                                            Paid Amount
-                                            <Pencil size={14} className="opacity-50" />
-                                        </span>
-                                        <div className="w-1/2">
+                                        <div className="flex items-center gap-2">
                                             <input
                                                 type="number"
-                                                autoFocus
-                                                className="w-full text-right bg-transparent border-b-2 border-primary text-2xl font-bold focus:outline-none"
-                                                value={paidAmount}
-                                                onChange={e => setPaidAmount(parseFloat(e.target.value) || 0)}
-                                                onFocus={e => e.target.select()}
-                                                onKeyDown={e => { if (e.key === 'Enter') handleCheckout(); }}
+                                                className="w-20 p-2 border border-yellow-300 rounded text-right font-bold"
+                                                placeholder="Pts"
+                                                value={pointsRedeemed > 0 ? pointsRedeemed : ''}
+                                                onChange={(e) => {
+                                                    const val = parseInt(e.target.value) || 0;
+                                                    const maxRedeemable = Math.min(customer.points, Math.floor(grandTotal * 10)); // Max redeemable is lesser of available points or Total * 10 (since 10pts=1rs)
+
+                                                    if (val <= maxRedeemable) {
+                                                        setPointsRedeemed(val);
+                                                    } else {
+                                                        toast.error(`Max redeemable: ${maxRedeemable} pts`);
+                                                    }
+                                                }}
                                             />
+                                            <Button
+                                                size="sm"
+                                                variant="secondary"
+                                                onClick={() => setPointsRedeemed(pointsRedeemed > 0 ? 0 : Math.min(customer.points, Math.floor(grandTotal * 10)))}
+                                            >
+                                                {pointsRedeemed > 0 ? 'Remove' : 'Redeem All'}
+                                            </Button>
                                         </div>
                                     </div>
+                                )}
 
-                                    {paymentMode === 'CASH' && (
-                                        <div className="pt-2 border-t border-dashed border-border">
-                                            <div className="text-[10px] font-bold text-muted-foreground uppercase mb-2 tracking-wider">Fast Cash Calculator</div>
-                                            <div className="grid grid-cols-4 gap-2">
-                                                {[10, 20, 50, 100, 200, 500, 2000].map(val => (
-                                                    <button
-                                                        key={val}
-                                                        onClick={() => {
-                                                            // If paidAmount is already grandTotal (default), reset it to val, 
-                                                            // otherwise add it (for multi-note tallying). 
-                                                            // Actually, let's make it increment.
-                                                            setPaidAmount(prev => (prev === (grandTotal - (pointsRedeemed * POINT_VALUE)) ? val : prev + val));
-                                                            toast.success(`+₹${val}`, { duration: 1000 });
-                                                        }}
-                                                        className="h-12 bg-white hover:bg-muted border border-border rounded-xl font-black text-sm active:scale-95 transition-all shadow-sm flex items-center justify-center text-primary"
-                                                    >
-                                                        ₹{val}
-                                                    </button>
-                                                ))}
-                                                <button
-                                                    onClick={() => setPaidAmount(0)}
-                                                    className="h-12 bg-red-50 hover:bg-red-100 border border-red-200 rounded-xl font-bold text-xs active:scale-95 transition-all text-red-600 shadow-sm"
-                                                >
-                                                    Clear
-                                                </button>
+                                {paymentMode === 'SPLIT' ? (
+                                    // SPLIT PAYMENT UI
+                                    <div className="space-y-4">
+                                        <div className="flex justify-between items-center text-lg bg-muted/30 p-4 rounded-xl">
+                                            <span className="text-muted-foreground">Total Payable</span>
+                                            <div className="text-right">
+                                                {pointsRedeemed > 0 && <div className="text-sm text-green-600 line-through">₹{grandTotal.toFixed(2)}</div>}
+                                                <span className="font-bold text-foreground">₹{(grandTotal - (pointsRedeemed * POINT_VALUE)).toFixed(2)}</span>
                                             </div>
                                         </div>
-                                    )}
-                                    <div className="flex justify-between items-center text-lg pt-3 border-t border-dashed border-border">
-                                        <span className="text-muted-foreground">Change Due</span>
-                                        <span className={`font-bold text-xl ${paidAmount - grandTotal < 0 ? 'text-destructive' : 'text-emerald-500'}`}>
-                                            ₹{(paidAmount - grandTotal).toFixed(2)}
-                                        </span>
+
+                                        <div className="grid grid-cols-1 gap-3">
+                                            {['CASH', 'CARD', 'UPI'].map(mode => (
+                                                <div key={mode} className="flex items-center gap-4 border p-3 rounded-lg">
+                                                    <div className="w-24 font-semibold">{mode}</div>
+                                                    <input
+                                                        type="number"
+                                                        className="flex-1 text-right bg-transparent text-xl font-bold focus:outline-none"
+                                                        value={splitPayment[mode] || ''}
+                                                        placeholder="0"
+                                                        onChange={e => setSplitPayment(prev => ({ ...prev, [mode]: parseFloat(e.target.value) || 0 }))}
+                                                    />
+                                                </div>
+                                            ))}
+                                        </div>
+
+                                        <div className="flex justify-between items-center text-lg pt-2">
+                                            <span className="text-muted-foreground">Total Entered</span>
+                                            <span className={`font-bold text-xl ${(Object.values(splitPayment).reduce((a, b) => a + b, 0) - (grandTotal - (pointsRedeemed * POINT_VALUE))) >= -0.01 ? 'text-emerald-500' : 'text-destructive'}`}>
+                                                ₹{Object.values(splitPayment).reduce((a, b) => a + b, 0).toFixed(2)}
+                                            </span>
+                                        </div>
+                                        <div className="flex justify-between items-center text-sm">
+                                            <span className="text-muted-foreground">Remaining</span>
+                                            <span className="font-bold text-foreground">
+                                                ₹{Math.max(0, (grandTotal - (pointsRedeemed * POINT_VALUE)) - Object.values(splitPayment).reduce((a, b) => a + b, 0)).toFixed(2)}
+                                            </span>
+                                        </div>
                                     </div>
-                                </div>
-                            )}
+                                ) : (
+                                    // STANDARD PAYMENT UI
+                                    <div className="bg-muted/30 p-4 rounded-xl space-y-3">
+                                        <div className="flex justify-between items-center text-lg">
+                                            <span className="text-muted-foreground">Total Payable</span>
+                                            <div className="text-right">
+                                                {pointsRedeemed > 0 && <div className="text-sm text-green-600 line-through">₹{grandTotal.toFixed(2)}</div>}
+                                                <span className="font-bold text-foreground">₹{(grandTotal - (pointsRedeemed * POINT_VALUE)).toFixed(2)}</span>
+                                            </div>
+                                        </div>
+                                        <div className="flex justify-between items-center text-lg">
+                                            <span className="text-muted-foreground flex items-center gap-2">
+                                                Paid Amount
+                                                <Pencil size={14} className="opacity-50" />
+                                            </span>
+                                            <div className="w-1/2">
+                                                <input
+                                                    type="number"
+                                                    autoFocus
+                                                    className="w-full text-right bg-transparent border-b-2 border-primary text-2xl font-bold focus:outline-none"
+                                                    value={paidAmount}
+                                                    onChange={e => setPaidAmount(parseFloat(e.target.value) || 0)}
+                                                    onFocus={e => e.target.select()}
+                                                    onKeyDown={e => { if (e.key === 'Enter') handleCheckout(); }}
+                                                />
+                                            </div>
+                                        </div>
 
-                            <div className="flex gap-3">
-                                <Button variant="secondary" onClick={() => setPaymentStep('SELECT_MODE')} className="flex-1 h-14">
-                                    Back
-                                </Button>
-                                {/* DEBUG INFO */}
+                                        {paymentMode === 'CASH' && (
+                                            <div className="pt-2 border-t border-dashed border-border">
+                                                <div className="text-[10px] font-bold text-muted-foreground uppercase mb-2 tracking-wider">Fast Cash Calculator</div>
+                                                <div className="grid grid-cols-4 gap-2">
+                                                    {[10, 20, 50, 100, 200, 500, 2000].map(val => (
+                                                        <button
+                                                            key={val}
+                                                            onClick={() => {
+                                                                // If paidAmount is already grandTotal (default), reset it to val, 
+                                                                // otherwise add it (for multi-note tallying). 
+                                                                // Actually, let's make it increment.
+                                                                setPaidAmount(prev => (prev === (grandTotal - (pointsRedeemed * POINT_VALUE)) ? val : prev + val));
+                                                                toast.success(`+₹${val}`, { duration: 1000 });
+                                                            }}
+                                                            className="h-12 bg-white hover:bg-muted border border-border rounded-xl font-black text-sm active:scale-95 transition-all shadow-sm flex items-center justify-center text-primary"
+                                                        >
+                                                            ₹{val}
+                                                        </button>
+                                                    ))}
+                                                    <button
+                                                        onClick={() => setPaidAmount(0)}
+                                                        className="h-12 bg-red-50 hover:bg-red-100 border border-red-200 rounded-xl font-bold text-xs active:scale-95 transition-all text-red-600 shadow-sm"
+                                                    >
+                                                        Clear
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        )}
+                                        <div className="flex justify-between items-center text-lg pt-3 border-t border-dashed border-border">
+                                            <span className="text-muted-foreground">Change Due</span>
+                                            <span className={`font-bold text-xl ${paidAmount - grandTotal < 0 ? 'text-destructive' : 'text-emerald-500'}`}>
+                                                ₹{(paidAmount - grandTotal).toFixed(2)}
+                                            </span>
+                                        </div>
+                                    </div>
+                                )}
+
+                                <div className="flex gap-3">
+                                    <Button variant="secondary" onClick={() => setPaymentStep('SELECT_MODE')} className="flex-1 h-14">
+                                        Back
+                                    </Button>
+                                    {/* DEBUG INFO */}
 
 
-                                <Button onClick={() => {
-                                    console.log('Confirm Button Clicked (Forced)');
-                                    console.log('Checkout Clicked, Processing:', processing);
+                                    <Button onClick={() => {
+                                        console.log('Confirm Button Clicked (Forced)');
+                                        console.log('Checkout Clicked, Processing:', processing);
 
-                                    // Split Validation
-                                    if (paymentMode === 'SPLIT') {
-                                        const totalEntered = Object.values(splitPayment).reduce((a, b) => a + b, 0);
-                                        if (Math.abs(totalEntered - grandTotal) > 0.01) {
-                                            toast.error(`Amount mismatch! Entered: ${totalEntered}, Required: ${grandTotal}`);
-                                            return;
+                                        // Split Validation
+                                        if (paymentMode === 'SPLIT') {
+                                            const totalEntered = Object.values(splitPayment).reduce((a, b) => a + b, 0);
+                                            if (Math.abs(totalEntered - grandTotal) > 0.01) {
+                                                toast.error(`Amount mismatch! Entered: ${totalEntered}, Required: ${grandTotal}`);
+                                                return;
+                                            }
                                         }
-                                    }
 
-                                    handleCheckout();
-                                }} disabled={false} className="flex-[2] h-14 text-lg font-bold">
-                                    {processing ? 'Processing...' : `Confirm (₹${grandTotal.toFixed(2)})`}
+                                        handleCheckout();
+                                    }} disabled={false} className="flex-[2] h-14 text-lg font-bold">
+                                        {processing ? 'Processing...' : `Confirm (₹${grandTotal.toFixed(2)})`}
+                                    </Button>
+                                </div>
+                            </div>
+                        )
+                    }
+
+                    {
+                        paymentStep === 'RECEIPT_OPTIONS' && (
+                            <div className="space-y-6 animate-in fade-in slide-in-from-right-10 duration-200">
+                                <div className="text-center space-y-2">
+                                    <div className="mx-auto w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-4">
+                                        <CheckCircle size={32} />
+                                    </div>
+                                    <h3 className="text-2xl font-bold text-foreground">Sale Completed!</h3>
+                                    <p className="text-muted-foreground">Bill No: <span className="font-mono font-bold text-foreground">{lastBill?.bill_no}</span></p>
+                                    <p className="text-sm text-muted-foreground">Change to Return: <span className="font-bold text-foreground">₹{(paidAmount - (lastBill?.total || 0)).toFixed(2)}</span></p>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <button
+                                        onClick={() => printerService.printReceipt(lastBill)}
+                                        className="flex flex-col items-center justify-center gap-2 p-4 rounded-xl border border-border bg-card hover:bg-accent transition-all h-24"
+                                    >
+                                        <Printer size={24} className="text-foreground" />
+                                        <span className="font-medium text-sm">Print Receipt</span>
+                                    </button>
+                                    <button
+                                        onClick={() => exportService.generateBillInvoice(lastBill)}
+                                        className="flex flex-col items-center justify-center gap-2 p-4 rounded-xl border border-border bg-card hover:bg-accent transition-all h-24"
+                                    >
+                                        <FileText size={24} className="text-foreground" />
+                                        <span className="font-medium text-sm">Print Invoice</span>
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            const bill = lastBill;
+                                            if (!bill) return;
+
+                                            let phone = bill.customer_phone;
+                                            if (!phone) {
+                                                setWhatsAppPhone('');
+                                                setWhatsAppModalOpen(true);
+                                                return;
+                                            }
+
+                                            // Generate PDF and send WhatsApp
+                                            exportService.generateBillInvoice(bill);
+                                            toast.success("Invoice PDF Generated. Please attach to WhatsApp.");
+
+                                            const customerName = bill.customer_name && bill.customer_name !== 'Walk-in Customer' ? bill.customer_name : 'Customer';
+                                            const message = `Thank you ${customerName}! Here is your bill ${bill.bill_no} for ₹${bill.total}. Visit us again!`;
+                                            whatsappService.sendMessage(phone, message);
+                                        }}
+                                        className="flex flex-col items-center justify-center gap-2 p-4 rounded-xl border border-border bg-card hover:bg-accent transition-all h-24"
+                                    >
+                                        <MessageSquare size={24} className="text-green-500" />
+                                        <span className="font-medium text-sm">WhatsApp Bill</span>
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            setBillNotes(lastBill?.notes || '');
+                                            setCommentModalOpen(true);
+                                        }}
+                                        className="flex flex-col items-center justify-center gap-2 p-4 rounded-xl border border-border bg-card hover:bg-accent transition-all h-24"
+                                    >
+                                        <Pencil size={24} className="text-foreground" />
+                                        <span className="font-medium text-sm">Add Notes</span>
+                                    </button>
+                                </div>
+
+                                <Button onClick={() => { clearCart(); setPaymentModalOpen(false); setPaymentStep('SELECT_MODE'); }} className="w-full h-14 text-lg font-bold">
+                                    New Sale (Done)
                                 </Button>
                             </div>
-                        </div>
-                    )}
-
-                    {paymentStep === 'RECEIPT_OPTIONS' && (
-                        <div className="space-y-6 animate-in fade-in slide-in-from-right-10 duration-200">
-                            <div className="text-center space-y-2">
-                                <div className="mx-auto w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-4">
-                                    <CheckCircle size={32} />
-                                </div>
-                                <h3 className="text-2xl font-bold text-foreground">Sale Completed!</h3>
-                                <p className="text-muted-foreground">Bill No: <span className="font-mono font-bold text-foreground">{lastBill?.bill_no}</span></p>
-                                <p className="text-sm text-muted-foreground">Change to Return: <span className="font-bold text-foreground">₹{(paidAmount - (lastBill?.total || 0)).toFixed(2)}</span></p>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4">
-                                <button
-                                    onClick={() => printerService.printReceipt(lastBill)}
-                                    className="flex flex-col items-center justify-center gap-2 p-4 rounded-xl border border-border bg-card hover:bg-accent transition-all h-24"
-                                >
-                                    <Printer size={24} className="text-foreground" />
-                                    <span className="font-medium text-sm">Print Receipt</span>
-                                </button>
-                                <button
-                                    onClick={() => exportService.generateBillInvoice(lastBill)}
-                                    className="flex flex-col items-center justify-center gap-2 p-4 rounded-xl border border-border bg-card hover:bg-accent transition-all h-24"
-                                >
-                                    <FileText size={24} className="text-foreground" />
-                                    <span className="font-medium text-sm">Print Invoice</span>
-                                </button>
-                                <button
-                                    onClick={() => {
-                                        const bill = lastBill;
-                                        if (!bill) return;
-
-                                        let phone = bill.customer_phone;
-                                        if (!phone) {
-                                            setWhatsAppPhone('');
-                                            setWhatsAppModalOpen(true);
-                                            return;
-                                        }
-
-                                        // Generate PDF and send WhatsApp
-                                        exportService.generateBillInvoice(bill);
-                                        toast.success("Invoice PDF Generated. Please attach to WhatsApp.");
-
-                                        const customerName = bill.customer_name && bill.customer_name !== 'Walk-in Customer' ? bill.customer_name : 'Customer';
-                                        const message = `Thank you ${customerName}! Here is your bill ${bill.bill_no} for ₹${bill.total}. Visit us again!`;
-                                        whatsappService.sendMessage(phone, message);
-                                    }}
-                                    className="flex flex-col items-center justify-center gap-2 p-4 rounded-xl border border-border bg-card hover:bg-accent transition-all h-24"
-                                >
-                                    <MessageSquare size={24} className="text-green-500" />
-                                    <span className="font-medium text-sm">WhatsApp Bill</span>
-                                </button>
-                                <button
-                                    onClick={() => {
-                                        setBillNotes(lastBill?.notes || '');
-                                        setCommentModalOpen(true);
-                                    }}
-                                    className="flex flex-col items-center justify-center gap-2 p-4 rounded-xl border border-border bg-card hover:bg-accent transition-all h-24"
-                                >
-                                    <Pencil size={24} className="text-foreground" />
-                                    <span className="font-medium text-sm">Add Notes</span>
-                                </button>
-                            </div>
-
-                            <Button onClick={() => { clearCart(); setPaymentModalOpen(false); setPaymentStep('SELECT_MODE'); }} className="w-full h-14 text-lg font-bold">
-                                New Sale (Done)
-                            </Button>
-                        </div>
-                    )}
-                </div>
-            </Modal>
+                        )
+                    }
+                </div >
+            </Modal >
 
             {/* Discount Modal */}
-            <Modal isOpen={discountModalOpen} onClose={() => setDiscountModalOpen(false)} title="Apply Discount">
+            < Modal isOpen={discountModalOpen} onClose={() => setDiscountModalOpen(false)} title="Apply Discount" >
                 <div className="space-y-4 pt-4">
                     <div>
                         <label className="block text-sm font-medium mb-1">Discount Amount (₹)</label>
@@ -1819,10 +1982,10 @@ export default function Home() {
                     </div>
                     <Button onClick={() => setDiscountModalOpen(false)} className="w-full">Apply Discount</Button>
                 </div>
-            </Modal>
+            </Modal >
 
             {/* Comment Modal */}
-            <Modal isOpen={commentModalOpen} onClose={() => setCommentModalOpen(false)} title="Add Bill Note">
+            < Modal isOpen={commentModalOpen} onClose={() => setCommentModalOpen(false)} title="Add Bill Note" >
                 <div className="space-y-4 pt-4">
                     <textarea
                         className="w-full p-3 border border-border rounded-lg h-32 bg-background text-foreground placeholder:text-muted-foreground"
@@ -1840,10 +2003,10 @@ export default function Home() {
                         setCommentModalOpen(false);
                     }} className="w-full">Save Note</Button>
                 </div>
-            </Modal>
+            </Modal >
 
             {/* Quantity Modal */}
-            <Modal isOpen={quantityModalOpen} onClose={() => setQuantityModalOpen(false)} title="Set Quantity">
+            < Modal isOpen={quantityModalOpen} onClose={() => setQuantityModalOpen(false)} title="Set Quantity" >
                 <div className="space-y-4 pt-4">
                     <div className="flex items-center gap-4">
                         <div className="flex-1">
@@ -1888,10 +2051,10 @@ export default function Home() {
                         Update Quantity
                     </Button>
                 </div>
-            </Modal>
+            </Modal >
 
             {/* WhatsApp Phone Modal */}
-            <Modal isOpen={whatsAppModalOpen} onClose={() => setWhatsAppModalOpen(false)} title="Enter WhatsApp Number">
+            < Modal isOpen={whatsAppModalOpen} onClose={() => setWhatsAppModalOpen(false)} title="Enter WhatsApp Number" >
                 <div className="space-y-4 pt-4">
                     <div>
                         <label className="block text-sm font-medium mb-1">Customer Phone Number</label>
@@ -1938,10 +2101,10 @@ export default function Home() {
                     }} className="w-full mb-2">Open WhatsApp</Button>
                     <Button onClick={() => setWhatsAppModalOpen(false)} variant="secondary" className="w-full">Cancel</Button>
                 </div>
-            </Modal>
+            </Modal >
 
             {/* QR Code Modal */}
-            <Modal isOpen={qrModalOpen} onClose={() => setQrModalOpen(false)} title="Customer View ID">
+            < Modal isOpen={qrModalOpen} onClose={() => setQrModalOpen(false)} title="Customer View ID" >
                 <div className="flex flex-col items-center justify-center p-6 space-y-4">
                     <div className="p-4 bg-white rounded-xl shadow-lg border border-border">
                         <img
@@ -1958,10 +2121,10 @@ export default function Home() {
                     </div>
                     <Button onClick={() => setQrModalOpen(false)} className="w-full">Close</Button>
                 </div>
-            </Modal>
+            </Modal >
 
             {/* Customer Selection Modal */}
-            <Modal isOpen={customerModalOpen} onClose={() => setCustomerModalOpen(false)} title="Select Customer">
+            < Modal isOpen={customerModalOpen} onClose={() => setCustomerModalOpen(false)} title="Select Customer" >
                 <div className="pt-4 flex flex-col h-[500px]">
                     <div className="flex gap-2 mb-4">
                         <div className="relative flex-1">
@@ -2018,10 +2181,10 @@ export default function Home() {
                         )}
                     </div>
                 </div>
-            </Modal>
+            </Modal >
 
             {/* Price Override Modal */}
-            <Modal
+            < Modal
                 isOpen={editingItemIndex !== null}
                 onClose={() => setEditingItemIndex(null)}
                 title="Override Price"
@@ -2072,7 +2235,9 @@ export default function Home() {
                         </Button>
                     </div>
                 </div>
-            </Modal>
+            </Modal >
+            {/* GST Reports Modal - Phase 5 */}
+
         </div >
     );
 }

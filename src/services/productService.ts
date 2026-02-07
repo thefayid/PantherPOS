@@ -1,5 +1,6 @@
 import type { Product } from '../types/db';
 import { databaseService } from './databaseService';
+import { inventoryService } from './inventoryService';
 
 const STORAGE_KEY = 'mock_products';
 
@@ -22,7 +23,13 @@ const saveMockProducts = (products: Product[]) => {
 
 export const productService = {
     getAll: async (): Promise<Product[]> => {
-        return await databaseService.query('SELECT * FROM products ORDER BY name ASC');
+        return await databaseService.query(`
+            SELECT p.*, 
+            CASE WHEN pb.id IS NOT NULL THEN 1 ELSE 0 END as is_bundle
+            FROM products p
+            LEFT JOIN (SELECT DISTINCT parent_product_id as id FROM product_bundles) pb ON p.id = pb.id
+            ORDER BY p.name ASC
+        `);
     },
 
     search: async (query: string): Promise<Product[]> => {
@@ -57,12 +64,41 @@ export const productService = {
         });
     },
 
-    create: async (product: Omit<Product, 'id'>): Promise<number> => {
-        const result = await databaseService.query(
-            `INSERT INTO products (name, barcode, cost_price, sell_price, stock, gst_rate, hsn_code, min_stock_level, image, variant_group_id, attributes)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [product.name, product.barcode, product.cost_price, product.sell_price, product.stock, product.gst_rate, product.hsn_code, product.min_stock_level || 5, product.image || null, product.variant_group_id || null, product.attributes || null]
+    // --- BUNDLES ---
+    getBundleComponents: async (parentId: number): Promise<{ product: Product, quantity: number }[]> => {
+        return await databaseService.query(
+            `SELECT p.*, pb.quantity 
+             FROM product_bundles pb
+             JOIN products p ON pb.child_product_id = p.id
+             WHERE pb.parent_product_id = ?`,
+            [parentId]
         );
+    },
+
+    saveBundleComponents: async (parentId: number, components: { id: number, quantity: number }[]) => {
+        // Clear existing
+        await databaseService.query('DELETE FROM product_bundles WHERE parent_product_id = ?', [parentId]);
+
+        // Insert new
+        for (const comp of components) {
+            await databaseService.query(
+                `INSERT INTO product_bundles (parent_product_id, child_product_id, quantity) VALUES (?, ?, ?)`,
+                [parentId, comp.id, comp.quantity]
+            );
+        }
+    },
+
+    create: async (product: Omit<Product, 'id'> & { components?: { id: number, quantity: number }[] }): Promise<number> => {
+        const result = await databaseService.query(
+            `INSERT INTO products (name, barcode, cost_price, sell_price, stock, gst_rate, hsn_code, min_stock_level, image, variant_group_id, attributes, is_batch_tracked)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [product.name, product.barcode, product.cost_price, product.sell_price, product.stock, product.gst_rate, product.hsn_code, product.min_stock_level || 5, product.image || null, product.variant_group_id || null, product.attributes || null, product.is_batch_tracked || 0]
+        );
+
+        if (product.components && product.components.length > 0) {
+            await productService.saveBundleComponents(result.lastInsertRowid, product.components);
+        }
+
         return result.changes;
     },
 
@@ -74,10 +110,6 @@ export const productService = {
                 // Check if barcode exists
                 const existing = await productService.getByBarcode(p.barcode);
                 if (existing) {
-                    // Start Update if exists? Or Skip?
-                    // For now, let's update stock and price if exists, or just skip.
-                    // Implementation Plan didn't specify, but "Import" usually implies "Add or Update".
-                    // Let's doing "Update if exists" logic for robust import.
                     await productService.update({ ...existing, ...p, id: existing.id });
                 } else {
                     await productService.create(p);
@@ -91,7 +123,88 @@ export const productService = {
         return { imported, failed };
     },
 
-    update: async (product: Product): Promise<number> => {
+
+    bulkUpdate: async (ids: number[], updates: Partial<Product>): Promise<number> => {
+        if (!ids.length) return 0;
+
+        const fields = Object.keys(updates).map(k => `${k} = ?`).join(', ');
+        const values = Object.values(updates);
+
+        // Construct standard SQL place holders (?,?,?)
+        const placeholders = ids.map(() => '?').join(',');
+
+        const sql = `UPDATE products SET ${fields} WHERE id IN (${placeholders})`;
+
+        // If stock is being updated, we should ideally log it. 
+        // For SET operation on stock, calculating delta is expensive for bulk (N queries or 1 IN query + map).
+        // Let's do it if 'stock' is in updates.
+        if ('stock' in updates) {
+            try {
+                // Fetch old data
+                const oldProducts = await databaseService.query(`SELECT id, stock FROM products WHERE id IN (${placeholders})`, ids);
+                const newStock = updates.stock as number;
+
+                for (const p of oldProducts) {
+                    const diff = newStock - p.stock;
+                    if (diff !== 0) {
+                        await inventoryService.addLog(p.id, 'ADJUSTMENT', diff, 'Bulk Editor Update');
+                    }
+                }
+            } catch (e) {
+                console.error('Failed to log bulk stock update', e);
+            }
+        }
+
+        const result = await databaseService.query(sql, [...values, ...ids]);
+        return result.changes;
+    },
+
+    // Advanced formula update (e.g. increase price by 10%)
+    bulkFormulaUpdate: async (ids: number[], field: 'sell_price' | 'cost_price' | 'stock', operation: 'ADD' | 'SUBTRACT' | 'MULTIPLY' | 'SET', value: number): Promise<number> => {
+        if (!ids.length) return 0;
+        const placeholders = ids.map(() => '?').join(',');
+
+        // Log inventory changes if stock is modified
+        if (field === 'stock') {
+            try {
+                if (operation === 'ADD') {
+                    // Easy, diff is +value
+                    for (const id of ids) await inventoryService.addLog(id, 'ADJUSTMENT', value, 'Bulk Formula (Add)');
+                } else if (operation === 'SUBTRACT') {
+                    // Easy, diff is -value
+                    for (const id of ids) await inventoryService.addLog(id, 'ADJUSTMENT', -value, 'Bulk Formula (Subtract)');
+                } else if (operation === 'SET') {
+                    // Harder, need delta. Re-use logic or fetch
+                    const oldProducts = await databaseService.query(`SELECT id, stock FROM products WHERE id IN (${placeholders})`, ids);
+                    for (const p of oldProducts) {
+                        const diff = value - p.stock;
+                        if (diff !== 0) await inventoryService.addLog(p.id, 'ADJUSTMENT', diff, 'Bulk Formula (Set)');
+                    }
+                } else if (operation === 'MULTIPLY') {
+                    // Need delta
+                    const oldProducts = await databaseService.query(`SELECT id, stock FROM products WHERE id IN (${placeholders})`, ids);
+                    for (const p of oldProducts) {
+                        const newQty = Math.round(p.stock * value); // float stock? usually int but schema says int.
+                        const diff = newQty - p.stock;
+                        if (diff !== 0) await inventoryService.addLog(p.id, 'ADJUSTMENT', diff, `Bulk Formula (Multiply ${value})`);
+                    }
+                }
+            } catch (e) { console.error('Error logging bulk formula stock', e); }
+        }
+
+        let sql = '';
+        if (operation === 'SET') {
+            sql = `UPDATE products SET ${field} = ? WHERE id IN (${placeholders})`;
+            return (await databaseService.query(sql, [value, ...ids])).changes;
+        } else {
+            const opMap = { 'ADD': '+', 'SUBTRACT': '-', 'MULTIPLY': '*' };
+            const op = opMap[operation];
+            sql = `UPDATE products SET ${field} = ${field} ${op} ? WHERE id IN (${placeholders})`;
+            return (await databaseService.query(sql, [value, ...ids])).changes;
+        }
+    },
+
+    update: async (product: Product & { components?: { id: number, quantity: number }[] }): Promise<number> => {
         if (!window.electronAPI) {
             const products = getMockProducts();
             const index = products.findIndex(p => p.id === product.id);
@@ -107,10 +220,15 @@ export const productService = {
         console.log(`Updating product: ${product.name}, Image Length: ${imgLen}`);
 
         const result = await databaseService.query(
-            `UPDATE products SET name=?, barcode=?, cost_price=?, sell_price=?, stock=?, gst_rate=?, hsn_code=?, min_stock_level=?, image=?, variant_group_id=?, attributes=?
+            `UPDATE products SET name=?, barcode=?, cost_price=?, sell_price=?, stock=?, gst_rate=?, hsn_code=?, min_stock_level=?, image=?, variant_group_id=?, attributes=?, is_batch_tracked=?
              WHERE id=?`,
-            [product.name, product.barcode, product.cost_price, product.sell_price, product.stock, product.gst_rate, product.hsn_code, product.min_stock_level || 5, product.image || null, product.variant_group_id || null, product.attributes || null, product.id]
+            [product.name, product.barcode, product.cost_price, product.sell_price, product.stock, product.gst_rate, product.hsn_code, product.min_stock_level || 5, product.image || null, product.variant_group_id || null, product.attributes || null, product.is_batch_tracked || 0, product.id]
         );
+
+        if (product.components) {
+            await productService.saveBundleComponents(product.id, product.components);
+        }
+
         return result.changes;
     },
 

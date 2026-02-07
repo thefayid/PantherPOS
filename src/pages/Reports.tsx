@@ -9,6 +9,7 @@ import {
     LayoutDashboard, Package, CreditCard, Banknote, Users, Tag, AlertTriangle,
     Truck, ClipboardList, ShieldAlert, History
 } from 'lucide-react';
+import { GSTReportModal } from '../components/GSTReportModal';
 
 type ReportType = 'DAILY' | 'HOURLY' | 'PAYMENTS' | 'PRODUCTS' | 'PROFIT' | 'GST' | 'HSN' | 'OUTSTANDING' | 'TOP_CUSTOMERS' | 'PURCHASE_PRODUCTS' | 'SUPPLIERS' | 'UNPAID_PURCHASE' | 'PURCHASE_INVOICES' | 'LOW_STOCK' | 'REORDER_LIST' | 'LOSS_DAMAGE' | 'TRANSACTIONS';
 
@@ -32,6 +33,7 @@ export default function Reports() {
     const [dateTo, setDateTo] = useState('');
     const componentRef = useRef<HTMLDivElement>(null);
     const didAutoSeed = useRef(false);
+    const [gstReportModalOpen, setGstReportModalOpen] = useState(false);
 
     const handlePrint = () => { window.print(); };
 
@@ -295,6 +297,13 @@ export default function Reports() {
                             <Printer size={20} />
                         </button>
 
+                        {/* GST Filing Button - Only show for GST report */}
+                        {activeReport === 'GST' && (
+                            <Button onClick={() => setGstReportModalOpen(true)} className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-glow">
+                                <FileText size={16} /> GSTR Filing
+                            </Button>
+                        )}
+
                         <div className="relative">
                             <Button onClick={() => setShowExportMenu(!showExportMenu)} className="flex items-center gap-2 bg-primary hover:brightness-110 text-primary-foreground px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-glow">
                                 <Download size={16} /> Finalize Export
@@ -352,6 +361,12 @@ export default function Reports() {
                     </div>
                 </div>
             </div>
+
+            <GSTReportModal
+                isOpen={gstReportModalOpen}
+                onClose={() => setGstReportModalOpen(false)}
+            />
+
             <style>{`
                 @media print {
                     @page { size: landscape; margin: 0.5cm; }

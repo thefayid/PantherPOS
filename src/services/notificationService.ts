@@ -63,6 +63,7 @@ export const notificationService = {
         }
     },
 
+<<<<<<< HEAD
     checkOverdueStocktake: async (days: number = 7) => {
         try {
             // Ensure we don't spam: if an unread overdue alert exists within last 24h, skip.
@@ -118,6 +119,46 @@ export const notificationService = {
             });
         } catch (e) {
             console.error('Cash variance notification failed', e);
+=======
+    checkExpiry: async () => {
+        try {
+            // Get batches expiring in next 30 days
+            const thirtyDaysFromNow = new Date();
+            thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
+            const dateStr = thirtyDaysFromNow.toISOString().split('T')[0];
+
+            const batches = await databaseService.query(`
+                SELECT pb.*, p.name as product_name 
+                FROM product_batches pb
+                JOIN products p ON pb.product_id = p.id
+                WHERE pb.quantity > 0 
+                AND pb.expiry_date <= ?
+                ORDER BY pb.expiry_date ASC
+            `, [dateStr]);
+
+            if (batches.length === 0) return;
+
+            if (batches.length > 5) {
+                await window.electronAPI.addNotification({
+                    type: 'SYSTEM',
+                    title: 'Batch Expiry Alert',
+                    message: `${batches.length} batches are expiring soon (within 30 days). Please check inventory.`
+                });
+            } else {
+                for (const batch of batches) {
+                    const daysLeft = Math.ceil((new Date(batch.expiry_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+                    const status = daysLeft < 0 ? 'EXPIRED' : `Expires in ${daysLeft} days`;
+
+                    await window.electronAPI.addNotification({
+                        type: 'SYSTEM',
+                        title: `Expiry Alert: ${batch.product_name}`,
+                        message: `Batch ${batch.batch_code} ${status} (${batch.expiry_date}). Qty: ${batch.quantity}`
+                    });
+                }
+            }
+        } catch (e) {
+            console.error('Expiry check failed', e);
+>>>>>>> c2439d0 (latest changes)
         }
     },
 

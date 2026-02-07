@@ -160,5 +160,70 @@ export const inventoryService = {
         );
         // Log
         await inventoryService.addLog(productId, 'SHRINKAGE', -qtyToReduce, reason, userId);
+    },
+
+    // Batch Management
+    getBatches: async (productId: number): Promise<any[]> => {
+        return await databaseService.query(
+            `SELECT * FROM product_batches WHERE product_id = ? AND quantity > 0 ORDER BY expiry_date ASC`,
+            [productId]
+        );
+    },
+
+    addBatchStock: async (productId: number, batchCode: string, expiryDate: string, quantity: number) => {
+        const createdAt = new Date().toISOString();
+
+        // 1. Add to product_batches
+        await databaseService.query(
+            `INSERT INTO product_batches (product_id, batch_code, expiry_date, quantity, created_at) VALUES (?, ?, ?, ?, ?)`,
+            [productId, batchCode, expiryDate, quantity, createdAt]
+        );
+
+        // 2. Update Total Product Stock
+        await databaseService.query(
+            `UPDATE products SET stock = stock + ? WHERE id = ?`,
+            [quantity, productId]
+        );
+
+        // 3. Log
+        await inventoryService.addLog(productId, 'RESTOCK', quantity, `Batch Add: ${batchCode} (Exp: ${expiryDate})`);
+    },
+
+    removeBatchStock: async (productId: number, quantityToRemove: number, reason: string, userId?: number) => {
+        // 1. Get batches sorted by expiry (FEFO)
+        // Note: we fetch ALL batches with +ve quantity, even if expired, because we must deduct from somewhere.
+        // Or should we start with expired ones? Yes, ORDER BY expiry_date ASC handles that.
+        const batches = await databaseService.query(
+            `SELECT * FROM product_batches WHERE product_id = ? AND quantity > 0 ORDER BY expiry_date ASC`,
+            [productId]
+        );
+
+        let remaining = quantityToRemove;
+
+        for (const batch of batches) {
+            if (remaining <= 0) break;
+
+            const deduct = Math.min(batch.quantity, remaining);
+
+            // Update batch
+            await databaseService.query(
+                `UPDATE product_batches SET quantity = quantity - ? WHERE id = ?`,
+                [deduct, batch.id]
+            );
+            remaining -= deduct;
+        }
+
+        // If remaining > 0, it means we ran out of batch stock but still need to deduct.
+        // This implies total stock metadata was out of sync with batches, or we allow negative stock.
+        // For now, we just proceed to update the master stock to keep it consistent.
+
+        // 2. Update Master Stock
+        await databaseService.query(
+            `UPDATE products SET stock = stock - ? WHERE id = ?`,
+            [quantityToRemove, productId]
+        );
+
+        // 3. Log
+        await inventoryService.addLog(productId, 'SALE', -quantityToRemove, reason, userId);
     }
 };

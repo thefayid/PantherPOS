@@ -7,7 +7,7 @@ export default defineConfig({
   base: process.env.VITE_DEV_SERVER_URL ? '/' : './',
   server: {
     host: true,
-    port: 5173,
+    port: 5174,
     strictPort: true,
     hmr: {
       overlay: true,

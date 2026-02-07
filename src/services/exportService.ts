@@ -222,6 +222,54 @@ export const exportService = {
         }
     },
 
+    /**
+     * Export multiple sheets to a single Excel file (Useful for GSTR-1)
+     */
+    exportToExcelMultiSheet: async (filename: string, sheets: { name: string, data: any[] }[]) => {
+        if (!sheets || sheets.length === 0) return;
+
+        const workbook = XLSX.utils.book_new();
+
+        sheets.forEach(sheet => {
+            if (sheet.data && sheet.data.length > 0) {
+                const worksheet = XLSX.utils.json_to_sheet(sheet.data);
+                XLSX.utils.book_append_sheet(workbook, worksheet, sheet.name);
+            }
+        });
+
+        const buffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+
+        if (window.electronAPI) {
+            try {
+                const res: any = await window.electronAPI.saveFile(filename, buffer);
+                if (res.success) {
+                    console.log(`[exportService] Saved to ${res.path}`);
+                    return true;
+                } else if (!res.canceled) {
+                    console.error('[exportService] Save failed', res.error);
+                    throw new Error(res.error);
+                }
+                return false;
+            } catch (err: any) {
+                console.error('[exportService] Save failed', err);
+                throw err;
+            }
+        } else {
+            const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+            const link = document.createElement("a");
+            if (link.download !== undefined) {
+                const url = URL.createObjectURL(blob);
+                link.setAttribute("href", url);
+                link.setAttribute("download", filename);
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
+            return Promise.resolve(true);
+        }
+    },
+
     exportToPdf: (filename: string, title: string, data: any[]) => {
         if (!data || data.length === 0) return;
 
