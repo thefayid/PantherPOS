@@ -28,6 +28,7 @@ import {
 import { useState, useEffect } from 'react';
 import { databaseService } from '../services/databaseService';
 import { platformService } from '../services/platformService';
+import { permissionsService } from '../services/permissionsService';
 import { useKeyboard } from '../hooks/useKeyboard';
 import { useUI } from '../context/UIContext';
 import { cn } from '../utils/cn';
@@ -85,6 +86,11 @@ export default function Sidebar({ user, onLogout, isOpen = false, onClose }: Sid
         { icon: LogOut, label: 'End of Day', path: '/end-of-day' },
     ];
 
+    const permittedMenuItems = menuItems.filter((item) => {
+        const minRole = permissionsService.minRoleForPath(item.path);
+        return permissionsService.roleAtLeast(user?.role, minRole);
+    });
+
     // Keyboard shortcuts for sidebar tabs starting from the letter "q"
     const shortcutKeys = [
         'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p',
@@ -92,7 +98,7 @@ export default function Sidebar({ user, onLogout, isOpen = false, onClose }: Sid
         'x', 'c', 'v', 'b', 'n', 'm',
     ];
 
-    const menuItemsWithShortcuts = menuItems.map((item, index) => ({
+    const menuItemsWithShortcuts = permittedMenuItems.map((item, index) => ({
         ...item,
         shortcut: shortcutKeys[index],
     }));

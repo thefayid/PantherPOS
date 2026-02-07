@@ -4,6 +4,8 @@ import type { CashDrawerSession, CashTransaction, User } from '../types/db';
 import { Button } from '../components/Button';
 import { Modal } from '../components/Modal';
 import { Banknote, ArrowDownCircle, ArrowUpCircle, Lock, History } from 'lucide-react';
+import { permissionsService } from '../services/permissionsService';
+import { ManagerPinModal } from '../components/ManagerPinModal';
 
 interface CashManagementProps {
     user: User;
@@ -19,6 +21,8 @@ export default function CashManagement({ user }: CashManagementProps) {
     const [reason, setReason] = useState('');
     const [isCloseModalOpen, setIsCloseModalOpen] = useState(false);
     const [closeAmount, setCloseAmount] = useState('');
+    const [expectedCash, setExpectedCash] = useState<number>(0);
+    const [isManagerPinOpen, setIsManagerPinOpen] = useState(false);
 
     useEffect(() => { loadSessionData(); }, []);
 
@@ -28,7 +32,9 @@ export default function CashManagement({ user }: CashManagementProps) {
             const session = await cashService.getCurrentSession();
             setCurrentSession(session);
             if (session) {
-                setTransactions(await cashService.getTransactions(session.id));
+                const tx = await cashService.getTransactions(session.id);
+                setTransactions(tx);
+                setExpectedCash(await cashService.getExpectedCash(session.id));
             }
         } catch (error) {
             console.error(error);
@@ -65,6 +71,14 @@ export default function CashManagement({ user }: CashManagementProps) {
             console.error(error);
             alert('Failed to close shift');
         }
+    };
+
+    const requestCloseRegister = () => {
+        if (permissionsService.can('CLOSE_REGISTER', user)) {
+            setIsCloseModalOpen(true);
+            return;
+        }
+        setIsManagerPinOpen(true);
     };
 
     if (loading) {
@@ -132,12 +146,9 @@ export default function CashManagement({ user }: CashManagementProps) {
         );
     }
 
-    const currentBalance = currentSession.start_cash + transactions.reduce((acc, tx) => {
-        if (tx.type === 'DROP' || tx.type === 'PAYOUT' || tx.type === 'CLOSING' || tx.type === 'REFUND') return acc - tx.amount;
-        if (tx.type === 'SALE') return acc + tx.amount;
-        if (tx.type === 'OPENING') return acc;
-        return acc;
-    }, 0);
+    // Expected cash = opening float + signed movements (CLOSING is informational)
+    const currentBalance = expectedCash;
+    const variance = closeAmount ? (parseFloat(closeAmount) - currentBalance) : 0;
 
     return (
         <div className="h-full flex flex-col bg-background text-foreground p-6 overflow-hidden">
@@ -152,7 +163,7 @@ export default function CashManagement({ user }: CashManagementProps) {
                     </div>
                 </div>
                 <button
-                    onClick={() => setIsCloseModalOpen(true)}
+                    onClick={requestCloseRegister}
                     className="flex items-center gap-2 bg-destructive text-white px-6 py-3 rounded-xl shadow-glow hover:bg-destructive-hover font-bold transition-all border-none"
                 >
                     <Lock size={18} /> Close Register
@@ -213,6 +224,7 @@ export default function CashManagement({ user }: CashManagementProps) {
                                     <td className="p-4 text-muted-foreground font-mono text-sm">{new Date(tx.time).toLocaleTimeString()}</td>
                                     <td className="p-4">
                                         <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${tx.type === 'OPENING' ? 'bg-blue-500/10 text-blue-500 border-blue-500/20' :
+                                            tx.type === 'PAYIN' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' :
                                             tx.type === 'DROP' ? 'bg-orange-500/10 text-orange-500 border-orange-500/20' :
                                                 tx.type === 'SALE' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' :
                                                     'bg-red-500/10 text-red-500 border-red-500/20'
@@ -221,9 +233,13 @@ export default function CashManagement({ user }: CashManagementProps) {
                                         </span>
                                     </td>
                                     <td className="p-4 font-bold text-foreground">{tx.reason || '-'}</td>
-                                    <td className={`p-4 text-right font-black ${tx.type === 'SALE' || tx.type === 'OPENING' || tx.type === 'DROP' ? 'text-emerald-500' : 'text-destructive'
-                                        }`}>
-                                        {tx.type === 'SALE' || tx.type === 'OPENING' || tx.type === 'DROP' ? '+' : '-'}₹{tx.amount.toFixed(2)}
+                                    <td className={`p-4 text-right font-black ${
+                                        (tx.type === 'SALE' || tx.type === 'OPENING' || tx.type === 'PAYIN')
+                                            ? 'text-emerald-500'
+                                            : (tx.type === 'CLOSING' ? 'text-muted-foreground' : 'text-destructive')
+                                    }`}>
+                                        {(tx.type === 'SALE' || tx.type === 'OPENING' || tx.type === 'PAYIN') ? '+' : (tx.type === 'CLOSING' ? '' : '-') }
+                                        ₹{tx.amount.toFixed(2)}
                                     </td>
                                 </tr>
                             ))}
@@ -278,7 +294,7 @@ export default function CashManagement({ user }: CashManagementProps) {
                     <div className="flex flex-col gap-2">
                         <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest flex justify-between ml-1">
                             <span>Closing Cash Count</span>
-                            <span className="text-emerald-500">Calculated: ₹{currentBalance.toFixed(2)}</span>
+                            <span className="text-emerald-500">Expected: ₹{currentBalance.toFixed(2)}</span>
                         </label>
                         <input
                             type="number"
@@ -289,12 +305,35 @@ export default function CashManagement({ user }: CashManagementProps) {
                             placeholder="0.00"
                         />
                     </div>
+                    {closeAmount !== '' && (
+                        <div className={`p-4 rounded-xl border text-sm font-bold text-center uppercase tracking-widest ${
+                            Math.abs(variance) < 0.01
+                                ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500'
+                                : 'bg-orange-500/10 border-orange-500/20 text-orange-500'
+                        }`}>
+                            Variance: ₹{variance.toFixed(2)}
+                        </div>
+                    )}
                     <div className="flex gap-3 justify-end pt-4 border-t border-border mt-2">
                         <Button variant="ghost" onClick={() => setIsCloseModalOpen(false)} className="flex-1">Cancel</Button>
                         <Button onClick={handleCloseShift} className="flex-1 bg-destructive hover:bg-destructive-hover text-white shadow-glow">Close Shift</Button>
                     </div>
                 </div>
             </Modal>
+
+            <ManagerPinModal
+                isOpen={isManagerPinOpen}
+                onClose={() => setIsManagerPinOpen(false)}
+                minRole={permissionsService.getOverrideMinRole('CLOSE_REGISTER')}
+                title="Manager Approval Required"
+                description="Closing the register requires Manager authorization."
+                auditAction="MANAGER_OVERRIDE"
+                auditDetails={{ action: 'CLOSE_REGISTER', page: 'CashManagement', sessionId: currentSession?.id }}
+                onApproved={() => {
+                    setIsManagerPinOpen(false);
+                    setIsCloseModalOpen(true);
+                }}
+            />
         </div>
     );
 }

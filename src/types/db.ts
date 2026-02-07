@@ -171,15 +171,18 @@ export interface CashDrawerSession {
     end_time?: string;
     start_cash: number;
     end_cash?: number;
+    expected_cash?: number;
+    variance?: number;
     status: 'OPEN' | 'CLOSED';
 }
 
 export interface CashTransaction {
     id: number;
     session_id: number;
-    type: 'OPENING' | 'DROP' | 'PAYOUT' | 'CLOSING' | 'SALE' | 'REFUND';
+    type: 'OPENING' | 'PAYIN' | 'DROP' | 'PAYOUT' | 'CLOSING' | 'SALE' | 'REFUND';
     amount: number;
     reason: string;
+    meta_json?: string;
     time: string;
 }
 

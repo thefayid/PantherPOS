@@ -8,6 +8,18 @@ export interface AuditLogEntry {
     timestamp: string;
 }
 
+export type AuditSeverity = 'INFO' | 'WARN' | 'ERROR' | 'CRITICAL';
+
+export interface AuditChangePayload {
+    entity: string;
+    entityId?: string | number;
+    before?: any;
+    after?: any;
+    severity?: AuditSeverity;
+    message?: string;
+    meta?: any;
+}
+
 export const auditService = {
     log: async (action: string, details: any = {}) => {
         try {
@@ -28,6 +40,23 @@ export const auditService = {
         } catch (e) {
             console.error('Failed to write audit log', e);
         }
+    },
+
+    /**
+     * Helper for recording before/after changes in a consistent shape.
+     * These details remain a string in the DB, but the UI can parse JSON.
+     */
+    logChange: async (action: string, payload: AuditChangePayload) => {
+        return await auditService.log(action, {
+            kind: 'CHANGE',
+            severity: payload.severity || 'INFO',
+            entity: payload.entity,
+            entityId: payload.entityId ?? null,
+            message: payload.message || null,
+            before: payload.before ?? null,
+            after: payload.after ?? null,
+            meta: payload.meta ?? null,
+        });
     },
 
     getLogs: async (limit: number = 100): Promise<AuditLogEntry[]> => {

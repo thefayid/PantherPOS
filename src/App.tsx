@@ -148,6 +148,7 @@ function App() {
         // Keep stock checks async and non-blocking.
         setTimeout(() => {
           notificationService.checkStockLevels();
+          notificationService.checkOverdueStocktake(7);
         }, 1000);
 
         // Optional: load the large training corpus only when explicitly enabled.
@@ -281,7 +282,14 @@ function App() {
               <p className="text-mac-text-secondary font-bold">Please enter the opening cash balance for this register.</p>
               <div>
                 <label className="text-xs font-bold text-mac-text-secondary uppercase tracking-wider mb-1 block">Opening Balance</label>
-                <input type="number" value={openingBalance} onChange={(e) => setOpeningBalance(e.target.value)} className="mac-input w-full h-12 text-lg font-black" placeholder="0.00" autoFocus />
+                <input
+                  type="number"
+                  value={openingBalance}
+                  onChange={(e) => setOpeningBalance(e.target.value)}
+                  className="mac-input w-full h-12 text-lg font-black"
+                  placeholder="0.00"
+                  autoFocus
+                />
               </div>
               <div className="flex gap-3 mt-6">
                 <button className="mac-button-secondary flex-1" onClick={() => setIsShiftModalOpen(false)}>Skip / Start Later</button>

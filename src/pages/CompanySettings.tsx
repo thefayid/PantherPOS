@@ -1,8 +1,10 @@
-﻿import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Save, AlertTriangle, Building, Upload, Trash2, Plus, Ban, RotateCcw, HelpCircle } from 'lucide-react';
 import { Button } from '../components/Button';
 import { companyService } from '../services/companyService';
 import type { CompanySettings as CompanySettingsType, VoidReason } from '../types/db';
+import { permissionsService } from '../services/permissionsService';
+import { ManagerPinModal } from '../components/ManagerPinModal';
 
 const TABS = [
     { id: 'data', label: 'Company data' },
@@ -12,6 +14,8 @@ const TABS = [
 ];
 
 export default function CompanySettings() {
+    const currentUser = permissionsService.getCurrentUser();
+    const canManageCompany = permissionsService.can('MANAGE_COMPANY', currentUser);
     const [activeTab, setActiveTab] = useState('data');
     const [settings, setSettings] = useState<CompanySettingsType>({
         id: 1,
@@ -24,6 +28,8 @@ export default function CompanySettings() {
     const [newVoidReason, setNewVoidReason] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const [isPinOpen, setIsPinOpen] = useState(false);
+    const [pendingAction, setPendingAction] = useState<null | (() => Promise<void> | void)>(null);
 
     useEffect(() => {
         loadData();
@@ -43,25 +49,41 @@ export default function CompanySettings() {
     };
 
     const handleSaveSettings = async () => {
-        try {
-            await companyService.saveSettings(settings);
-            alert('Settings saved successfully.');
-        } catch (error) {
-            alert('Failed to save settings.');
-        }
+        const run = async () => {
+            try {
+                await companyService.saveSettings(settings);
+                alert('Settings saved successfully.');
+            } catch (error) {
+                alert('Failed to save settings.');
+            }
+        };
+
+        if (canManageCompany) return run();
+        setPendingAction(() => run);
+        setIsPinOpen(true);
     };
 
     const handleAddVoidReason = async () => {
         if (!newVoidReason.trim()) return;
-        await companyService.addVoidReason(newVoidReason);
-        setNewVoidReason('');
-        loadData();
+        const run = async () => {
+            await companyService.addVoidReason(newVoidReason);
+            setNewVoidReason('');
+            loadData();
+        };
+        if (canManageCompany) return run();
+        setPendingAction(() => run);
+        setIsPinOpen(true);
     };
 
     const handleDeleteVoidReason = async (id: number) => {
         if (!confirm('Delete this reason?')) return;
-        await companyService.deleteVoidReason(id);
-        loadData();
+        const run = async () => {
+            await companyService.deleteVoidReason(id);
+            loadData();
+        };
+        if (canManageCompany) return run();
+        setPendingAction(() => run);
+        setIsPinOpen(true);
     };
 
     const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -80,8 +102,13 @@ export default function CompanySettings() {
         if (!confirm1) return;
         const confirm2 = confirm('Final Warning: This action cannot be undone. All data will be wiped.');
         if (confirm2) {
-            await companyService.resetDatabase();
-            alert('Database reset complete. Please restart the application.');
+            const run = async () => {
+                await companyService.resetDatabase();
+                alert('Database reset complete. Please restart the application.');
+            };
+            if (canManageCompany) return run();
+            setPendingAction(() => run);
+            setIsPinOpen(true);
         }
     };
 
@@ -268,6 +295,11 @@ export default function CompanySettings() {
                                         <Plus size={14} className="mr-2" /> Add Reason
                                     </Button>
                                 </div>
+                                {!canManageCompany && (
+                                    <div className="text-[10px] font-black text-orange-500 uppercase tracking-widest">
+                                        Admin approval required to modify void reasons.
+                                    </div>
+                                )}
                                 <div className="space-y-2 mt-4">
                                     {(voidReasons || []).map(vr => (
                                         <div key={vr.id} className="flex items-center justify-between p-4 bg-muted/20 border border-border rounded-xl hover:bg-muted/40 hover:border-primary/30 transition-all group">
@@ -351,6 +383,11 @@ export default function CompanySettings() {
                                         <RotateCcw size={16} className="mr-2" />
                                         Confirm Permanent Wipe
                                     </Button>
+                                    {!canManageCompany && (
+                                        <div className="text-[10px] font-black text-orange-500 uppercase tracking-widest">
+                                            Admin approval required to reset database.
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         )}
@@ -358,6 +395,27 @@ export default function CompanySettings() {
                     </div>
                 </div>
             </div>
+
+            <ManagerPinModal
+                isOpen={isPinOpen}
+                onClose={() => { setIsPinOpen(false); setPendingAction(null); }}
+                minRole={permissionsService.getOverrideMinRole('MANAGE_COMPANY')}
+                title="Admin Approval Required"
+                description="This action requires Admin authorization."
+                auditAction="MANAGER_OVERRIDE"
+                auditDetails={{ action: 'MANAGE_COMPANY', page: 'CompanySettings', tab: activeTab }}
+                onApproved={async () => {
+                    const action = pendingAction;
+                    setIsPinOpen(false);
+                    setPendingAction(null);
+                    try {
+                        await action?.();
+                    } catch (e) {
+                        console.error(e);
+                        alert('Action failed.');
+                    }
+                }}
+            />
         </div>
     );
 }

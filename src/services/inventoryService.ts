@@ -30,6 +30,10 @@ export const inventoryService = {
 
     // Stocktaking Sessions
     startStocktake: async (notes?: string): Promise<number> => {
+        // Enforce single active session (register-grade behavior)
+        const active = await inventoryService.getActiveSession();
+        if (active) return active.id;
+
         const createdAt = new Date().toISOString();
         const result = await databaseService.query(
             `INSERT INTO stocktake_sessions (created_at, status, notes) VALUES (?, 'IN_PROGRESS', ?)`,
@@ -44,6 +48,32 @@ export const inventoryService = {
     getActiveSession: async (): Promise<StocktakeSession | null> => {
         const rows = await databaseService.query(`SELECT * FROM stocktake_sessions WHERE status = 'IN_PROGRESS' LIMIT 1`);
         return rows[0] || null;
+    },
+
+    getSessionById: async (sessionId: number): Promise<StocktakeSession | null> => {
+        const rows = await databaseService.query(`SELECT * FROM stocktake_sessions WHERE id = ?`, [sessionId]);
+        return rows[0] || null;
+    },
+
+    listSessions: async (limit: number = 20): Promise<(StocktakeSession & { item_count: number })[]> => {
+        return await databaseService.query(
+            `
+            SELECT 
+              s.*,
+              (SELECT COUNT(*) FROM stocktake_items si WHERE si.session_id = s.id) as item_count
+            FROM stocktake_sessions s
+            ORDER BY s.id DESC
+            LIMIT ?
+            `,
+            [limit]
+        );
+    },
+
+    cancelStocktake: async (sessionId: number, notes?: string) => {
+        await databaseService.query(
+            `UPDATE stocktake_sessions SET status = 'CANCELLED', notes = COALESCE(notes, '') || ? WHERE id = ? AND status = 'IN_PROGRESS'`,
+            [notes ? `\n[CANCELLED] ${notes}` : `\n[CANCELLED]`, sessionId]
+        );
     },
 
     saveCount: async (sessionId: number, productId: number, countedQty: number) => {
@@ -87,6 +117,11 @@ export const inventoryService = {
 
     finalizeStocktake: async (sessionId: number) => {
         const finalizedAt = new Date().toISOString();
+
+        // Only allow finalize from IN_PROGRESS
+        const sess = await databaseService.query(`SELECT status FROM stocktake_sessions WHERE id = ?`, [sessionId]);
+        if (!sess?.length) throw new Error('Session not found');
+        if (sess[0].status !== 'IN_PROGRESS') throw new Error(`Session is not active (${sess[0].status})`);
 
         // 1. Get all items in the session
         const items = await databaseService.query(`SELECT * FROM stocktake_items WHERE session_id = ?`, [sessionId]);

@@ -1,12 +1,14 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { productService } from '../services/productService';
 import type { Product } from '../types/db';
-import { Search, Printer, Trash2, Grid, Plus, Minus, Barcode, Settings2 } from 'lucide-react';
+import { Search, Printer, Trash2, Grid, Plus, Minus, Barcode, Settings2, ScanBarcode, RotateCcw } from 'lucide-react';
 import { BarcodeLabel } from '../components/BarcodeLabel';
 import { useReactToPrint } from 'react-to-print';
 import LabelDesigner, { type LabelConfig } from '../components/LabelDesigner';
+import { QuickAddProductModal } from '../components/QuickAddProductModal';
 
 export default function Barcodes() {
+    const STORAGE_KEY = 'barcodes_last_state_v1';
     const [products, setProducts] = useState<Product[]>([]);
     const [search, setSearch] = useState('');
     const [queue, setQueue] = useState<{ product: Product, qty: number }[]>([]);
@@ -21,14 +23,50 @@ export default function Barcodes() {
         barcodeType: '1D'
     });
     const [designerOpen, setDesignerOpen] = useState(false);
+    const [scanValue, setScanValue] = useState('');
+    const scanRef = useRef<HTMLInputElement>(null);
+    const [createOpen, setCreateOpen] = useState(false);
+    const [pendingBarcode, setPendingBarcode] = useState<string>('');
     const componentRef = useRef<HTMLDivElement>(null);
     const handlePrint = useReactToPrint({
         contentRef: componentRef,
     });
 
-    useEffect(() => { loadProducts(); }, []);
+    const restoreFromStorage = (allProducts: Product[]) => {
+        try {
+            const raw = localStorage.getItem(STORAGE_KEY);
+            if (!raw) return;
+            const parsed = JSON.parse(raw);
+            if (parsed?.config) {
+                setConfig((prev) => ({ ...prev, ...parsed.config }));
+            }
+            if (Array.isArray(parsed?.queue)) {
+                const restored = parsed.queue
+                    .map((q: any) => {
+                        const p = allProducts.find(x => x.id === q.productId);
+                        if (!p) return null;
+                        const qty = Math.max(1, Number(q.qty) || 1);
+                        return { product: p, qty };
+                    })
+                    .filter(Boolean) as { product: Product; qty: number }[];
+                if (restored.length) setQueue(restored);
+            }
+        } catch {
+            // ignore
+        }
+    };
 
-    const loadProducts = async () => { setProducts(await productService.getAll()); };
+    useEffect(() => { loadProducts(true); }, []);
+    useEffect(() => {
+        // Prefer scan-first workflow.
+        setTimeout(() => scanRef.current?.focus(), 100);
+    }, []);
+
+    const loadProducts = async (restore: boolean = false) => {
+        const all = await productService.getAll();
+        setProducts(all);
+        if (restore) restoreFromStorage(all);
+    };
 
     const addToQueue = (product: Product) => {
         setQueue(prev => {
@@ -41,7 +79,46 @@ export default function Barcodes() {
     const removeFromQueue = (id: number) => { setQueue(prev => prev.filter(i => i.product.id !== id)); };
     const updateQty = (id: number, newQty: number) => { if (newQty < 1) return; setQueue(prev => prev.map(i => i.product.id === id ? { ...i, qty: newQty } : i)); };
 
-    const filteredProducts = products.filter(p => p.name.toLowerCase().includes(search.toLowerCase()) || p.barcode.includes(search)).slice(0, 20);
+    const filteredProducts = useMemo(() => {
+        const q = search.trim().toLowerCase();
+        return products
+            .filter(p => p.name.toLowerCase().includes(q) || p.barcode.includes(search))
+            .slice(0, 20);
+    }, [products, search]);
+
+    const persistState = () => {
+        try {
+            const payload = {
+                config,
+                queue: queue.map(i => ({ productId: i.product.id, qty: i.qty })),
+                updatedAt: new Date().toISOString(),
+            };
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+        } catch {
+            // ignore
+        }
+    };
+
+    useEffect(() => {
+        persistState();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [queue, config]);
+
+    const processScan = async () => {
+        const code = scanValue.trim();
+        if (!code) return;
+
+        const product = await productService.getByBarcode(code);
+        if (product) {
+            addToQueue(product);
+            setScanValue('');
+            requestAnimationFrame(() => scanRef.current?.focus());
+            return;
+        }
+
+        setPendingBarcode(code);
+        setCreateOpen(true);
+    };
 
     return (
         <div className="h-full flex gap-6 bg-background text-foreground p-6 overflow-hidden">
@@ -51,13 +128,29 @@ export default function Barcodes() {
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight mb-2">Label Printer</h1>
                     <div className="flex items-center gap-4">
+                        <div className="relative w-[280px]">
+                            <ScanBarcode className="absolute left-4 top-1/2 -translate-y-1/2 text-primary" size={20} />
+                            <input
+                                ref={scanRef}
+                                className="w-full bg-surface border border-primary/20 rounded-xl pl-12 pr-4 py-4 text-foreground focus:border-primary/60 focus:outline-none focus:ring-1 focus:ring-primary/30 transition-all shadow-lg placeholder:text-muted-foreground/50 font-mono"
+                                placeholder="Scan barcode..."
+                                value={scanValue}
+                                onChange={(e) => setScanValue(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                        e.preventDefault();
+                                        processScan();
+                                    }
+                                }}
+                                autoFocus
+                            />
+                        </div>
                         <div className="relative flex-1 group">
                             <input
                                 className="w-full bg-surface border border-border rounded-xl pl-12 pr-4 py-4 text-foreground focus:border-primary/50 focus:outline-none focus:ring-1 focus:ring-primary/50 transition-all shadow-lg placeholder:text-muted-foreground/50"
                                 placeholder="Search products..."
                                 value={search}
                                 onChange={e => setSearch(e.target.value)}
-                                autoFocus
                             />
                             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors" size={20} />
                         </div>
@@ -69,11 +162,33 @@ export default function Barcodes() {
                             <Settings2 size={20} />
                             <span className="hidden lg:inline">Design Labels</span>
                         </button>
+                        <button
+                            onClick={() => {
+                                localStorage.removeItem(STORAGE_KEY);
+                                setQueue([]);
+                                setConfig({
+                                    width: 200,
+                                    height: 120,
+                                    fontSize: 12,
+                                    showName: true,
+                                    showPrice: true,
+                                    columns: 4,
+                                    gap: 16,
+                                    barcodeType: '1D'
+                                });
+                                requestAnimationFrame(() => scanRef.current?.focus());
+                            }}
+                            className="p-4 rounded-xl border bg-surface border-border text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-all flex items-center gap-2 font-bold"
+                            title="Reset queue & design"
+                        >
+                            <RotateCcw size={20} />
+                            <span className="hidden xl:inline">Reset</span>
+                        </button>
                     </div>
                 </div>
 
                 {/* Products Grid */}
-                <div className="flex-1 overflow-y-auto bg-surface rounded-xl border border-border shadow-inner p-4 custom-scrollbar bg-muted/5">
+                <div className="flex-1 overflow-y-auto bg-surface rounded-xl border border-border shadow-inner p-4 custom-scrollbar">
                     <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                         {filteredProducts.map(p => (
                             <button
@@ -211,6 +326,28 @@ export default function Barcodes() {
                     </div>
                 </div>
             </div>
+
+            <QuickAddProductModal
+                isOpen={createOpen}
+                onClose={() => {
+                    setCreateOpen(false);
+                    setPendingBarcode('');
+                    setScanValue('');
+                    requestAnimationFrame(() => scanRef.current?.focus());
+                }}
+                initialData={{ barcode: pendingBarcode }}
+                onSuccess={async () => {
+                    await loadProducts(false);
+                    if (pendingBarcode) {
+                        const created = await productService.getByBarcode(pendingBarcode);
+                        if (created) addToQueue(created);
+                    }
+                    setCreateOpen(false);
+                    setPendingBarcode('');
+                    setScanValue('');
+                    requestAnimationFrame(() => scanRef.current?.focus());
+                }}
+            />
         </div>
     );
 }

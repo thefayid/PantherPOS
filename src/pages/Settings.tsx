@@ -4,15 +4,22 @@ import { databaseService } from '../services/databaseService';
 import { dbStorage } from '../services/dbStorage';
 import { eventBus } from '../utils/EventBus';
 import { syncService } from '../services/syncService';
-import { Receipt, Database, Percent, Trash2, Plus, Printer, Store, Check, AlertCircle, RefreshCw } from 'lucide-react';
+import { Receipt, Database, Percent, Trash2, Plus, Printer, Store, Check, AlertCircle, RefreshCw, Lock } from 'lucide-react';
 import { Button } from '../components/Button';
 import { Modal } from '../components/Modal';
 import { useUI } from '../context/UIContext';
 import { Smartphone, Monitor } from 'lucide-react';
 import { cn } from '../utils/cn';
+import { permissionsService } from '../services/permissionsService';
+import { ManagerPinModal } from '../components/ManagerPinModal';
 
 export default function Settings() {
     const { isTouchMode, setTouchMode } = useUI();
+    const currentUser = permissionsService.getCurrentUser();
+    const canManageSettings = permissionsService.can('MANAGE_SETTINGS', currentUser);
+    const [overrideGranted, setOverrideGranted] = useState(false);
+    const [isPinOpen, setIsPinOpen] = useState(false);
+
     const [settings, setSettings] = useState<AppSettings | null>(null);
     const [activeTab, setActiveTab] = useState<'GENERAL' | 'TAXES' | 'RECEIPT' | 'DATA'>('GENERAL');
     const [taxRates, setTaxRates] = useState<any[]>([]);
@@ -24,14 +31,18 @@ export default function Settings() {
     const loadSettings = async () => { setSettings(await settingsService.getSettings()); };
     const loadTaxRates = async () => { setTaxRates(await settingsService.getTaxRates()); };
 
+    const canEdit = canManageSettings || overrideGranted;
+
     const handleSaveSetting = async (key: keyof AppSettings, value: any) => {
         if (!settings) return;
+        if (!canEdit) return;
         setSettings({ ...settings, [key]: value });
         await settingsService.updateSetting(key, value);
     };
 
     const handleSaveTax = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (!canEdit) return;
         try {
             await settingsService.saveTaxRate(editingTax);
             setIsTaxModalOpen(false);
@@ -43,6 +54,7 @@ export default function Settings() {
     };
 
     const handleDeleteTax = async (id: number) => {
+        if (!canEdit) return;
         if (confirm('Delete this tax rate?')) {
             await settingsService.deleteTaxRate(id);
             loadTaxRates();
@@ -50,6 +62,10 @@ export default function Settings() {
     };
 
     const handleBackup = async () => {
+        if (!canEdit) {
+            setIsPinOpen(true);
+            return;
+        }
         try {
             const msg = await databaseService.createBackup();
             alert(msg);
@@ -74,6 +90,7 @@ export default function Settings() {
                 value={value || ''}
                 onChange={(e) => handleSaveSetting(field, type === 'number' ? parseFloat(e.target.value) : e.target.value)}
                 placeholder={placeholder}
+                disabled={!canEdit}
             />
         </div>
     );
@@ -84,6 +101,21 @@ export default function Settings() {
                 <h1 className="text-3xl font-black tracking-tight">Settings</h1>
                 <p className="text-muted-foreground font-medium">System Configuration & Preferences</p>
             </div>
+
+            {!canEdit && (
+                <div className="mb-4 p-4 rounded-2xl border border-orange-500/20 bg-orange-500/5 flex items-center justify-between gap-4">
+                    <div>
+                        <div className="text-[10px] font-black uppercase tracking-widest text-orange-500">Locked</div>
+                        <div className="text-sm font-bold text-foreground">Manager authorization required to edit settings.</div>
+                    </div>
+                    <Button
+                        className="bg-orange-500 hover:bg-orange-600 text-white border-none whitespace-nowrap"
+                        onClick={() => setIsPinOpen(true)}
+                    >
+                        <Lock size={16} className="mr-2" /> Unlock
+                    </Button>
+                </div>
+            )}
 
             <div className="flex flex-col lg:flex-row gap-6 h-full min-h-0">
                 {/* Sidebar Navigation */}
@@ -225,8 +257,19 @@ export default function Settings() {
                                     <p className="text-xs text-muted-foreground font-medium mt-1">Define regional tax rules and applicability</p>
                                 </div>
                                 <button
-                                    onClick={() => { setEditingTax({ name: '', rate: 0 }); setIsTaxModalOpen(true); }}
-                                    className="flex items-center gap-2 px-6 py-3 bg-primary hover:brightness-110 text-primary-foreground rounded-xl shadow-glow font-black text-[10px] uppercase tracking-widest transition-all"
+                                    onClick={() => {
+                                        if (!canEdit) {
+                                            setIsPinOpen(true);
+                                            return;
+                                        }
+                                        setEditingTax({ name: '', rate: 0 });
+                                        setIsTaxModalOpen(true);
+                                    }}
+                                    className={`flex items-center gap-2 px-6 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all ${canEdit
+                                        ? 'bg-primary hover:brightness-110 text-primary-foreground shadow-glow'
+                                        : 'bg-muted text-muted-foreground border border-border cursor-not-allowed'
+                                        }`}
+                                    disabled={!canEdit}
                                 >
                                     <Plus size={16} /> New Tax Rate
                                 </button>
@@ -256,8 +299,27 @@ export default function Settings() {
                                                 </td>
                                                 <td className="p-5 text-right">
                                                     <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                        <button onClick={() => { setEditingTax(r); setIsTaxModalOpen(true); }} className="p-2.5 hover:bg-primary/10 text-primary rounded-lg transition-colors"><Plus size={16} className="rotate-45" /></button>
-                                                        <button onClick={() => handleDeleteTax(r.id)} className="p-2.5 hover:bg-destructive/10 text-destructive rounded-lg transition-colors"><Trash2 size={16} /></button>
+                                                        <button
+                                                            onClick={() => {
+                                                                if (!canEdit) {
+                                                                    setIsPinOpen(true);
+                                                                    return;
+                                                                }
+                                                                setEditingTax(r);
+                                                                setIsTaxModalOpen(true);
+                                                            }}
+                                                            className={`p-2.5 rounded-lg transition-colors ${canEdit ? 'hover:bg-primary/10 text-primary' : 'text-muted-foreground cursor-not-allowed'}`}
+                                                            disabled={!canEdit}
+                                                        >
+                                                            <Plus size={16} className="rotate-45" />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleDeleteTax(r.id)}
+                                                            className={`p-2.5 rounded-lg transition-colors ${canEdit ? 'hover:bg-destructive/10 text-destructive' : 'text-muted-foreground cursor-not-allowed'}`}
+                                                            disabled={!canEdit}
+                                                        >
+                                                            <Trash2 size={16} />
+                                                        </button>
                                                     </div>
                                                 </td>
                                             </tr>
@@ -295,6 +357,7 @@ export default function Settings() {
                                     value={settings.invoice_footer || ''}
                                     onChange={(e) => handleSaveSetting('invoice_footer', e.target.value)}
                                     placeholder="e.g. Items purchased are non-refundable."
+                                    disabled={!canEdit}
                                 />
                             </div>
 
@@ -359,9 +422,14 @@ export default function Settings() {
                                                 placeholder="0.0.0.0"
                                                 defaultValue={syncService.getServerIp()}
                                                 onBlur={(e) => syncService.setServerIp(e.target.value)}
+                                                disabled={!canEdit}
                                             />
                                             <button
                                                 onClick={async (e) => {
+                                                    if (!canEdit) {
+                                                        setIsPinOpen(true);
+                                                        return;
+                                                    }
                                                     const btn = e.currentTarget;
                                                     const originalText = btn.innerText;
                                                     btn.disabled = true;
@@ -396,6 +464,10 @@ export default function Settings() {
                                 </div>
                                 <button
                                     onClick={async () => {
+                                        if (!canEdit) {
+                                            setIsPinOpen(true);
+                                            return;
+                                        }
                                         if (confirm('Critical: This will wipe ALL cached data on this terminal. Continue?')) {
                                             localStorage.removeItem('pos_db_web');
                                             await dbStorage.clear();
@@ -431,10 +503,24 @@ export default function Settings() {
                     </div>
                     <div className="flex gap-3 pt-4">
                         <Button type="button" variant="ghost" onClick={() => setIsTaxModalOpen(false)} className="flex-1 font-black uppercase tracking-widest text-[10px]">Cancel</Button>
-                        <Button type="submit" className="flex-1 bg-primary text-primary-foreground font-black uppercase tracking-widest text-[10px] shadow-glow">Commit Changes</Button>
+                        <Button type="submit" className="flex-1 bg-primary text-primary-foreground font-black uppercase tracking-widest text-[10px] shadow-glow" disabled={!canEdit}>Commit Changes</Button>
                     </div>
                 </form>
             </Modal>
+
+            <ManagerPinModal
+                isOpen={isPinOpen}
+                onClose={() => setIsPinOpen(false)}
+                minRole={permissionsService.getOverrideMinRole('MANAGE_SETTINGS')}
+                title="Manager Authorization"
+                description="Enter a Manager/Admin PIN to unlock Settings editing."
+                auditAction="MANAGER_OVERRIDE"
+                auditDetails={{ action: 'MANAGE_SETTINGS', page: 'Settings', tab: activeTab }}
+                onApproved={() => {
+                    setIsPinOpen(false);
+                    setOverrideGranted(true);
+                }}
+            />
         </div >
     );
 }

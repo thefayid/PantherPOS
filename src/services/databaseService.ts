@@ -212,6 +212,29 @@ CREATE TABLE IF NOT EXISTS inventory_logs (
     FOREIGN KEY(product_id) REFERENCES products(id)
 );
 
+-- Stocktake
+CREATE TABLE IF NOT EXISTS stocktake_sessions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    created_at TEXT NOT NULL,
+    status TEXT NOT NULL,
+    notes TEXT,
+    finalized_at TEXT
+);
+
+CREATE TABLE IF NOT EXISTS stocktake_items (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_id INTEGER NOT NULL,
+    product_id INTEGER NOT NULL,
+    system_stock REAL NOT NULL,
+    counted_stock REAL NOT NULL,
+    variance REAL NOT NULL,
+    FOREIGN KEY(session_id) REFERENCES stocktake_sessions(id),
+    FOREIGN KEY(product_id) REFERENCES products(id)
+);
+CREATE INDEX IF NOT EXISTS idx_stocktake_sessions_status ON stocktake_sessions(status);
+CREATE INDEX IF NOT EXISTS idx_stocktake_items_session_id ON stocktake_items(session_id);
+CREATE INDEX IF NOT EXISTS idx_stocktake_items_product_id ON stocktake_items(product_id);
+
 -- Cash Management
 CREATE TABLE IF NOT EXISTS cash_drawer_sessions (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -220,6 +243,8 @@ CREATE TABLE IF NOT EXISTS cash_drawer_sessions (
     end_time TEXT,
     start_cash REAL NOT NULL,
     end_cash REAL,
+    expected_cash REAL,
+    variance REAL,
     status TEXT NOT NULL,
     FOREIGN KEY(user_id) REFERENCES users(id)
 );
@@ -230,6 +255,7 @@ CREATE TABLE IF NOT EXISTS cash_transactions (
     type TEXT NOT NULL,
     amount REAL NOT NULL,
     reason TEXT,
+    meta_json TEXT,
     time TEXT NOT NULL,
     FOREIGN KEY(session_id) REFERENCES cash_drawer_sessions(id)
 );
@@ -414,7 +440,12 @@ export const databaseService = {
             "ALTER TABLE products ADD COLUMN attributes TEXT",
 
             // WhatsApp automation support
-            "ALTER TABLE company_settings ADD COLUMN owner_whatsapp TEXT"
+            "ALTER TABLE company_settings ADD COLUMN owner_whatsapp TEXT",
+
+            // Cash management enhancements
+            "ALTER TABLE cash_drawer_sessions ADD COLUMN expected_cash REAL",
+            "ALTER TABLE cash_drawer_sessions ADD COLUMN variance REAL",
+            "ALTER TABLE cash_transactions ADD COLUMN meta_json TEXT"
         ];
 
         for (const sql of migrationQueries) {
@@ -811,6 +842,214 @@ export const databaseService = {
                                  VALUES (?, ?, ?, ?, ?, ?)`,
                                 ct
                             );
+                        }
+
+                        // Extra demo data for empty modules (Tasks/Automation/Reasons/Chat)
+                        try {
+                            // Void Reasons (so void flow has selectable options)
+                            const voidReasonCount = dbInstance.exec("SELECT COUNT(*) FROM void_reasons")[0]?.values?.[0]?.[0] ?? 0;
+                            if (Number(voidReasonCount) === 0) {
+                                const reasons = [
+                                    "Customer changed mind",
+                                    "Wrong item scanned",
+                                    "Pricing mistake",
+                                    "Duplicate bill",
+                                    "Payment failed / canceled"
+                                ];
+                                for (const r of reasons) {
+                                    dbInstance.run("INSERT INTO void_reasons (reason) VALUES (?)", [r]);
+                                }
+                            }
+                        } catch (e) {
+                            // ignore (table may not exist in legacy DB)
+                        }
+
+                        try {
+                            // Promotions (so Promotions screen isn't empty)
+                            const promoCount = dbInstance.exec("SELECT COUNT(*) FROM promotions")[0]?.values?.[0]?.[0] ?? 0;
+                            if (Number(promoCount) === 0) {
+                                dbInstance.run(
+                                    `INSERT INTO promotions (name, type, code, discount_type, discount_value, min_cart_value, max_discount, start_date, end_date, active, description)
+                                     VALUES (?, 'COUPON', ?, 'PERCENT', ?, ?, ?, ?, ?, 1, ?)`,
+                                    [
+                                        "WELCOME10",
+                                        "WELCOME10",
+                                        10,
+                                        199,
+                                        100,
+                                        isoDaysAgo(30),
+                                        isoDaysAgo(-30), // 30 days in future
+                                        "10% off on bills above ₹199 (max ₹100)"
+                                    ]
+                                );
+                            }
+                        } catch (e) {
+                            // ignore
+                        }
+
+                        try {
+                            // Automation Rules (so triggers create visible outcomes)
+                            const autoCount = dbInstance.exec("SELECT COUNT(*) FROM automation_rules")[0]?.values?.[0]?.[0] ?? 0;
+                            if (Number(autoCount) === 0) {
+                                const rules = [
+                                    [
+                                        "Auto-Restock Task",
+                                        "LOW_STOCK",
+                                        "CREATE_TASK",
+                                        JSON.stringify({
+                                            titleTemplate: "Restock: {{name}}",
+                                            descriptionTemplate: "Stock level is low ({{stock}}). Reorder required. Barcode: {{barcode}}",
+                                            priority: "HIGH",
+                                            related_entity_type: "PRODUCT"
+                                        }),
+                                        1
+                                    ],
+                                    [
+                                        "WhatsApp Stock Alert",
+                                        "LOW_STOCK",
+                                        "SEND_WHATSAPP",
+                                        JSON.stringify({
+                                            messageTemplate: "Low Stock: {{name}} (Qty: {{stock}}). Barcode: {{barcode}}."
+                                        }),
+                                        1
+                                    ],
+                                    [
+                                        "New Sale Follow-up",
+                                        "NEW_SALE",
+                                        "CREATE_TASK",
+                                        JSON.stringify({
+                                            titleTemplate: "Review Sale: {{bill_no}}",
+                                            descriptionTemplate: "Check margins & tender split for bill {{bill_no}} (Total: {{total}}).",
+                                            priority: "MEDIUM",
+                                            related_entity_type: "BILL"
+                                        }),
+                                        1
+                                    ]
+                                ];
+                                for (const r of rules) {
+                                    dbInstance.run(
+                                        "INSERT INTO automation_rules (name, trigger_type, action_type, config_json, is_active) VALUES (?, ?, ?, ?, ?)",
+                                        r as any
+                                    );
+                                }
+                            }
+                        } catch (e) {
+                            // ignore
+                        }
+
+                        try {
+                            // Tasks + comments (so Task screen has initial content)
+                            const taskCount = dbInstance.exec("SELECT COUNT(*) FROM tasks")[0]?.values?.[0]?.[0] ?? 0;
+                            if (Number(taskCount) === 0) {
+                                const tasks = [
+                                    [
+                                        "Verify receipt printer",
+                                        "Print a test receipt and confirm alignment + logo.",
+                                        "TODO",
+                                        "HIGH",
+                                        isoDaysAgo(-2),
+                                        isoDaysAgo(0),
+                                        isoDaysAgo(0),
+                                        1,
+                                        1,
+                                        "SYSTEM",
+                                        null,
+                                        JSON.stringify(["setup", "printer"]),
+                                        0
+                                    ],
+                                    [
+                                        "Restock low items",
+                                        "Review Low Stock list and create a PO for 2-3 items.",
+                                        "IN_PROGRESS",
+                                        "HIGH",
+                                        isoDaysAgo(1),
+                                        isoDaysAgo(0),
+                                        isoDaysAgo(0),
+                                        1,
+                                        1,
+                                        "PRODUCT",
+                                        10,
+                                        JSON.stringify(["inventory"]),
+                                        0
+                                    ],
+                                    [
+                                        "Follow up on outstanding dues",
+                                        "Call customer and collect pending amount for DUE invoices.",
+                                        "WAITING",
+                                        "MEDIUM",
+                                        isoDaysAgo(3),
+                                        null,
+                                        isoDaysAgo(0),
+                                        1,
+                                        1,
+                                        "CUSTOMER",
+                                        3,
+                                        JSON.stringify(["dues"]),
+                                        0
+                                    ],
+                                    [
+                                        "Update store header & footer",
+                                        "Customize the receipt header/footer in Settings.",
+                                        "DONE",
+                                        "LOW",
+                                        null,
+                                        null,
+                                        isoDaysAgo(0),
+                                        1,
+                                        1,
+                                        "SETTINGS",
+                                        null,
+                                        JSON.stringify(["branding"]),
+                                        0
+                                    ]
+                                ];
+
+                                for (const t of tasks) {
+                                    dbInstance.run(
+                                        `INSERT INTO tasks (title, description, status, priority, due_date, start_date, created_at, updated_at, creator_id, assignee_id, related_entity_type, related_entity_id, tags, is_archived)
+                                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                                        t as any
+                                    );
+                                }
+
+                                // Seed a couple comments on first task
+                                const seededTasks = dbInstance.exec("SELECT id FROM tasks ORDER BY id ASC LIMIT 2");
+                                const firstId = seededTasks?.[0]?.values?.[0]?.[0];
+                                if (firstId) {
+                                    dbInstance.run(
+                                        "INSERT INTO task_comments (task_id, user_id, comment, created_at) VALUES (?, ?, ?, ?)",
+                                        [firstId, 1, "Use Settings → Receipt Template to adjust text size.", isoDaysAgo(0)]
+                                    );
+                                    dbInstance.run(
+                                        "INSERT INTO task_comments (task_id, user_id, comment, created_at) VALUES (?, ?, ?, ?)",
+                                        [firstId, 1, "If printer is missing, check USB and restart the app.", isoDaysAgo(0)]
+                                    );
+                                }
+                            }
+                        } catch (e) {
+                            // ignore
+                        }
+
+                        try {
+                            // Chat logs (AI screen sample history)
+                            const chatCount = dbInstance.exec("SELECT COUNT(*) FROM chat_logs")[0]?.values?.[0]?.[0] ?? 0;
+                            if (Number(chatCount) === 0) {
+                                const nowTs = Date.now();
+                                const chats = [
+                                    ["user", "Show low stock items", "Opened Low Stock report", nowTs - 1000 * 60 * 30],
+                                    ["assistant", "Here are items below minimum stock: Toilet Paper, Dishwash Liquid, Chocolate Biscuit Pack.", "NONE", nowTs - 1000 * 60 * 30 + 1000],
+                                    ["user", "Create a restock task", "Task created", nowTs - 1000 * 60 * 10],
+                                    ["assistant", "Created: “Restock low items”. You can track it in Tasks.", "NONE", nowTs - 1000 * 60 * 10 + 1000],
+                                ];
+                                for (const c of chats) {
+                                    dbInstance.run(
+                                        "INSERT INTO chat_logs (sender, text, action_taken, timestamp) VALUES (?, ?, ?, ?)",
+                                        c as any
+                                    );
+                                }
+                            }
+                        } catch (e) {
+                            // ignore
                         }
 
                         log("Demo data seeded.");

@@ -1,9 +1,12 @@
-import React, { useState, useEffect } from 'react';
-import { User, LogOut, CheckCircle, History, X, AlertCircle } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Download, History, Lock, Printer } from 'lucide-react';
 import { Button } from '../components/Button';
-import { Modal } from '../components/Modal';
 import { cashService } from '../services/cashService';
 import type { CashDrawerSession } from '../types/db';
+import { permissionsService } from '../services/permissionsService';
+import { ManagerPinModal } from '../components/ManagerPinModal';
+import { eodReportService } from '../services/eodReportService';
 
 const TABS = [
     { id: 'eod', label: 'End of day' },
@@ -11,98 +14,161 @@ const TABS = [
 ];
 
 export default function EndOfDay() {
-    const [activeTab, setActiveTab] = useState('eod');
-    const [session, setSession] = useState<CashDrawerSession | null>(null);
-    const [summary, setSummary] = useState<{ mode: string; amount: number }[]>([]);
-    const [isCashOutModalOpen, setIsCashOutModalOpen] = useState(false);
-    const [cashOutAmount, setCashOutAmount] = useState('');
-    const [cashOutReason, setCashOutReason] = useState('Safe Drop');
+    const navigate = useNavigate();
+    const currentUser = permissionsService.getCurrentUser();
+    const canAccess = permissionsService.roleAtLeast(currentUser?.role, 'MANAGER');
+    const [overrideGranted, setOverrideGranted] = useState(false);
+    const [isPinOpen, setIsPinOpen] = useState(false);
+
+    if (!canAccess && !overrideGranted) {
+        return (
+            <div className="h-full flex flex-col items-center justify-center bg-background text-foreground p-8">
+                <div className="bg-surface border border-border rounded-2xl shadow-2xl p-10 max-w-xl w-full text-center space-y-4">
+                    <div className="text-xs font-black text-muted-foreground uppercase tracking-widest">Restricted</div>
+                    <h2 className="text-2xl font-black tracking-tight">End of Day Locked</h2>
+                    <p className="text-sm text-muted-foreground font-medium">
+                        End-of-day reconciliation is restricted to Managers and Administrators.
+                    </p>
+                    <div className="flex justify-center gap-3 pt-2">
+                        <Button variant="ghost" onClick={() => window.history.back()}>Go Back</Button>
+                        <Button className="bg-orange-500 hover:bg-orange-600 text-white border-none" onClick={() => setIsPinOpen(true)}>
+                            Manager PIN Override
+                        </Button>
+                    </div>
+                </div>
+
+                <ManagerPinModal
+                    isOpen={isPinOpen}
+                    onClose={() => setIsPinOpen(false)}
+                    minRole="MANAGER"
+                    title="Manager Authorization"
+                    description="Enter a Manager/Admin PIN to access End of Day."
+                    auditAction="MANAGER_OVERRIDE"
+                    auditDetails={{ action: 'END_OF_DAY_ACCESS', page: 'EndOfDay' }}
+                    onApproved={() => {
+                        setIsPinOpen(false);
+                        setOverrideGranted(true);
+                    }}
+                />
+            </div>
+        );
+    }
+
+    const [activeTab, setActiveTab] = useState<'eod' | 'history'>('eod');
     const [loading, setLoading] = useState(false);
+    const [session, setSession] = useState<CashDrawerSession | null>(null);
+    const [expectedCash, setExpectedCash] = useState<number>(0);
+    const [tenderSummary, setTenderSummary] = useState<{ mode: string; amount: number }[]>([]);
+    const [countedCash, setCountedCash] = useState('');
+    const [sessions, setSessions] = useState<CashDrawerSession[]>([]);
 
-    useEffect(() => {
-        loadSessionData();
-    }, []);
+    const [isSignoffOpen, setIsSignoffOpen] = useState(false);
+    const [signoffMeta, setSignoffMeta] = useState<{ approverId: number; approverName: string; approverRole: string } | null>(null);
 
-    const loadSessionData = async () => {
+    const variance = useMemo(() => {
+        if (countedCash.trim() === '') return null;
+        const c = Number(countedCash);
+        if (!Number.isFinite(c)) return null;
+        return c - expectedCash;
+    }, [countedCash, expectedCash]);
+
+    const loadAll = async () => {
         setLoading(true);
         try {
-            const currentSession = await cashService.getCurrentSession();
-            setSession(currentSession);
-            if (currentSession) {
-                const summ = await cashService.getSessionSummary(currentSession.id);
-                setSummary(summ);
+            const current = await cashService.getCurrentSession();
+            setSession(current);
+            if (current) {
+                setExpectedCash(await cashService.getExpectedCash(current.id));
+                setTenderSummary(await cashService.getSessionSummary(current.id));
+            } else {
+                setExpectedCash(0);
+                setTenderSummary([]);
             }
-        } catch (error) {
-            console.error(error);
-        }
-        setLoading(false);
-    };
 
-    const handleStartShift = async (amount: number) => {
-        if (!amount && amount !== 0) return;
-        try {
-            // Need user ID. For now assuming global or single user context for simplicity or grabbing from auth context if avail.
-            const userString = localStorage.getItem('user'); // Fallback or pass prop
-            const user = userString ? JSON.parse(userString) : { id: 1 };
-
-            await cashService.startSession(user.id, amount);
-            alert('Shift Started');
-            loadSessionData();
-        } catch (err) {
-            console.error(err);
-            alert('Failed to start shift');
+            const history = await cashService.listSessions(25);
+            setSessions(history);
+        } catch (e) {
+            console.error(e);
+        } finally {
+            setLoading(false);
         }
     };
 
-    const handleCashOut = async () => {
-        if (!session || !cashOutAmount) return;
-        const type = cashOutReason === 'Pay In' ? 'PAYIN' : 'DROP';
-        try {
-            await cashService.addTransaction(session.id, type as any, parseFloat(cashOutAmount), cashOutReason);
-            setIsCashOutModalOpen(false);
-            setCashOutAmount('');
-            alert('Transaction recorded.');
-            loadSessionData();
-        } catch (error) {
-            console.error(error);
-            alert('Failed to record transaction.');
-        }
-    };
+    useEffect(() => {
+        loadAll();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
-    const handleCloseRegister = async () => {
+    const handleExportX = async () => {
         if (!session) return;
-        if (!confirm('Are you sure you want to close the register? This will end the current session.')) return;
-
-        // In a real app, we'd ask for counted cash here to calculate variance.
-        // For this MVP step, we'll just close it.
         try {
-            // Calculate expected cash based on Opening + Sales (Cash) - Drops
-            // This is complex, so for now passing 0 or implement a Count Modal later.
-            // Let's just close it.
-            await cashService.endSession(session.id, 0);
-            alert('Register closed successfully.');
-            setSession(null);
-            setSummary([]);
-        } catch (error) {
-            alert('Failed to close register.');
+            await eodReportService.exportXReport(session.id);
+            alert('X report exported.');
+        } catch (e: any) {
+            console.error(e);
+            alert(e?.message || 'Failed to export X report.');
         }
     };
 
-    const totalRevenue = summary.reduce((acc, curr) => acc + curr.amount, 0);
+    const handleRequestZ = () => {
+        if (!session) return;
+        if (countedCash.trim() === '') {
+            alert('Enter counted cash to close the register.');
+            return;
+        }
+        const c = Number(countedCash);
+        if (!Number.isFinite(c)) {
+            alert('Invalid counted cash amount.');
+            return;
+        }
+        setIsSignoffOpen(true);
+    };
+
+    const finalizeZ = async (approver: any) => {
+        if (!session) return;
+        const c = Number(countedCash);
+        if (!Number.isFinite(c)) return;
+
+        setLoading(true);
+        try {
+            setSignoffMeta({ approverId: approver.id, approverName: approver.name, approverRole: approver.role });
+
+            await cashService.endSession(
+                session.id,
+                c,
+                JSON.stringify({ kind: 'Z_REPORT', countedCash: c, approvedBy: { id: approver.id, name: approver.name, role: approver.role } })
+            );
+
+            await eodReportService.exportZReport(session.id, {
+                countedCash: c,
+                approvedBy: { id: approver.id, name: approver.name, role: approver.role },
+            });
+
+            alert('Z report exported and register closed.');
+            setCountedCash('');
+            await loadAll();
+        } catch (e: any) {
+            console.error(e);
+            alert(e?.message || 'Failed to finalize Z report.');
+        } finally {
+            setLoading(false);
+        }
+    };
 
     return (
         <div className="h-full flex flex-col bg-background text-foreground overflow-hidden">
-            {/* Header */}
-            <div className="flex items-center gap-2 p-4 border-b border-border bg-surface">
-                <span className="text-muted-foreground">Management •</span>
-                <span className="font-bold text-lg">End of day</span>
-            </div>
-
-            {/* Error Banner Strip (Mockup Style) */}
-            <div className="bg-destructive/10 border-b border-destructive/20 p-2 flex items-center gap-2 text-destructive text-sm px-4">
-                <AlertCircle size={16} />
-                <span>Printer is disabled or not selected. Reports may not be printed.</span>
-                <button className="ml-auto hover:bg-destructive/20 p-1 rounded"><X size={14} /></button>
+            <div className="flex items-center justify-between gap-4 p-5 border-b border-border bg-surface">
+                <div>
+                    <div className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Management •</div>
+                    <div className="font-black text-xl tracking-tight">End of Day</div>
+                </div>
+                <button
+                    onClick={loadAll}
+                    className="px-4 py-2 rounded-xl border border-border bg-background hover:bg-muted/30 text-xs font-black uppercase tracking-widest"
+                    disabled={loading}
+                >
+                    Refresh
+                </button>
             </div>
 
             {/* Tabs */}
@@ -110,7 +176,7 @@ export default function EndOfDay() {
                 {TABS.map(tab => (
                     <button
                         key={tab.id}
-                        onClick={() => setActiveTab(tab.id)}
+                        onClick={() => setActiveTab(tab.id as any)}
                         className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === tab.id ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
                     >
                         {tab.label}
@@ -118,171 +184,199 @@ export default function EndOfDay() {
                 ))}
             </div>
 
-            {/* Content */}
-            {!session && !loading && (
-                <div className="flex-1 flex flex-col items-center justify-center p-6 text-center space-y-4">
-                    <div className="p-6 bg-surface border border-border rounded-xl shadow-lg max-w-md w-full">
-                        <AlertCircle size={48} className="mx-auto text-muted-foreground mb-4" />
-                        <h3 className="text-xl font-bold mb-2">Register Closed</h3>
-                        <p className="text-muted-foreground mb-6">There is no active shift. Start a new session to manage transactions.</p>
-                        <Button onClick={() => setIsCashOutModalOpen(true)} className="w-full bg-primary text-primary-foreground hover:bg-primary/90">
-                            Open Register
-                        </Button>
-                    </div>
-                    {/* Reuse Modal for Open Register logic if IsCashOutModalOpen is reused carefully or new state */}
-                </div>
-            )}
-
-            {session && activeTab === 'eod' && (
-                <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-6">
-                    <div>
-                        <h3 className="text-muted-foreground text-sm mb-4">Select cash out option</h3>
-                        <div className="flex gap-4">
-                            <ActionCard
-                                icon={User}
-                                label="Cash out"
-                                color="bg-emerald-500 text-white hover:bg-emerald-600"
-                                onClick={() => { setCashOutReason('Safe Drop'); setIsCashOutModalOpen(true); }}
-                                disabled={!session}
-                            />
-                            <ActionCard
-                                icon={User} // Should be multiple users icon
-                                label="Cash out all users"
-                                color="bg-surface text-foreground border border-border hover:bg-muted"
-                                onClick={() => alert('Feature coming soon')}
-                            />
-                            <ActionCard
-                                icon={LogOut}
-                                label="Close register"
-                                color="bg-surface text-foreground border border-border hover:bg-muted"
-                                onClick={handleCloseRegister}
-                                disabled={!session}
-                            />
-
-                            <div className="ml-auto">
-                                <ActionCard
-                                    icon={X}
-                                    label="REPORT"
-                                    subLabel="X"
-                                    color="bg-surface text-foreground border border-border hover:bg-muted w-24 h-24 text-center justify-center"
-                                    onClick={() => alert('X Report generated (mock)')}
-                                    minimal
-                                />
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 h-full min-h-[400px]">
-                        {/* Left: Visualization */}
-                        <div className="bg-surface border border-white/5 flex flex-col h-full min-h-[300px]">
-                            <div className="p-3 bg-emerald-500 text-black font-bold text-sm uppercase tracking-wide">Open transactions</div>
-                            <div className="flex-1 p-8 flex flex-col justify-end">
-                                <div className="flex justify-between items-end border-t border-white/10 pt-4">
-                                    <span className="text-muted-foreground font-bold text-xl uppercase">TOTAL:</span>
-                                    <span className="text-emerald-500 font-bold text-xl">{totalRevenue.toFixed(2)}</span>
+            <div className="flex-1 overflow-y-auto p-6">
+                {activeTab === 'eod' && (
+                    <div className="space-y-6">
+                        {!session ? (
+                            <div className="bg-surface border border-border rounded-2xl shadow-xl p-10 text-center space-y-3 max-w-2xl mx-auto">
+                                <div className="text-xs font-black text-muted-foreground uppercase tracking-widest">Register</div>
+                                <h2 className="text-2xl font-black tracking-tight">No Active Shift</h2>
+                                <p className="text-sm text-muted-foreground font-medium">
+                                    Open the register to start recording cash sales, drops, and payouts.
+                                </p>
+                                <div className="pt-3 flex justify-center gap-3">
+                                    <Button onClick={() => navigate('/cash')} className="bg-primary hover:bg-primary/90 text-primary-foreground border-none">
+                                        Open Register
+                                    </Button>
+                                    <Button variant="ghost" onClick={() => setActiveTab('history')}>
+                                        <History size={16} className="mr-2" /> View History
+                                    </Button>
                                 </div>
                             </div>
+                        ) : (
+                            <div className="max-w-5xl mx-auto space-y-6">
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <div className="p-6 bg-surface border border-border rounded-2xl shadow-lg">
+                                        <div className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Session</div>
+                                        <div className="text-2xl font-black tracking-tight">#{session.id}</div>
+                                        <div className="text-xs text-muted-foreground font-medium mt-1">
+                                            Started {new Date(session.start_time).toLocaleString()}
+                                        </div>
+                                    </div>
+                                    <div className="p-6 bg-surface border border-border rounded-2xl shadow-lg">
+                                        <div className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Expected cash</div>
+                                        <div className="text-3xl font-black text-emerald-500 tracking-tight">₹{expectedCash.toFixed(2)}</div>
+                                        <div className="text-xs text-muted-foreground font-medium mt-1">Computed from cash transactions.</div>
+                                    </div>
+                                    <div className="p-6 bg-surface border border-border rounded-2xl shadow-lg">
+                                        <div className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Counted cash</div>
+                                        <input
+                                            type="number"
+                                            value={countedCash}
+                                            onChange={(e) => setCountedCash(e.target.value)}
+                                            className="w-full mt-2 bg-muted/20 border border-border rounded-xl p-4 text-2xl font-black text-center text-foreground focus:border-primary/50 focus:outline-none shadow-inner"
+                                            placeholder="0.00"
+                                        />
+                                        {variance !== null && (
+                                            <div className={`mt-3 p-3 rounded-xl border text-center text-[10px] font-black uppercase tracking-widest ${Math.abs(variance) < 0.01
+                                                ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500'
+                                                : 'bg-orange-500/10 border-orange-500/20 text-orange-500'
+                                                }`}>
+                                                Variance: ₹{variance.toFixed(2)}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <div className="bg-surface border border-border rounded-2xl shadow-xl overflow-hidden">
+                                    <div className="p-4 border-b border-border bg-muted/30 flex items-center justify-between">
+                                        <div className="text-xs font-black uppercase tracking-widest text-muted-foreground">Payment tenders</div>
+                                        <div className="text-[10px] text-muted-foreground font-bold">
+                                            From bills during this session
+                                        </div>
+                                    </div>
+                                    <div className="p-4">
+                                        <div className="space-y-2">
+                                            {tenderSummary.length === 0 ? (
+                                                <div className="text-sm text-muted-foreground">No tenders recorded yet.</div>
+                                            ) : (
+                                                tenderSummary.map((s) => (
+                                                    <div key={s.mode} className="flex justify-between border-b border-border/50 py-2 text-sm">
+                                                        <span className="font-bold">{s.mode}</span>
+                                                        <span className="font-black">₹{Number(s.amount || 0).toFixed(2)}</span>
+                                                    </div>
+                                                ))
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="flex flex-col md:flex-row gap-3 justify-end">
+                                    <Button
+                                        variant="ghost"
+                                        className="border border-border"
+                                        onClick={handleExportX}
+                                        disabled={loading}
+                                    >
+                                        <Printer size={16} className="mr-2" /> Export X Report
+                                    </Button>
+                                    <Button
+                                        className="bg-destructive hover:bg-destructive-hover text-white border-none"
+                                        onClick={handleRequestZ}
+                                        disabled={loading}
+                                    >
+                                        <Lock size={16} className="mr-2" /> Close Register (Z)
+                                    </Button>
+                                </div>
+
+                                {signoffMeta && (
+                                    <div className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest text-right">
+                                        Last approval: {signoffMeta.approverName} ({signoffMeta.approverRole})
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {activeTab === 'history' && (
+                    <div className="max-w-6xl mx-auto space-y-4">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <div className="text-xs font-black text-muted-foreground uppercase tracking-widest">History</div>
+                                <div className="text-xl font-black tracking-tight">Cash Drawer Sessions</div>
+                            </div>
                         </div>
 
-                        {/* Right: Detailed list */}
-                        <div className="space-y-4">
-                            <h3 className="text-xl font-light text-muted-foreground">Open transactions</h3>
-                            <div className="uppercase text-xs font-bold text-muted-foreground tracking-wider">ADMIN</div>
-
-                            <div className="space-y-2 mt-4">
-                                {summary.map(s => (
-                                    <div key={s.mode} className="flex justify-between text-sm py-2 border-b border-white/5">
-                                        <span>{s.mode}</span>
-                                        <span>{s.amount.toFixed(2)}</span>
-                                    </div>
-                                ))}
-                            </div>
-
-                            <div className="flex justify-between items-center mt-8 pt-4 border-t border-white/10">
-                                <span className="font-bold text-xl">TOTAL:</span>
-                                <span className="text-emerald-500 font-bold text-2xl">{totalRevenue.toFixed(2)}</span>
-                            </div>
-
+                        <div className="bg-surface border border-border rounded-2xl shadow-xl overflow-hidden">
+                            <table className="w-full text-left">
+                                <thead className="bg-muted/50 text-muted-foreground text-[10px] font-black uppercase tracking-widest">
+                                    <tr>
+                                        <th className="p-4 border-b border-border">Session</th>
+                                        <th className="p-4 border-b border-border">Status</th>
+                                        <th className="p-4 border-b border-border">Start</th>
+                                        <th className="p-4 border-b border-border">End</th>
+                                        <th className="p-4 border-b border-border text-right">Expected</th>
+                                        <th className="p-4 border-b border-border text-right">Counted</th>
+                                        <th className="p-4 border-b border-border text-right">Variance</th>
+                                        <th className="p-4 border-b border-border text-right">Export</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-border">
+                                    {sessions.map((s) => (
+                                        <tr key={s.id} className="hover:bg-muted/30 transition-colors">
+                                            <td className="p-4 font-black">#{s.id}</td>
+                                            <td className="p-4">
+                                                <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border ${s.status === 'CLOSED'
+                                                    ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'
+                                                    : 'bg-primary/10 text-primary border-primary/20'
+                                                    }`}>
+                                                    {s.status}
+                                                </span>
+                                            </td>
+                                            <td className="p-4 text-xs text-muted-foreground font-mono">{new Date(s.start_time).toLocaleString()}</td>
+                                            <td className="p-4 text-xs text-muted-foreground font-mono">{s.end_time ? new Date(s.end_time).toLocaleString() : 'OPEN'}</td>
+                                            <td className="p-4 text-right font-black">₹{Number(s.expected_cash || 0).toFixed(2)}</td>
+                                            <td className="p-4 text-right font-black">₹{Number(s.end_cash || 0).toFixed(2)}</td>
+                                            <td className={`p-4 text-right font-black ${Number(s.variance || 0) === 0 ? 'text-muted-foreground' : Number(s.variance || 0) > 0 ? 'text-emerald-500' : 'text-orange-500'}`}>
+                                                ₹{Number(s.variance || 0).toFixed(2)}
+                                            </td>
+                                            <td className="p-4 text-right">
+                                                <button
+                                                    className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-border bg-background hover:bg-muted/30 text-[10px] font-black uppercase tracking-widest disabled:opacity-50"
+                                                    disabled={s.status !== 'CLOSED' || s.end_cash === null || s.end_cash === undefined}
+                                                    onClick={async () => {
+                                                        try {
+                                                            await eodReportService.exportZReport(s.id, { countedCash: Number(s.end_cash || 0), approvedBy: null });
+                                                            alert('Z report exported.');
+                                                        } catch (e: any) {
+                                                            console.error(e);
+                                                            alert(e?.message || 'Failed to export Z report.');
+                                                        }
+                                                    }}
+                                                >
+                                                    <Download size={14} /> Z
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                    {sessions.length === 0 && (
+                                        <tr>
+                                            <td colSpan={8} className="p-12 text-center text-muted-foreground">
+                                                No sessions found.
+                                            </td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
                         </div>
                     </div>
-                </div>
-            )}
-
-            {/* Footer Buttons */}
-            <div className="p-4 border-t border-border bg-surface flex justify-end gap-3">
-                <Button variant="danger" onClick={() => window.history.back()}>
-                    <X size={16} className="mr-2" /> Cancel
-                </Button>
-                <Button className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => window.history.back()}>
-                    <CheckCircle size={16} className="mr-2" /> Continue
-                </Button>
+                )}
             </div>
 
-            {/* Cash Out Modal */}
-            <Modal isOpen={isCashOutModalOpen} onClose={() => setIsCashOutModalOpen(false)} title="Cash Out / Drop">
-                <div className="space-y-4">
-                    <div>
-                        <label className="block text-sm font-medium mb-1">Amount</label>
-                        <input
-                            type="number"
-                            className="w-full p-2 border border-border rounded bg-background"
-                            value={cashOutAmount}
-                            onChange={e => setCashOutAmount(e.target.value)}
-                            autoFocus
-                        />
-                    </div>
-                    {!session ? (
-                        // Start Shift Mode
-                        <div>
-                            <p className="text-sm text-muted-foreground mb-4">Enter opening cash float amount.</p>
-                            <Button onClick={() => handleStartShift(parseFloat(cashOutAmount))} fullWidth>Start Shift</Button>
-                        </div>
-                    ) : (
-                        <>
-                            <div>
-                                <label className="block text-sm font-medium mb-1">Reason</label>
-                                <select
-                                    className="w-full p-2 border border-border rounded bg-background"
-                                    value={cashOutReason}
-                                    onChange={e => setCashOutReason(e.target.value)}
-                                >
-                                    <option value="Safe Drop">Safe Drop</option>
-                                    <option value="Expense">Expense</option>
-                                    <option value="Other">Other</option>
-                                </select>
-                            </div>
-                            <Button onClick={handleCashOut} fullWidth>
-                                Confirm Cash Out
-                            </Button>
-                        </>
-                    )}
-                </div>
-            </Modal>
+            <ManagerPinModal
+                isOpen={isSignoffOpen}
+                onClose={() => setIsSignoffOpen(false)}
+                minRole={permissionsService.getOverrideMinRole('FINALIZE_Z_REPORT')}
+                title="Manager Sign-off"
+                description="Enter a Manager/Admin PIN to close the register and finalize the Z report."
+                auditAction="MANAGER_OVERRIDE"
+                auditDetails={{ action: 'FINALIZE_Z_REPORT', page: 'EndOfDay', sessionId: session?.id, countedCash }}
+                onApproved={(approver) => {
+                    setIsSignoffOpen(false);
+                    finalizeZ(approver);
+                }}
+            />
         </div>
-    );
-}
-
-function ActionCard({ icon: Icon, label, subLabel, color, onClick, disabled, minimal }: any) {
-    if (minimal) {
-        return (
-            <button
-                onClick={onClick}
-                disabled={disabled}
-                className={`flex flex-col items-center justify-center gap-2 p-2 rounded shadow-sm transition-all ${color} ${disabled ? 'opacity-50 cursor-not-allowed' : 'active:scale-95'}`}
-            >
-                <Icon size={32} strokeWidth={2.5} />
-                <div className="text-xs font-bold uppercase tracking-wider">{label}</div>
-            </button>
-        )
-    }
-    return (
-        <button
-            onClick={onClick}
-            disabled={disabled}
-            className={`flex flex-col items-center justify-center gap-3 w-32 h-32 p-4 rounded shadow-sm transition-all ${color} ${disabled ? 'opacity-50 cursor-not-allowed' : 'active:scale-95'}`}
-        >
-            <Icon size={40} strokeWidth={1.5} />
-            <div className="text-sm font-medium text-center leading-tight">{label}</div>
-        </button>
     );
 }

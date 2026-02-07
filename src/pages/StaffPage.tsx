@@ -7,10 +7,16 @@ import { Trash2, DollarSign, CalendarCheck, FileEdit, Lock } from 'lucide-react'
 import toast from 'react-hot-toast';
 import { staffService } from '../services/staffService';
 import { databaseService } from '../services/databaseService';
+import { permissionsService } from '../services/permissionsService';
+import { ManagerPinModal } from '../components/ManagerPinModal';
 
 
 
 export default function StaffPage() {
+    const currentUser = permissionsService.getCurrentUser();
+    const canManageStaff = permissionsService.can('MANAGE_STAFF', currentUser);
+    const [overrideGranted, setOverrideGranted] = useState(false);
+    const [isPinOpen, setIsPinOpen] = useState(false);
     const [users, setUsers] = useState<User[]>([]);
     const [isaddModalOpen, setIsAddModalOpen] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -175,6 +181,43 @@ export default function StaffPage() {
     };
 
     const resetForm = () => { setName(''); setPin(''); setRole('CASHIER'); setSalary(''); };
+
+    if (!canManageStaff && !overrideGranted) {
+        return (
+            <div className="h-full flex flex-col items-center justify-center bg-background text-foreground p-8">
+                <div className="bg-surface border border-border rounded-2xl shadow-2xl p-10 max-w-xl w-full text-center space-y-4">
+                    <div className="text-xs font-black text-muted-foreground uppercase tracking-widest">Restricted</div>
+                    <h2 className="text-2xl font-black tracking-tight">Staff Management Locked</h2>
+                    <p className="text-sm text-muted-foreground font-medium">
+                        Only Administrators can manage staff accounts and salaries.
+                    </p>
+                    <div className="flex gap-3 justify-center pt-2">
+                        <Button variant="ghost" onClick={() => window.history.back()}>Go Back</Button>
+                        <Button
+                            className="bg-orange-500 hover:bg-orange-600 text-white border-none"
+                            onClick={() => setIsPinOpen(true)}
+                        >
+                            <Lock size={16} className="mr-2" /> Admin PIN Override
+                        </Button>
+                    </div>
+                </div>
+
+                <ManagerPinModal
+                    isOpen={isPinOpen}
+                    onClose={() => setIsPinOpen(false)}
+                    minRole={permissionsService.getOverrideMinRole('MANAGE_STAFF')}
+                    title="Admin Authorization"
+                    description="Enter an Admin PIN to access Staff Management."
+                    auditAction="MANAGER_OVERRIDE"
+                    auditDetails={{ action: 'MANAGE_STAFF', page: 'StaffPage' }}
+                    onApproved={() => {
+                        setIsPinOpen(false);
+                        setOverrideGranted(true);
+                    }}
+                />
+            </div>
+        );
+    }
 
 
     return (

@@ -1,6 +1,7 @@
 
 import type { CompanySettings, VoidReason } from '../types/db';
 import { databaseService } from './databaseService';
+import { auditService } from './auditService';
 
 export const companyService = {
     getSettings: async (): Promise<CompanySettings | null> => {
@@ -45,6 +46,13 @@ export const companyService = {
     },
 
     resetDatabase: async () => {
+        await auditService.logChange('RESET_DATABASE', {
+            entity: 'database',
+            severity: 'CRITICAL',
+            message: 'Factory reset initiated (business data wipe).',
+            meta: { scope: 'business_data' }
+        });
+
         // Dangerous operation. 
         // We typically wouldn't delete the company settings or user, just business data.
         // Let's clear: bills, bill_items, stocktake, customers, etc.
@@ -61,5 +69,12 @@ export const companyService = {
 
         // Reset stock?
         await databaseService.query(`UPDATE products SET stock = 0`);
+
+        await auditService.logChange('RESET_DATABASE', {
+            entity: 'database',
+            severity: 'CRITICAL',
+            message: 'Factory reset completed.',
+            meta: { clearedTables: tables }
+        });
     }
 };
