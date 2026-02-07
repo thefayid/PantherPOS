@@ -252,7 +252,8 @@ CREATE TABLE IF NOT EXISTS company_settings (
     email TEXT,
     bank_acc_number TEXT,
     bank_details TEXT,
-    logo TEXT
+    logo TEXT,
+    owner_whatsapp TEXT
 );
 
 CREATE TABLE IF NOT EXISTS store_settings (
@@ -324,6 +325,43 @@ CREATE TABLE IF NOT EXISTS estimate_items (
     FOREIGN KEY(product_id) REFERENCES products(id)
 );
 
+-- Task Management
+CREATE TABLE IF NOT EXISTS tasks (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    title TEXT NOT NULL,
+    description TEXT,
+    status TEXT DEFAULT 'TODO', -- TODO, IN_PROGRESS, WAITING, DONE, ARCHIVED
+    priority TEXT DEFAULT 'MEDIUM', -- LOW, MEDIUM, HIGH, CRITICAL
+    due_date TEXT,
+    start_date TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT,
+    creator_id INTEGER,
+    assignee_id INTEGER,
+    related_entity_type TEXT,
+    related_entity_id INTEGER,
+    tags TEXT,
+    is_archived BOOLEAN DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS task_comments (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    task_id INTEGER NOT NULL,
+    user_id INTEGER NOT NULL,
+    comment TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    FOREIGN KEY(task_id) REFERENCES tasks(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS automation_rules (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    trigger_type TEXT NOT NULL,
+    action_type TEXT NOT NULL,
+    config_json TEXT,
+    is_active BOOLEAN DEFAULT 1
+);
+
 -- Accounting System Tables
 CREATE TABLE IF NOT EXISTS accounts (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -340,7 +378,7 @@ CREATE TABLE IF NOT EXISTS vouchers (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     voucher_no TEXT UNIQUE NOT NULL,
     date TEXT NOT NULL,
-    type TEXT CHECK(type IN ('RECEIPT', 'PAYMENT', 'JOURNAL', 'CONTRA', 'SALES', 'PURCHASE')) NOT NULL,
+    type TEXT CHECK(type IN ('RECEIPT', 'PAYMENT', 'JOURNAL', 'CONTRA', 'SALES', 'PURCHASE', 'EXPENSE')) NOT NULL,
     total_amount REAL NOT NULL,
     reference_id TEXT, -- e.g., 'BILL-123', 'PO-456'
     notes TEXT,
@@ -373,7 +411,10 @@ export const databaseService = {
             // Keep products table aligned with renderer services
             "ALTER TABLE products ADD COLUMN image TEXT",
             "ALTER TABLE products ADD COLUMN variant_group_id TEXT",
-            "ALTER TABLE products ADD COLUMN attributes TEXT"
+            "ALTER TABLE products ADD COLUMN attributes TEXT",
+
+            // WhatsApp automation support
+            "ALTER TABLE company_settings ADD COLUMN owner_whatsapp TEXT"
         ];
 
         for (const sql of migrationQueries) {
@@ -809,14 +850,25 @@ export const databaseService = {
         // 1. If Electron, always run locally
         if (isElectron) {
             const results = await window.electronAPI.dbQuery(sql, params);
+            // console.log('[DB] Electron Query:', sql, results); // excessively noisy, but good for debug
+
             if (results && results.error) {
                 throw new Error(results.error);
             }
+
+            // Standardize return for SELECT vs INSERT/UPDATE
             const isSelect = sql.trim().toLowerCase().startsWith('select');
-            if (isSelect && results && !Array.isArray(results)) {
-                return [results]; // Wrap if it's a single object
+
+            if (isSelect) {
+                if (results && !Array.isArray(results)) {
+                    return [results]; // Wrap if it's a single object (edge case)
+                }
+                return results || [];
+            } else {
+                // For INSERT/UPDATE, we expect { changes, lastInsertRowid }
+                // Use a default object if results is null/undefined to prevent crashes
+                return results || { changes: 0, lastInsertRowid: 0 };
             }
-            return results || [];
         }
 
         // 2. If Web/Mobile, attempt remote proxying if server IP is configured

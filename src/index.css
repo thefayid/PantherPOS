@@ -35,7 +35,7 @@
     --border: 214 32% 85%;
     --input: 214 32% 91%;
     --ring: 158 82% 35%;
-    --radius: 0.75rem;
+    --radius: 0.4rem;
 
     --surface: 0 0% 100%;
   }
@@ -105,9 +105,35 @@ body.barcode-scanner-active {
   visibility: hidden;
 }
 
-body.barcode-scanner-active #root {
-  visibility: visible;
-  background-color: transparent !important;
+/* Global Touch & Interaction Optimizations only for Touch Mode */
+.touch-mode * {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+}
+
+/* Tactile feedback only in Touch Mode */
+.touch-mode button:active:not(:disabled),
+.touch-mode [role="button"]:active,
+.touch-mode .clickable:active {
+  transform: scale(0.98);
+  transition: transform 0.1s ease;
+}
+
+/* Ensure smooth transitions for hover/active states */
+button,
+[role="button"],
+a,
+input,
+select,
+textarea {
+  transition: all 0.2s ease-in-out;
+}
+
+/* Standard List/Row Touch Height */
+.touch-mode .touch-row {
+  min-height: 52px;
+  display: flex;
+  align-items: center;
 }
 
 /* Hide everything except perhaps a 'Cancel' button or overlay when scanning */

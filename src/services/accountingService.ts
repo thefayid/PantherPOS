@@ -1,5 +1,6 @@
 import { databaseService } from './databaseService';
 import type { Account, Voucher, VoucherItem } from '../types/db';
+import { cashService } from './cashService';
 
 export const accountingService = {
     // --- ACCOUNTS ---
@@ -106,6 +107,64 @@ export const accountingService = {
                 `UPDATE accounts SET balance = balance + ? WHERE id = ?`,
                 [balanceDelta, item.account_id]
             );
+        }
+
+        return voucherId;
+    },
+
+    addExpense: async (amount: number, description: string): Promise<number> => {
+        // 1. Get/Create Expense Account
+        let expenseAccount = await accountingService.getAccountByCode('EXPENSE_PETTY');
+        if (!expenseAccount) {
+            await accountingService.createAccount({
+                code: 'EXPENSE_PETTY',
+                name: 'Petty Cash Expenses',
+                type: 'EXPENSE',
+                description: 'Daily operational expenses',
+                is_system: true
+            });
+            expenseAccount = await accountingService.getAccountByCode('EXPENSE_PETTY');
+        }
+
+        // 2. Get/Create Cash Account (Asset)
+        let cashAccount = await accountingService.getAccountByCode('ASSET_CASH');
+        if (!cashAccount) {
+            await accountingService.createAccount({
+                code: 'ASSET_CASH',
+                name: 'Cash in Hand',
+                type: 'ASSET',
+                description: 'Main Cash Register',
+                is_system: true
+            });
+            cashAccount = await accountingService.getAccountByCode('ASSET_CASH');
+        }
+
+        if (!expenseAccount || !cashAccount) throw new Error("Failed to configure accounts for Expense");
+
+        // 3. Post Voucher
+        // Debit Expense (Increase Expense), Credit Cash (Decrease Asset)
+        // Note: Using 'PAYMENT' type to satisfy existing DB constraint on vouchers table
+        const voucherId = await accountingService.postVoucher(
+            {
+                date: new Date().toISOString(),
+                type: 'PAYMENT',
+                total_amount: amount,
+                notes: description
+            },
+            [
+                { account_id: expenseAccount.id, type: 'DEBIT', amount: amount, description },
+                { account_id: cashAccount.id, type: 'CREDIT', amount: amount, description }
+            ]
+        );
+
+        // 4. Update Cash Management (Cash Drawer)
+        try {
+            const session = await cashService.getCurrentSession();
+            if (session) {
+                await cashService.addTransaction(session.id, 'PAYOUT', amount, description);
+            }
+        } catch (e) {
+            console.error("Failed to update cash drawer for expense", e);
         }
 
         return voucherId;

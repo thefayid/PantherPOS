@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import { Save, AlertTriangle, Building, Upload, Trash2, Plus, Ban, RotateCcw, HelpCircle } from 'lucide-react';
 import { Button } from '../components/Button';
 import { companyService } from '../services/companyService';
@@ -18,7 +18,7 @@ export default function CompanySettings() {
         name: '', tax_number: '', street_name: '', building_number: '',
         additional_street_name: '', plot_identification: '', district: '', postal_code: '',
         city: '', state: '', country: '', phone_number: '', email: '',
-        bank_acc_number: '', bank_details: '', logo: ''
+        bank_acc_number: '', bank_details: '', logo: '', owner_whatsapp: ''
     });
     const [voidReasons, setVoidReasons] = useState<VoidReason[]>([]);
     const [newVoidReason, setNewVoidReason] = useState('');
@@ -237,6 +237,16 @@ export default function CompanySettings() {
                                                 value={settings.bank_details}
                                                 onChange={e => setSettings({ ...settings, bank_details: e.target.value })}
                                             />
+                                        </div>
+                                        <div className="col-span-2">
+                                            <label className="block text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1 ml-1">Owner WhatsApp (for alerts)</label>
+                                            <input
+                                                className="w-full p-3 border border-border rounded-xl bg-background outline-none focus:ring-1 focus:ring-primary transition-all font-bold text-sm"
+                                                value={settings.owner_whatsapp || ''}
+                                                onChange={e => setSettings({ ...settings, owner_whatsapp: e.target.value })}
+                                                placeholder="e.g. +919876543210 or 9876543210"
+                                            />
+                                            <p className="text-[9px] text-muted-foreground mt-1 ml-1 italic">Receive automated alerts for low stock, large sales, etc.</p>
                                         </div>
                                     </div>
                                 </div>

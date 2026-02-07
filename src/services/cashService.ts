@@ -79,7 +79,7 @@ export const cashService = {
             SELECT bt.mode, SUM(bt.amount) as amount
             FROM bill_tenders bt
             JOIN bills b ON bt.bill_id = b.id
-            WHERE b.date >= ? AND (b.status = 'PAID' OR b.status = 'PARTIAL_RETURN')
+            WHERE b.date >= ? AND (b.status = 'PAID' OR b.status = 'PARTIAL_RETURN' OR b.status = 'REFUNDED')
             GROUP BY bt.mode
         `, [start]);
     }

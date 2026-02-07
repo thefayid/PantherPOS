@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { Loader2 } from 'lucide-react';
-import clsx from 'clsx';
+import { useUI } from '../context/UIContext';
+import { cn } from '../utils/cn';
 
 interface Column<T> {
     header: string;
@@ -25,18 +26,24 @@ export function Table<T extends { id: number | string }>({
     emptyMessage = "No items found",
     isLoading = false
 }: TableProps<T>) {
+    const { isTouchMode } = useUI();
 
     // Removed inline styles in favor of Tailwind classes
 
     return (
-        <div className={clsx("w-full h-full flex flex-col rounded-2xl overflow-hidden bg-surface/50 backdrop-blur-md border border-border shadow-sm", className)}>
+        <div className={cn(
+            "w-full h-full flex flex-col overflow-hidden bg-surface/50 backdrop-blur-md border border-border shadow-sm",
+            isTouchMode ? "rounded-2xl" : "rounded-lg",
+            className
+        )}>
             <div className="flex-1 overflow-auto relative custom-scrollbar">
                 <table className="w-full border-collapse border-spacing-0">
                     <thead>
                         <tr>
                             {columns.map((col, idx) => (
-                                <th key={idx} className={clsx(
-                                    "sticky top-0 z-10 bg-muted/80 backdrop-blur-sm px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-muted-foreground border-b border-border",
+                                <th key={idx} className={cn(
+                                    "sticky top-0 z-10 bg-muted/80 backdrop-blur-sm text-left uppercase tracking-widest text-muted-foreground border-b border-border",
+                                    isTouchMode ? "px-5 py-4 text-[11px] font-black" : "px-4 py-2 text-[10px] font-bold",
                                     col.className?.includes('right') ? 'text-right' : col.className?.includes('center') ? 'text-center' : 'text-left',
                                     col.className
                                 )}>
@@ -60,14 +67,16 @@ export function Table<T extends { id: number | string }>({
                                 <tr
                                     key={item.id}
                                     onClick={() => onRowClick?.(item)}
-                                    className={clsx(
-                                        "border-b border-border transition-colors text-foreground text-sm group",
-                                        onRowClick ? 'cursor-pointer hover:bg-muted/50' : 'default'
+                                    className={cn(
+                                        "border-b border-border transition-colors text-foreground group hover:bg-muted/50",
+                                        isTouchMode ? "touch-row text-sm" : "text-xs",
+                                        onRowClick ? 'cursor-pointer' : 'default'
                                     )}
                                 >
                                     {columns.map((col, idx) => (
-                                        <td key={idx} className={clsx(
-                                            "px-4 py-3 whitespace-nowrap",
+                                        <td key={idx} className={cn(
+                                            "whitespace-nowrap",
+                                            isTouchMode ? "px-5 py-4" : "px-4 py-2",
                                             col.className?.includes('right') ? 'text-right' : col.className?.includes('center') ? 'text-center' : 'text-left'
                                         )}>
                                             {typeof col.accessor === 'function'

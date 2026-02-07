@@ -1,5 +1,6 @@
 import React from 'react';
-import clsx from 'clsx';
+import { useUI } from '../context/UIContext';
+import { cn } from '../utils/cn';
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
     variant?: 'primary' | 'secondary' | 'danger' | 'ghost';
@@ -9,7 +10,11 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     ({ className, variant = 'primary', size = 'md', fullWidth = false, ...props }, ref) => {
-        const baseStyles = 'inline-flex items-center justify-center rounded-mac font-medium transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none ring-offset-white active:scale-[0.98]';
+        const { isTouchMode } = useUI();
+        const baseStyles = cn(
+            'inline-flex items-center justify-center rounded-lg font-medium transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none ring-offset-white',
+            isTouchMode && 'active:scale-[0.98]'
+        );
 
         const variants = {
             primary: 'bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 focus:ring-primary/50 font-bold',
@@ -19,15 +24,15 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         };
 
         const sizes = {
-            sm: 'h-8 px-3 text-xs',
-            md: 'h-10 px-4 text-sm',
-            lg: 'h-12 px-6 text-base',
+            sm: isTouchMode ? 'h-10 px-4 text-xs' : 'h-8 px-3 text-[11px]',
+            md: isTouchMode ? 'h-12 px-5 text-sm' : 'h-10 px-4 text-xs',
+            lg: isTouchMode ? 'h-14 px-8 text-base' : 'h-12 px-6 text-sm',
         };
 
         return (
             <button
                 ref={ref}
-                className={clsx(
+                className={cn(
                     baseStyles,
                     variants[variant],
                     sizes[size],

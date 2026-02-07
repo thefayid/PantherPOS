@@ -56,7 +56,7 @@ export default function Dashboard() {
     return (
         <div className="p-2 space-y-6">
             {/* Header */}
-            <div className="flex justify-between items-end bg-surface/50 backdrop-blur-lg p-6 rounded-2xl border border-border shadow-lg">
+            <div className="flex justify-between items-end bg-surface/50 backdrop-blur-lg p-6 rounded-xl border border-border shadow-lg">
                 <div>
                     <h1 className="text-3xl font-bold mb-2 tracking-tight text-foreground">Dashboard Overview</h1>
                     <p className="text-sm text-emerald-500 font-bold flex items-center gap-2 bg-emerald-500/10 px-3 py-1 rounded-full w-fit">
@@ -109,7 +109,7 @@ export default function Dashboard() {
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* LEFT: Sales Trend (Visual) */}
-                <div className="bg-surface/50 backdrop-blur-md border border-border rounded-2xl p-6 lg:col-span-2 shadow-lg h-[400px] flex flex-col">
+                <div className="bg-surface/50 backdrop-blur-md border border-border rounded-xl p-6 lg:col-span-2 shadow-lg h-[400px] flex flex-col">
                     <div className="flex justify-between items-center mb-6">
                         <h3 className="text-xl font-bold flex items-center gap-3 text-foreground">
                             <TrendingUp size={20} className="text-primary" />
@@ -146,7 +146,7 @@ export default function Dashboard() {
                 </div>
 
                 {/* RIGHT: Recent Activity */}
-                <div className="bg-surface/50 backdrop-blur-md border border-border rounded-2xl flex flex-col shadow-lg h-[400px]">
+                <div className="bg-surface/50 backdrop-blur-md border border-border rounded-xl flex flex-col shadow-lg h-[400px]">
                     <div className="p-6 border-b border-border">
                         <h3 className="text-xl font-bold flex items-center gap-3 text-foreground">
                             <Clock size={20} className="text-purple-400" />
@@ -196,7 +196,7 @@ function StatCard({ title, value, icon: Icon, color, bg, subtext, onClick }: any
         <div
             onClick={onClick}
             className={`
-                bg-surface/50 backdrop-blur-md border border-border rounded-2xl p-6 flex flex-col justify-between h-40 
+                bg-surface/50 backdrop-blur-md border border-border rounded-xl p-6 flex flex-col justify-between h-40 
                 transition-all duration-300 group
                 ${onClick ? 'cursor-pointer hover:-translate-y-1 hover:shadow-glow hover:border-primary/30' : 'hover:border-border'}
             `}

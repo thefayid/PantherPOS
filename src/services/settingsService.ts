@@ -14,10 +14,8 @@ export interface AppSettings {
     receipt_header: string;
     invoice_terms: string;
     invoice_footer: string;
-    scale_enabled: boolean;
-    scale_port: string;
-    scale_baud_rate: number;
     scale_protocol: string;
+    touch_mode: boolean;
 }
 
 let initPromise: Promise<void> | null = null;
@@ -55,7 +53,8 @@ export const settingsService = {
                 ['scale_enabled', 'false'],
                 ['scale_port', 'COM1'],
                 ['scale_baud_rate', '9600'],
-                ['scale_protocol', 'GENERIC']
+                ['scale_protocol', 'GENERIC'],
+                ['touch_mode', 'false']
             ];
 
             // Use INSERT OR IGNORE to avoid race conditions and UNIQUE constraint errors
@@ -71,7 +70,7 @@ export const settingsService = {
         const result = await databaseService.query(`SELECT * FROM settings`);
         const settings: any = {};
         result.forEach((row: { key: string; value: string }) => {
-            if (row.key === 'printer_enabled' || row.key === 'drawer_enabled' || row.key === 'scale_enabled') {
+            if (row.key === 'printer_enabled' || row.key === 'drawer_enabled' || row.key === 'scale_enabled' || row.key === 'touch_mode') {
                 settings[row.key] = row.value === 'true';
             } else if (row.key === 'pulse_on' || row.key === 'pulse_off' || row.key === 'scale_baud_rate') {
                 settings[row.key] = parseInt(row.value);

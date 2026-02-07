@@ -3,6 +3,7 @@ import { cashService } from './cashService';
 import { customerService } from './customerService';
 import { eventBus } from '../utils/EventBus';
 import { databaseService } from './databaseService';
+import toast from 'react-hot-toast';
 
 export interface TransactionData {
     items: (Product & { quantity: number; amount: number })[];
@@ -20,6 +21,7 @@ export interface TransactionData {
     promotion_id?: number;
     order_type?: 'DINE_IN' | 'TAKEAWAY' | 'DELIVERY';
     notes?: string;
+    originalBillId?: number;
 }
 
 export const billService = {
@@ -60,18 +62,50 @@ export const billService = {
         // If multi-tender, use "SPLIT" as the primary mode in bills table
         const primaryPaymentMode = data.tenders.length > 1 ? 'SPLIT' : (data.tenders[0]?.mode || 'CASH');
 
+        // Determine Status based on total
+        const status = data.grandTotal < 0 ? 'REFUNDED' : 'PAID';
+
+        console.log('[billService] Debug - Saving Bill:', { total: data.grandTotal, status });
+        // toast('Debug: Saving Bill ' + status + ' ₹' + data.grandTotal, { icon: '🐛' });
+
         const insertResult = await databaseService.query(
             `INSERT INTO bills (bill_no, date, subtotal, cgst, sgst, igst, gst_total, total, payment_mode, customer_id, discount_amount, points_redeemed, points_earned, promotion_id, order_type, notes, status)
              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [billNo, dateStr, data.subtotal, cgst, sgst, igst, data.totalTax, data.grandTotal, primaryPaymentMode, data.customer_id || null, data.discount_amount, data.points_redeemed, data.points_earned, data.promotion_id || null, data.order_type || 'DINE_IN', data.notes || '', 'PAID']
+            [billNo, dateStr, data.subtotal, cgst, sgst, igst, data.totalTax, data.grandTotal, primaryPaymentMode, data.customer_id || null, data.discount_amount, data.points_redeemed, data.points_earned, data.promotion_id || null, data.order_type || 'DINE_IN', data.notes || '', status]
         );
 
         if (insertResult.error) {
+            toast.error('Debug: DB Insert Failed: ' + insertResult.error);
             throw new Error(`Database Insert Error: ${insertResult.error}`);
         }
 
+        console.log('[billService] Insert Result:', insertResult);
+
         // Get the ID directly from the insert result
-        const billId = insertResult.lastInsertRowid;
+        let billId = insertResult.lastInsertRowid;
+        console.log('[billService] Generated Bill ID (Initial):', billId);
+
+        // Fallback: If ID is missing (IPC issue), fetch it by bill_no
+        if (!billId) {
+            console.warn('[billService] ID missing from insert result. Attempting fallback fetch...');
+            try {
+                const idRes = await databaseService.query('SELECT id FROM bills WHERE bill_no = ?', [billNo]);
+                if (idRes && idRes.length > 0) {
+                    billId = idRes[0].id;
+                    console.log('[billService] Fallback ID fetched:', billId);
+                }
+            } catch (e) {
+                console.error('[billService] Fallback fetch failed:', e);
+            }
+        }
+
+        if (!billId) {
+            console.error('[billService] CRITICAL: Bill ID is null/undefined!');
+            toast.error('Error: Failed to generate Bill ID');
+            throw new Error('Failed to generate Bill ID');
+        }
+
+        // toast('Debug: Bill Saved ID=' + billId, { icon: '✅' });
 
         // 1b. Insert Tenders
         for (const tender of data.tenders) {
@@ -89,8 +123,22 @@ export const billService = {
             }
         }
 
+        // 1c. Update Customer Loyalty Points & Stats
+        if (data.customer_id) {
+            // Update purchase stats
+            await customerService.updateStats(data.customer_id, data.grandTotal);
+
+            // Update Points: Add earned, subtract redeemed
+            const netPoints = (data.points_earned || 0) - (data.points_redeemed || 0);
+            if (netPoints !== 0) {
+                await customerService.updatePoints(data.customer_id, netPoints);
+            }
+        }
+
         // 2. Insert Bill Items
+        console.log('[billService] Inserting Items. Count:', data.items.length);
         for (const item of data.items) {
+            console.log('[billService] Saving Item:', item.id, item.name, item.quantity);
             let taxableValue = 0;
             let gstAmount = 0;
 
@@ -120,17 +168,19 @@ export const billService = {
         const cashTenders = data.tenders.filter(t => t.mode === 'CASH');
         const totalCash = cashTenders.reduce((sum, t) => sum + t.amount, 0);
 
-        if (totalCash > 0) {
+        if (totalCash !== 0) {
             const session = await cashService.getCurrentSession();
             if (session) {
+                const type = totalCash > 0 ? 'SALE' : 'REFUND';
                 await cashService.addTransaction(
                     session.id,
-                    'SALE',
-                    totalCash,
-                    `Bill Sale: ${billNo}`
+                    type,
+                    Math.abs(totalCash),
+                    `Bill ${type === 'SALE' ? 'Sale' : 'Refund'}: ${billNo}`
                 );
             } else {
-                console.warn('No active cash session found. Cash transaction not recorded for bill:', billNo);
+                console.error('No active cash session found for bill:', billNo);
+                throw new Error("No Active Cash Session. Please 'Open Register' in Cash Management before processing Cash transactions.");
             }
         }
 
@@ -224,6 +274,19 @@ export const billService = {
                 });
             }
         });
+
+        // 7. Trigger Automation (Background)
+        import('./automationService').then(({ automationService }) => {
+            automationService.checkTriggers('NEW_SALE', {
+                id: billId,
+                billNo,
+                grandTotal: data.grandTotal,
+                customer_id: data.customer_id
+            });
+        });
+
+        // 5. Update Original Bill if this is a Refund (REMOVED)
+        // Feature disabled by user request.
 
         return billNo;
     },
@@ -343,7 +406,7 @@ export const billService = {
         const items = await databaseService.query(
             `SELECT bi.*, p.name as product_name 
              FROM bill_items bi
-             JOIN products p ON bi.product_id = p.id
+             LEFT JOIN products p ON bi.product_id = p.id
              WHERE bi.bill_id = ?`,
             [bill.id]
         );
@@ -356,5 +419,42 @@ export const billService = {
             'UPDATE bills SET notes = ? WHERE bill_no = ?',
             [notes, billNo]
         );
+    },
+
+    getBillByNo: async (billNo: string) => {
+        const billQuery = `
+            SELECT b.*, c.name as customer_name, c.phone as customer_phone 
+            FROM bills b
+            LEFT JOIN customers c ON b.customer_id = c.id
+            WHERE b.bill_no = ?
+        `;
+        const bills = await databaseService.query(billQuery, [billNo]);
+
+        if (!bills || bills.length === 0) return null;
+
+        const bill = bills[0];
+        console.log('[billService] getBillByNo - Found Bill:', bill.id, bill.bill_no);
+
+        // DEBUG: Check raw items
+        try {
+            const rawItems = await databaseService.query('SELECT * FROM bill_items WHERE bill_id = ?', [bill.id]);
+            console.log('[billService] Raw Bill Items:', rawItems);
+            if (rawItems.length === 0) {
+                console.warn('[billService] WARNING: No items found in bill_items for bill_id:', bill.id);
+            }
+        } catch (e) {
+            console.error('[billService] Error checking raw items:', e);
+        }
+
+        // Fetch items
+        const itemsQuery = `
+            SELECT bi.*, p.name, p.barcode, p.image, p.sell_price as current_price
+            FROM bill_items bi
+            LEFT JOIN products p ON bi.product_id = p.id
+            WHERE bi.bill_id = ?
+        `;
+        const items = await databaseService.query(itemsQuery, [bill.id]);
+
+        return { ...bill, items };
     }
 };

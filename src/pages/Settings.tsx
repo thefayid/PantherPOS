@@ -7,8 +7,12 @@ import { syncService } from '../services/syncService';
 import { Receipt, Database, Percent, Trash2, Plus, Printer, Store, Check, AlertCircle, RefreshCw } from 'lucide-react';
 import { Button } from '../components/Button';
 import { Modal } from '../components/Modal';
+import { useUI } from '../context/UIContext';
+import { Smartphone, Monitor } from 'lucide-react';
+import { cn } from '../utils/cn';
 
 export default function Settings() {
+    const { isTouchMode, setTouchMode } = useUI();
     const [settings, setSettings] = useState<AppSettings | null>(null);
     const [activeTab, setActiveTab] = useState<'GENERAL' | 'TAXES' | 'RECEIPT' | 'DATA'>('GENERAL');
     const [taxRates, setTaxRates] = useState<any[]>([]);
@@ -140,6 +144,45 @@ export default function Settings() {
                                         <div className="font-black text-slate-900 relative z-10 text-sm uppercase tracking-widest">Bubblegum Light</div>
                                         <div className="text-[10px] text-slate-500 relative z-10 font-bold mt-1">CLEAN & AIRY</div>
                                         <div className="absolute inset-0 bg-gradient-to-br from-pink-500/5 to-transparent opacity-20" />
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="flex flex-col gap-6 border-t border-border/50 pt-6">
+                                <h2 className="text-lg font-black border-b border-border/50 pb-3 text-foreground uppercase tracking-tight">System Optimization</h2>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <button
+                                        onClick={() => setTouchMode(false)}
+                                        className={cn(
+                                            "p-6 border rounded-2xl transition-all text-left flex flex-col gap-2 relative overflow-hidden group",
+                                            !isTouchMode
+                                                ? "bg-primary/10 border-primary shadow-sm"
+                                                : "bg-surface border-border hover:border-primary/30"
+                                        )}
+                                    >
+                                        <Monitor size={24} className={!isTouchMode ? "text-primary" : "text-muted-foreground"} />
+                                        <div>
+                                            <div className="font-black text-sm uppercase tracking-widest text-foreground">Normal Mode</div>
+                                            <div className="text-[10px] text-muted-foreground font-bold mt-1 uppercase">Desktop & Mouse Optimized</div>
+                                        </div>
+                                        {!isTouchMode && <div className="absolute top-4 right-4 bg-primary text-primary-foreground text-[8px] font-black px-2 py-0.5 rounded-full tracking-widest">ACTIVE</div>}
+                                    </button>
+
+                                    <button
+                                        onClick={() => setTouchMode(true)}
+                                        className={cn(
+                                            "p-6 border rounded-2xl transition-all text-left flex flex-col gap-2 relative overflow-hidden group",
+                                            isTouchMode
+                                                ? "bg-primary/10 border-primary shadow-sm"
+                                                : "bg-surface border-border hover:border-primary/30"
+                                        )}
+                                    >
+                                        <Smartphone size={24} className={isTouchMode ? "text-primary" : "text-muted-foreground"} />
+                                        <div>
+                                            <div className="font-black text-sm uppercase tracking-widest text-foreground">Touch Screen</div>
+                                            <div className="text-[10px] text-muted-foreground font-bold mt-1 uppercase">Tablet & Kiosk Optimized</div>
+                                        </div>
+                                        {isTouchMode && <div className="absolute top-4 right-4 bg-primary text-primary-foreground text-[8px] font-black px-2 py-0.5 rounded-full tracking-widest">ACTIVE</div>}
                                     </button>
                                 </div>
                             </div>

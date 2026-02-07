@@ -17,8 +17,8 @@ export default function Sales() {
     const [dateTo, setDateTo] = useState('');
     const [status, setStatus] = useState('ALL');
     const [loading, setLoading] = useState(false);
-    const [summary, setSummary] = useState({ total: 0, count: 0 });
-    const [todaySummary, setTodaySummary] = useState({ total: 0, count: 0 });
+    const [summary, setSummary] = useState({ total: 0, count: 0, gross: 0, refunds: 0 });
+    const [todaySummary, setTodaySummary] = useState({ total: 0, count: 0, gross: 0, refunds: 0 });
 
     const [selectedBill, setSelectedBill] = useState<BillWithItems | null>(null);
     const [showPinModal, setShowPinModal] = useState(false);
@@ -87,8 +87,12 @@ export default function Sales() {
                     <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
                         <TrendingUp size={48} className="text-primary" />
                     </div>
-                    <div className="text-sm font-bold text-primary uppercase tracking-wider mb-2">Today's Sales</div>
+                    <div className="text-sm font-bold text-primary uppercase tracking-wider mb-2">Today's Sales (Net)</div>
                     <div className="text-3xl font-bold text-foreground">₹{todaySummary.total.toFixed(2)}</div>
+                    <div className="flex gap-4 mt-2 text-xs">
+                        <span className="text-emerald-500">G: ₹{todaySummary.gross?.toFixed(2) || '0.00'}</span>
+                        <span className="text-red-500">R: ₹{todaySummary.refunds?.toFixed(2) || '0.00'}</span>
+                    </div>
                     <div className="absolute bottom-0 left-0 h-1 bg-primary w-full opacity-50"></div>
                 </div>
 
@@ -102,11 +106,12 @@ export default function Sales() {
                 </div>
 
                 <div className="bg-surface p-6 rounded-2xl border border-border shadow-lg relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                        <TrendingUp size={48} />
-                    </div>
-                    <div className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-2">Filtered Sales</div>
+                    <div className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-2">Net Sales</div>
                     <div className="text-3xl font-bold text-foreground">₹{summary.total.toFixed(2)}</div>
+                    <div className="flex gap-4 mt-2 text-xs">
+                        <span className="text-emerald-500">Gross: ₹{summary.gross?.toFixed(2) || '0.00'}</span>
+                        <span className="text-red-500">Ref: ₹{summary.refunds?.toFixed(2) || '0.00'}</span>
+                    </div>
                 </div>
 
                 <div className="bg-surface p-6 rounded-2xl border border-border shadow-lg relative overflow-hidden group">
@@ -156,10 +161,12 @@ export default function Sales() {
                     <option value="PAID">Paid</option>
                     <option value="CANCELLED">Cancelled</option>
                 </select>
-                <button onClick={fetchData} className="p-2 rounded-lg bg-surface hover:bg-muted text-foreground border border-border transition-colors shadow-sm" title="Refresh">
+                <button onClick={() => { console.log('Manual Refresh'); fetchData(); }} className="p-2 rounded-lg bg-surface hover:bg-muted text-foreground border border-border transition-colors shadow-sm" title="Refresh">
                     <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
                 </button>
             </div>
+
+
 
             {/* Sales Table */}
             <div className="flex-1 bg-surface rounded-xl border border-border flex flex-col overflow-hidden shadow-xl">

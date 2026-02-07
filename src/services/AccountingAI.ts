@@ -1,5 +1,6 @@
 import { accountingService } from './accountingService';
 import { databaseService } from './databaseService';
+import { reportService } from './reportService';
 
 export interface AIActionResponse {
     action: string;
@@ -29,23 +30,30 @@ export const accountingAI = {
 
     handleExpense: async (payload: any): Promise<AIActionResponse> => {
         // payload: { amount, reason, paymentMode? }
-        const paymentAccount = payload.paymentMode === 'UPI' ? 'Bank' : 'Cash'; // Simple heuristic
+        try {
+            await accountingService.addExpense(payload.amount, payload.reason || 'Miscellaneous Expense');
 
-        return {
-            explanation: `Recording expense using ${paymentAccount}.`,
-            action: 'create_journal_entry',
-            module: 'general_ledger',
-            details: {
-                amount: payload.amount,
-                narration: payload.reason || 'Miscellaneous Expense',
-                payment_mode: payload.paymentMode || 'Cash'
-            },
-            journal_entries: [
-                { ledger: payload.reason || 'Miscellaneous Expenses', type: 'debit', amount: payload.amount },
-                { ledger: paymentAccount, type: 'credit', amount: payload.amount }
-            ],
-            notes: "Entry will be posted as 'Draft' for review."
-        };
+            return {
+                explanation: `Expense of ₹${payload.amount} recorded successfully.`,
+                action: 'show_notification',
+                module: 'accounting',
+                details: {
+                    type: 'success',
+                    message: `Expense Recorded: ₹${payload.amount}`
+                },
+                notes: "Transaction saved to Ledger and Cash Management."
+            };
+        } catch (error: any) {
+            return {
+                explanation: `Failed to record expense: ${error.message}`,
+                action: 'show_notification',
+                module: 'accounting',
+                details: {
+                    type: 'error',
+                    message: error.message
+                }
+            };
+        }
     },
 
     handleAnalytics: async (payload: any): Promise<AIActionResponse> => {
@@ -84,18 +92,50 @@ export const accountingAI = {
 
     handleReport: async (payload: any): Promise<AIActionResponse> => {
         if (payload.reportType === 'profit' || payload.reportType === 'pl') {
-            const today = new Date().toISOString().slice(0, 10);
-            const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().slice(0, 10);
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const today = `${year}-${month}-${day}`;
+            const startOfMonth = `${year}-${month}-01`;
+
+            console.log(`[AccountingAI] Querying Profit for range: ${startOfMonth} to ${today} (Local)`);
+
             const pnl = await accountingService.getProfitAndLoss(startOfMonth, today);
 
+            // Fallback to POS Profit if Accounting Profit is 0 (User likely not using Vouchers)
+            let explanation = `Profit & Loss for this month generated. Net Profit: ₹${Number(pnl.netProfit || 0).toLocaleString()}.`;
+            let extraData = {};
+
+            if (pnl.netProfit === 0) {
+                const posProfit = await reportService.getGrossProfit(startOfMonth, today);
+                if (posProfit.profit !== 0) {
+                    explanation = `Profit & Loss for this month. Gross Profit from Sales: ₹${Number(posProfit.profit).toLocaleString()} (Revenue: ₹${Number(posProfit.revenue).toLocaleString()}).`;
+                    extraData = { pos_profit: posProfit };
+                } else if ((posProfit as any).count > 0) {
+                    explanation = `Profit is 0, but found ${(posProfit as any).count} sales. Revenue: ₹${posProfit.revenue}, Cost: ₹${posProfit.cost}. Check product costs.`;
+                } else {
+                    const debugInfo = await reportService.getDebugStats(startOfMonth, today);
+                    if (debugInfo.totalBills === 0) {
+                        explanation = `Net Profit: ₹0. (Debug: Database is empty, no bills found).`;
+                    } else {
+                        explanation = `Net Profit: ₹0. Debug:
+Bills: ${debugInfo.totalBills}, Items: ${debugInfo.totalItems}
+Sample Bills (IDs): ${JSON.stringify(debugInfo.sampleBills.map((b: any) => b.id))}
+Sample Items (Bill_iDs): ${JSON.stringify(debugInfo.sampleItems.map((i: any) => i.bill_id))}
+JOIN Mismatch detected.`;
+                    }
+                }
+            }
+
             return {
-                explanation: `Profit & Loss for this month generated. Net Profit: ₹${Number(pnl.netProfit || 0).toLocaleString()}.`,
+                explanation: explanation,
                 action: 'show_report',
                 module: 'reporting',
                 details: {
                     type: 'profit_and_loss',
                     period: 'This Month',
-                    data: pnl
+                    data: { ...pnl, ...extraData }
                 }
             };
         } else if (payload.reportType === 'gst' || payload.reportType === 'tax') {

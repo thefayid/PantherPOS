@@ -191,6 +191,20 @@ export const productService = {
             // If result exists, query ran. 
             // changes=0 implies value was already same OR id not found (but we checked existence).
             // We'll treat valid result as success.
+
+            // Check for Automation (Low Stock)
+            if (result.changes > 0) {
+                const pRows = await databaseService.query('SELECT * FROM products WHERE id = ?', [id]);
+                if (pRows && pRows.length > 0) {
+                    const p = pRows[0];
+                    if (p.stock <= (p.min_stock_level || 5)) {
+                        import('./automationService').then(({ automationService }) => {
+                            automationService.checkTriggers('LOW_STOCK', p);
+                        });
+                    }
+                }
+            }
+
             return { success: true, message: result.changes === 0 ? 'Value was already set' : undefined };
         } catch (e: any) {
             console.error('[ProductService] DB Error:', e);

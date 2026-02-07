@@ -23,11 +23,14 @@ import {
     LogOut,
     ChevronLeft,
     Megaphone,
+    ListTodo,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { databaseService } from '../services/databaseService';
 import { platformService } from '../services/platformService';
 import { useKeyboard } from '../hooks/useKeyboard';
+import { useUI } from '../context/UIContext';
+import { cn } from '../utils/cn';
 
 interface SidebarProps {
     user: any;
@@ -37,6 +40,7 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ user, onLogout, isOpen = false, onClose }: SidebarProps) {
+    const { isTouchMode } = useUI();
     const navigate = useNavigate();
     const location = useLocation();
     const [isConnected, setIsConnected] = useState(false);
@@ -58,6 +62,7 @@ export default function Sidebar({ user, onLogout, isOpen = false, onClose }: Sid
     const menuItems = [
         { icon: ShoppingCart, label: 'Billing', path: '/' },
         { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
+        { icon: ListTodo, label: 'Tasks', path: '/tasks' },
         { icon: Package, label: 'Products', path: '/products' },
         { icon: BarChart3, label: 'Sales', path: '/sales' },
         { icon: Megaphone, label: 'Marketing', path: '/marketing' },
@@ -92,11 +97,17 @@ export default function Sidebar({ user, onLogout, isOpen = false, onClose }: Sid
         shortcut: shortcutKeys[index],
     }));
 
+    const [searchQuery, setSearchQuery] = useState('');
+
+    const filteredMenuItems = menuItemsWithShortcuts.filter(item =>
+        item.label.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
     // Register global keyboard shortcuts for quick tab navigation
     const keyboardMap: Record<string, (e: KeyboardEvent) => void> = {};
 
     // Letter shortcuts (q, w, e, ...)
-    menuItemsWithShortcuts.forEach((item) => {
+    filteredMenuItems.forEach((item) => {
         if (!item.shortcut) return;
 
         keyboardMap[item.shortcut] = (e: KeyboardEvent) => {
@@ -120,6 +131,7 @@ export default function Sidebar({ user, onLogout, isOpen = false, onClose }: Sid
         const target = (e.target as HTMLElement | null) ?? (document.activeElement as HTMLElement | null);
         const tag = target?.tagName.toLowerCase();
         const isEditable =
+            tag === 'input' ||
             tag === 'textarea' ||
             (target != null && target.isContentEditable);
 
@@ -127,20 +139,20 @@ export default function Sidebar({ user, onLogout, isOpen = false, onClose }: Sid
         // but still avoid hijacking textareas / rich text editors.
         if (isEditable) return;
 
-        const total = menuItemsWithShortcuts.length;
+        const total = filteredMenuItems.length;
         if (total === 0) return;
 
         // Try exact match first, then prefix match for nested routes (e.g. /reports/sales)
-        let currentIndex = menuItemsWithShortcuts.findIndex((item) => item.path === location.pathname);
+        let currentIndex = filteredMenuItems.findIndex((item) => item.path === location.pathname);
         if (currentIndex === -1) {
-            currentIndex = menuItemsWithShortcuts.findIndex((item) =>
+            currentIndex = filteredMenuItems.findIndex((item) =>
                 location.pathname.startsWith(item.path) && item.path !== '/'
             );
         }
 
         const baseIndex = currentIndex === -1 ? 0 : currentIndex;
         const nextIndex = (baseIndex + direction + total) % total;
-        const nextItem = menuItemsWithShortcuts[nextIndex];
+        const nextItem = filteredMenuItems[nextIndex];
 
         e.preventDefault();
         navigate(nextItem.path);
@@ -166,11 +178,11 @@ export default function Sidebar({ user, onLogout, isOpen = false, onClose }: Sid
             )}
 
             <div
-                className={`
-                    flex flex-col h-full bg-background text-foreground border-r border-border
-                    transition-all duration-300 ease-in-out w-64
-                    ${isOpen ? 'fixed inset-y-0 left-0 z-50 shadow-2xl translate-x-0' : 'hidden md:flex md:relative md:translate-x-0'}
-                `}
+                className={cn(
+                    "flex flex-col h-full bg-background text-foreground border-r border-border transition-all duration-300 ease-in-out",
+                    isTouchMode ? "w-72" : "w-64",
+                    isOpen ? 'fixed inset-y-0 left-0 z-50 shadow-2xl translate-x-0' : 'hidden md:flex md:relative md:translate-x-0'
+                )}
             >
                 {/* Logo Section */}
                 <div className="p-6 flex items-center justify-between">
@@ -203,7 +215,7 @@ export default function Sidebar({ user, onLogout, isOpen = false, onClose }: Sid
                             if (onClose) onClose();
                         }}
                         className={`
-                            w-full group relative overflow-hidden rounded-2xl p-4 transition-all duration-300
+                            w-full group relative overflow-hidden rounded-xl p-4 transition-all duration-300
                             ${location.pathname === '/ai-assist'
                                 ? 'bg-primary text-primary-foreground shadow-[0_0_20px_rgba(34,211,238,0.4)]'
                                 : 'bg-primary/10 border border-primary/20 text-primary hover:bg-primary/20'
@@ -224,9 +236,23 @@ export default function Sidebar({ user, onLogout, isOpen = false, onClose }: Sid
                     </button>
                 </div>
 
+                {/* Search Bar */}
+                <div className={cn("px-4 pb-4", isTouchMode && "px-6 pb-6")}>
+                    <input
+                        type="text"
+                        placeholder="Search menu..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className={cn(
+                            "w-full bg-muted/50 border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all placeholder:text-muted-foreground/40",
+                            isTouchMode ? "px-6 py-5 text-lg" : "px-4 py-3 text-md"
+                        )}
+                    />
+                </div>
+
                 {/* Navigation */}
                 <nav className="flex-1 px-4 py-2 space-y-1 overflow-y-auto no-scrollbar">
-                    {menuItemsWithShortcuts.map((item) => {
+                    {filteredMenuItems.map((item) => {
                         const isActive = location.pathname === item.path;
 
                         return (
@@ -236,16 +262,19 @@ export default function Sidebar({ user, onLogout, isOpen = false, onClose }: Sid
                                     navigate(item.path);
                                     if (onClose) onClose();
                                 }}
-                                className={`
-                                    w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group
-                                    ${isActive
+                                className={cn(
+                                    "w-full flex items-center gap-4 rounded-xl transition-all duration-200 group",
+                                    isTouchMode ? "px-6 py-5" : "px-4 py-2.5",
+                                    isActive
                                         ? 'bg-primary/10 text-primary shadow-sm ring-1 ring-primary/20'
                                         : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-                                    }
-                                `}
+                                )}
                             >
-                                <item.icon size={18} className={`${isActive ? 'text-primary' : 'group-hover:text-primary transition-colors'}`} />
-                                <span className="text-sm font-medium tracking-wide">
+                                <item.icon size={isTouchMode ? 28 : 18} className={isActive ? 'text-primary' : 'group-hover:text-primary transition-colors'} />
+                                <span className={cn(
+                                    "tracking-wide",
+                                    isTouchMode ? "text-md font-black" : "text-sm font-medium"
+                                )}>
                                     {item.label}
                                 </span>
                                 {item.shortcut && (
@@ -256,6 +285,12 @@ export default function Sidebar({ user, onLogout, isOpen = false, onClose }: Sid
                             </button>
                         );
                     })}
+
+                    {filteredMenuItems.length === 0 && (
+                        <div className="text-center py-4 text-xs text-muted-foreground">
+                            No sections found
+                        </div>
+                    )}
                 </nav>
 
                 {/* Footer / Status */}

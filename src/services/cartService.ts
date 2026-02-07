@@ -40,6 +40,7 @@ class CartService {
     }
 
     public addItem(product: Product, quantity: number = 1) {
+        console.log('[cartService] Adding Item:', product.id, quantity);
         const existing = this.items.find(p => p.id === product.id);
         if (existing) {
             this.items = this.items.map(p => p.id === product.id
@@ -49,6 +50,7 @@ class CartService {
         } else {
             this.items = [...this.items, { ...product, quantity, amount: product.sell_price * quantity }];
         }
+        console.log('[cartService] Cart Value Now:', this.items);
         this.save();
     }
 
@@ -60,7 +62,11 @@ class CartService {
     public updateQuantity(productId: number, delta: number) {
         this.items = this.items.map(item => {
             if (item.id === productId) {
-                const newQty = Math.max(0.001, item.quantity + delta); // Allow small decimals but keep > 0
+                const newQty = item.quantity + delta;
+                if (newQty === 0) return item; // or remove? currently existing logic kept > 0. Let's allow negative but skip 0? 
+                // Actually returning 0 might be desired to remove, but removeItem handles that.
+                // For refund, -1 + (-1) = -2. -1 + 1 = 0.
+                if (Math.abs(newQty) < 0.001) return item; // Prevent 0 usually, but allow negative.
                 // simple round to 3 decimal places to avoid float errors
                 const roundedQty = Math.round(newQty * 1000) / 1000;
                 return { ...item, quantity: roundedQty, amount: roundedQty * item.sell_price };
@@ -73,7 +79,8 @@ class CartService {
     public setQuantity(productId: number, quantity: number) {
         this.items = this.items.map(item => {
             if (item.id === productId) {
-                const newQty = Math.max(0.001, quantity);
+                const newQty = quantity;
+                if (Math.abs(newQty) < 0.001) return item;
                 // simple round to 3 decimal places
                 const roundedQty = Math.round(newQty * 1000) / 1000;
                 return { ...item, quantity: roundedQty, amount: roundedQty * item.sell_price };

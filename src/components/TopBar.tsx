@@ -1,6 +1,10 @@
 import { Search, Bell, User } from 'lucide-react';
 
-export function TopBar() {
+interface TopBarProps {
+    title?: string;
+}
+
+export function TopBar({ title }: TopBarProps) {
     return (
         <header className="h-14 flex items-center justify-between px-6 shrink-0 z-50 relative">
             {/* Left: Window Controls (Decorative) */}
@@ -14,7 +18,7 @@ export function TopBar() {
 
             {/* Center: App Title */}
             <div className="absolute left-1/2 top-1/2 -translate-x-1/2 flex items-center gap-2 pointer-events-none select-none">
-                <span className="text-sm font-semibold text-theme-text opacity-90 tracking-tight">PantherPOS</span>
+                <span className="text-sm font-semibold text-theme-text opacity-90 tracking-tight">{title || 'PantherPOS'}</span>
             </div>
 
             {/* Right: Search & Profile */}

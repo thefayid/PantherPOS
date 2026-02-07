@@ -19,6 +19,8 @@ import Notifications from './pages/Notifications';
 import Barcodes from './pages/Barcodes';
 import Marketing from './pages/Marketing';
 import Dashboard from './pages/Dashboard';
+import Tasks from './pages/Tasks';
+import TaskManagementPage from './pages/TasksV2';
 import AIAssist from './pages/AIAssist';
 import GstDashboard from './pages/GstDashboard';
 import AccountingDashboard from './pages/AccountingDashboard';
@@ -47,6 +49,7 @@ import TallySync from './pages/TallySync';
 import toast from 'react-hot-toast';
 import LicensePage from './pages/License';
 import { chatbotTrainingDataset } from './data/chatbotTrainingDataset';
+import { UIProvider } from './context/UIContext';
 
 function App() {
   const [user, setUser] = useState<User | null>(null);
@@ -235,56 +238,60 @@ function App() {
 
   return (
     <Router>
-      <AppShell user={user} onLogout={() => setUser(null)}>
-        <Routes>
-          <Route path="/staff" element={<StaffPage />} />
-          <Route path="/estimates" element={<Estimates />} />
-          <Route path="/barcodes" element={<Barcodes />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/products" element={<Products />} />
-          <Route path="/inventory" element={<Products />} />
-          <Route path="/marketing" element={<Marketing />} />
-          <Route path="/customers" element={<Customers />} />
-          <Route path="/sales" element={<Sales />} />
-          <Route path="/reports" element={<Reports />} />
-          <Route path="/settings" element={<Settings />} />
-          <Route path="/my-company" element={<CompanySettings />} />
-          <Route path="/end-of-day" element={<EndOfDay />} />
-          <Route path="/hardware" element={<Hardware />} />
-          <Route path="/promotions" element={<Promotions />} />
-          <Route path="/suppliers" element={<Suppliers />} />
-          <Route path="/purchases" element={<Purchases />} />
-          <Route path="/cash" element={<CashManagement user={user} />} />
-          <Route path="/stocktake" element={<Stocktake />} />
-          <Route path="/audit-logs" element={<AuditLogs />} />
-          <Route path="/notifications" element={<Notifications />} />
-          <Route path="/taxation" element={<GstDashboard />} />
-          <Route path="/accounting" element={<AccountingDashboard />} />
-          <Route path="/accounting/vouchers" element={<Vouchers />} />
-          <Route path="/accounting/chart" element={<ChartOfAccounts />} />
-          <Route path="/accounting/reports/tb" element={<TrialBalance />} />
-          <Route path="/accounting/reports/bs" element={<BalanceSheet />} />
-          <Route path="/accounting/tally" element={<TallySync />} />
-          <Route path="/ai-assist" element={<AIAssist />} />
-          <Route path="/" element={<Home />} />
-          <Route path="*" element={<Home />} />
-        </Routes>
+      <UIProvider>
+        <AppShell user={user} onLogout={() => setUser(null)}>
+          <Routes>
+            <Route path="/tasks" element={<TaskManagementPage />} />
+            <Route path="/tasks-v2" element={<TaskManagementPage />} />
+            <Route path="/staff" element={<StaffPage />} />
+            <Route path="/estimates" element={<Estimates />} />
+            <Route path="/barcodes" element={<Barcodes />} />
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/products" element={<Products />} />
+            <Route path="/inventory" element={<Products />} />
+            <Route path="/marketing" element={<Marketing />} />
+            <Route path="/customers" element={<Customers />} />
+            <Route path="/sales" element={<Sales />} />
+            <Route path="/reports" element={<Reports />} />
+            <Route path="/settings" element={<Settings />} />
+            <Route path="/my-company" element={<CompanySettings />} />
+            <Route path="/end-of-day" element={<EndOfDay />} />
+            <Route path="/hardware" element={<Hardware />} />
+            <Route path="/promotions" element={<Promotions />} />
+            <Route path="/suppliers" element={<Suppliers />} />
+            <Route path="/purchases" element={<Purchases />} />
+            <Route path="/cash" element={<CashManagement user={user} />} />
+            <Route path="/stocktake" element={<Stocktake />} />
+            <Route path="/audit-logs" element={<AuditLogs />} />
+            <Route path="/notifications" element={<Notifications />} />
+            <Route path="/taxation" element={<GstDashboard />} />
+            <Route path="/accounting" element={<AccountingDashboard />} />
+            <Route path="/accounting/vouchers" element={<Vouchers />} />
+            <Route path="/accounting/chart" element={<ChartOfAccounts />} />
+            <Route path="/accounting/reports/tb" element={<TrialBalance />} />
+            <Route path="/accounting/reports/bs" element={<BalanceSheet />} />
+            <Route path="/accounting/tally" element={<TallySync />} />
+            <Route path="/ai-assist" element={<AIAssist />} />
+            <Route path="/" element={<Home />} />
+            <Route path="*" element={<Home />} />
+          </Routes>
 
-        <Modal isOpen={isShiftModalOpen} onClose={() => { }} title="START SHIFT">
-          <div className="space-y-4">
-            <p className="text-mac-text-secondary font-bold">Please enter the opening cash balance for this register.</p>
-            <div>
-              <label className="text-xs font-bold text-mac-text-secondary uppercase tracking-wider mb-1 block">Opening Balance</label>
-              <input type="number" value={openingBalance} onChange={(e) => setOpeningBalance(e.target.value)} className="mac-input w-full h-12 text-lg font-black" placeholder="0.00" autoFocus />
+          <Modal isOpen={isShiftModalOpen} onClose={() => { }} title="START SHIFT">
+            <div className="space-y-4">
+              <p className="text-mac-text-secondary font-bold">Please enter the opening cash balance for this register.</p>
+              <div>
+                <label className="text-xs font-bold text-mac-text-secondary uppercase tracking-wider mb-1 block">Opening Balance</label>
+                <input type="number" value={openingBalance} onChange={(e) => setOpeningBalance(e.target.value)} className="mac-input w-full h-12 text-lg font-black" placeholder="0.00" autoFocus />
+              </div>
+              <div className="flex gap-3 mt-6">
+                <button className="mac-button-secondary flex-1" onClick={() => setIsShiftModalOpen(false)}>Skip / Start Later</button>
+                <button className="mac-button-ghost flex-1" onClick={() => setUser(null)}>Logout</button>
+                <button className="mac-button-primary flex-1" onClick={handleStartShift}>Start Shift</button>
+              </div>
             </div>
-            <div className="flex gap-3 mt-6">
-              <button className="mac-button-secondary flex-1" onClick={() => setIsShiftModalOpen(false)}>Skip / Start Later</button>
-              <button className="mac-button-ghost flex-1" onClick={() => setUser(null)}>Logout</button>
-              <button className="mac-button-primary flex-1" onClick={handleStartShift}>Start Shift</button>
-            </div>
-          </div>
-        </Modal>
-      </AppShell>
+          </Modal>
+        </AppShell>
+      </UIProvider>
     </Router>
   );
 }

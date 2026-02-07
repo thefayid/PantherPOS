@@ -703,7 +703,6 @@ const initDb = async (log = console.log) => {
         catch (e) {
             log(`Error seeding accounts: ${e.message}`);
         }
-
         // Seed demo/mock data for fresh databases only
         try {
             const productCount = db.exec("SELECT COUNT(*) as count FROM products")[0].values[0][0];
@@ -748,7 +747,7 @@ const initDb = async (log = console.log) => {
                 for (const [groupId, productId] of groupLinks) {
                     db.run("INSERT INTO product_group_items (group_id, product_id) VALUES (?, ?)", [groupId, productId]);
                 }
-                // Customers
+                // Customers (balance column exists via migration earlier)
                 const demoCustomers = [
                     [1, "Walk-in Customer", null, null, null, isoDaysAgo(30), 0, null, 0, 0],
                     [2, "Rahul Sharma", "9000011111", "rahul@example.com", "12 Lake View Rd", isoDaysAgo(12), 2480, isoDaysAgo(2), 120, 0],
@@ -774,12 +773,13 @@ const initDb = async (log = console.log) => {
                 ];
                 for (const b of demoBills) {
                     if (b[0] === 4) {
+                        // Insert with discount_amount populated for reports
                         db.run(`INSERT INTO bills (id, bill_no, date, subtotal, cgst, sgst, igst, gst_total, total, payment_mode, status, customer_id, discount_amount)
-                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [...b, 10]);
+                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [...b, 10]);
                     }
                     else {
                         db.run(`INSERT INTO bills (id, bill_no, date, subtotal, cgst, sgst, igst, gst_total, total, payment_mode, status, customer_id)
-                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, b);
+                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, b);
                     }
                 }
                 const demoBillItems = [
@@ -799,7 +799,6 @@ const initDb = async (log = console.log) => {
                     db.run(`INSERT INTO bill_items (id, bill_id, product_id, quantity, price, taxable_value, gst_rate, gst_amount)
                          VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, bi);
                 }
-
                 // Bill tenders (used by Payment Methods report)
                 const demoTenders = [
                     [1, 1, "CASH", 440],
@@ -811,7 +810,6 @@ const initDb = async (log = console.log) => {
                 for (const t of demoTenders) {
                     db.run(`INSERT INTO bill_tenders (id, bill_id, mode, amount) VALUES (?, ?, ?, ?)`, t);
                 }
-
                 // Suppliers + Purchase Orders (so Purchase reports aren't empty)
                 const demoSuppliers = [
                     [1, "FreshFoods Distributors", "9000099991", "contact@freshfoods.in", "Warehouse Rd", "22AAAAA0000A1Z5", new Date().toISOString(), 0],
@@ -830,11 +828,13 @@ const initDb = async (log = console.log) => {
                          VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, po);
                 }
                 const demoPurchaseItems = [
+                    // PO-0001 received
                     [1, 1, 1, 3, 220, 660],
                     [2, 1, 6, 10, 22, 220],
                     [3, 1, 9, 5, 58, 290],
                     [4, 1, 2, 1, 75, 75],
                     [5, 1, 4, 10, 10, 100],
+                    // PO-0002 ordered (unpaid/pending)
                     [6, 2, 10, 4, 90, 360],
                     [7, 2, 11, 4, 45, 180],
                     [8, 2, 12, 10, 18, 180],
@@ -846,7 +846,6 @@ const initDb = async (log = console.log) => {
                     db.run(`INSERT INTO purchase_order_items (id, purchase_order_id, product_id, quantity, cost_price, total_amount)
                          VALUES (?, ?, ?, ?, ?, ?)`, poi);
                 }
-
                 // Inventory loss/damage logs (Loss & Damage report)
                 const demoInventoryLogs = [
                     [1, 6, "DAMAGE", -1, "Damaged pack", isoDaysAgo(4), 1],
@@ -857,7 +856,6 @@ const initDb = async (log = console.log) => {
                     db.run(`INSERT INTO inventory_logs (id, product_id, type, quantity_change, reason, date, user_id)
                          VALUES (?, ?, ?, ?, ?, ?, ?)`, il);
                 }
-
                 // Cash sessions + transactions (Cash reconciliation / Staff performance)
                 db.run(`INSERT INTO cash_drawer_sessions (id, user_id, start_time, end_time, start_cash, end_cash, status)
                      VALUES (?, ?, ?, ?, ?, ?, ?)`, [1, 1, isoDaysAgo(1), isoDaysAgo(1), 2000, 2600, "CLOSED"]);
@@ -876,7 +874,7 @@ const initDb = async (log = console.log) => {
             }
         }
         catch (e) {
-            log(`Demo seed skipped/failed: ${(e === null || e === void 0 ? void 0 : e.message) || e}`);
+            log(`Demo seed skipped/failed: ${e?.message || e}`);
         }
         save(); // Save initial schema
     }

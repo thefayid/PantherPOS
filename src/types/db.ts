@@ -237,6 +237,7 @@ export interface CompanySettings {
     bank_acc_number: string;
     bank_details: string;
     logo: string;
+    owner_whatsapp?: string;
 }
 
 export interface VoidReason {
@@ -259,7 +260,7 @@ export interface Voucher {
     id: number;
     voucher_no: string;
     date: string;
-    type: 'RECEIPT' | 'PAYMENT' | 'JOURNAL' | 'CONTRA' | 'SALES' | 'PURCHASE';
+    type: 'RECEIPT' | 'PAYMENT' | 'JOURNAL' | 'CONTRA' | 'SALES' | 'PURCHASE' | 'EXPENSE';
     total_amount: number;
     reference_id?: string;
     notes?: string;
@@ -273,4 +274,39 @@ export interface VoucherItem {
     type: 'DEBIT' | 'CREDIT';
     amount: number;
     description?: string;
+}
+
+export interface Task {
+    id: number;
+    title: string;
+    description?: string;
+    status: 'TODO' | 'IN_PROGRESS' | 'WAITING' | 'DONE' | 'ARCHIVED';
+    priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+    due_date?: string;
+    start_date?: string;
+    created_at: string;
+    updated_at?: string;
+    creator_id: number;
+    assignee_id?: number;
+    related_entity_type?: 'INVOICE' | 'CUSTOMER' | 'PRODUCT' | 'SUPPLIER';
+    related_entity_id?: number;
+    tags?: string; // JSON string array
+    is_archived: boolean;
+}
+
+export interface TaskComment {
+    id: number;
+    task_id: number;
+    user_id: number;
+    comment: string;
+    created_at: string;
+}
+
+export interface AutomationRule {
+    id: number;
+    name: string;
+    trigger_type: 'NEW_SALE' | 'LOW_STOCK' | 'NEW_CUSTOMER' | 'INVOICE_OVERDUE';
+    action_type: 'CREATE_TASK' | 'SEND_WHATSAPP';
+    config_json: string; // JSON string
+    is_active: boolean;
 }

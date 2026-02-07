@@ -141,7 +141,7 @@ export const reportService = {
                 COUNT(*) as count,
                 CASE WHEN COUNT(*) > 0 THEN COALESCE(SUM(total), 0) / COUNT(*) ELSE 0 END as avg_ticket
             FROM bills
-            WHERE (status = 'PAID' OR status IS NULL OR status = '')
+            WHERE status != 'CANCELLED'
         `;
         const params: any[] = [];
         // Use date() function with 'localtime' to align with user's day boundaries
@@ -177,7 +177,7 @@ export const reportService = {
             SELECT bt.mode as payment_mode, COALESCE(SUM(bt.amount), 0) as total, COUNT(DISTINCT bt.bill_id) as count
             FROM bill_tenders bt
             JOIN bills b ON bt.bill_id = b.id
-            WHERE (b.status = 'PAID' OR b.status IS NULL OR b.status = '')
+            WHERE (b.status IN ('PAID', 'REFUNDED') OR b.status IS NULL OR b.status = '')
         `;
         const params: any[] = [];
         if (startDate) { sql += " AND date(b.date, 'localtime') >= ?"; params.push(startDate); }
@@ -192,7 +192,7 @@ export const reportService = {
             FROM bill_items bi
             JOIN products p ON bi.product_id = p.id
             JOIN bills b ON bi.bill_id = b.id
-            WHERE (b.status = 'PAID' OR b.status IS NULL OR b.status = '')
+            WHERE (b.status IN ('PAID', 'REFUNDED') OR b.status IS NULL OR b.status = '')
         `;
         const params: any[] = [];
         if (startDate) { sql += " AND date(b.date, 'localtime') >= ?"; params.push(startDate); }
@@ -211,7 +211,7 @@ export const reportService = {
                 COALESCE(SUM(gst_amount) / 2, 0) as sgst
             FROM bill_items bi
             JOIN bills b ON bi.bill_id = b.id
-            WHERE b.status = 'PAID'
+            WHERE b.status IN ('PAID', 'REFUNDED')
         `;
         const params: any[] = [];
         if (startDate) { sql += " AND date(b.date, 'localtime') >= ?"; params.push(startDate); }
@@ -226,7 +226,7 @@ export const reportService = {
             FROM bill_items bi
             JOIN products p ON bi.product_id = p.id
             JOIN bills b ON bi.bill_id = b.id
-            WHERE b.status = 'PAID'
+            WHERE b.status IN ('PAID', 'REFUNDED')
         `;
         const params: any[] = [];
         if (startDate) { sql += " AND date(b.date, 'localtime') >= ?"; params.push(startDate); }
@@ -239,7 +239,7 @@ export const reportService = {
         let sql = `
             SELECT strftime('%H:00', date, 'localtime') as hour, COUNT(*) as count, COALESCE(SUM(total), 0) as total
             FROM bills
-            WHERE status = 'PAID'
+            WHERE status IN ('PAID', 'REFUNDED')
         `;
         const params: any[] = [];
         if (startDate) { sql += " AND date(date, 'localtime') >= ?"; params.push(startDate); }
@@ -265,7 +265,7 @@ export const reportService = {
             FROM bill_items bi
             JOIN products p ON bi.product_id = p.id
             JOIN bills b ON bi.bill_id = b.id
-            WHERE b.status = 'PAID'
+            WHERE b.status IN ('PAID', 'REFUNDED')
         `;
         const params: any[] = [];
         if (startDate) { sql += " AND date(b.date, 'localtime') >= ?"; params.push(startDate); }
@@ -273,6 +273,58 @@ export const reportService = {
         sql += " GROUP BY p.id ORDER BY profit DESC";
         return await databaseService.query(sql, params);
     },
+
+    getGrossProfit: async (startDate?: string, endDate?: string) => {
+        let sql = `
+            SELECT 
+                COUNT(*) as count,
+                COALESCE(SUM(bi.quantity * bi.price), 0) as revenue,
+                COALESCE(SUM(bi.quantity * COALESCE(p.cost_price, 0)), 0) as cost,
+                (COALESCE(SUM(bi.quantity * bi.price), 0) - COALESCE(SUM(bi.quantity * COALESCE(p.cost_price, 0)), 0)) as profit
+            FROM bill_items bi
+            JOIN bills b ON bi.bill_id = b.id
+            LEFT JOIN products p ON bi.product_id = p.id
+            WHERE b.status IN ('PAID', 'REFUNDED')
+        `;
+        const params: any[] = [];
+
+        // Use robust string comparison for ISO dates
+        if (startDate) {
+            // If YYYY-MM-DD, append start time
+            const start = startDate.length === 10 ? `${startDate}T00:00:00` : startDate;
+            sql += " AND b.date >= ?";
+            params.push(start);
+        }
+        if (endDate) {
+            // If YYYY-MM-DD, append end time
+            const end = endDate.length === 10 ? `${endDate}T23:59:59` : endDate;
+            sql += " AND b.date <= ?";
+            params.push(end);
+        }
+
+        const res = await databaseService.query(sql, params);
+        console.log('[ReportService] Gross Profit Query:', sql, params, 'Result:', res[0]);
+        return res[0] || { revenue: 0, cost: 0, profit: 0, count: 0 };
+    },
+
+    getDebugStats: async (startDate?: string, endDate?: string) => {
+        const lastBill = await databaseService.query('SELECT * FROM bills ORDER BY id DESC LIMIT 1');
+        const count = await databaseService.query('SELECT COUNT(*) as c FROM bills');
+        const itemCount = await databaseService.query('SELECT COUNT(*) as c FROM bill_items');
+
+        // Sample Data for Join Debugging
+        const sampleBills = await databaseService.query('SELECT id, bill_no FROM bills ORDER BY id DESC LIMIT 3');
+        const sampleItems = await databaseService.query('SELECT id, bill_id FROM bill_items ORDER BY id DESC LIMIT 3');
+
+        return {
+            totalBills: count[0]?.c || 0,
+            totalItems: itemCount[0]?.c || 0,
+            lastBill: lastBill[0],
+            sampleBills,
+            sampleItems
+        };
+    },
+
 
     getStockMovement: async () => {
         // Since we don't have a dedicated stock movement table yet, we'll use Audit Logs
@@ -289,7 +341,7 @@ export const reportService = {
             SELECT c.name, c.phone, COUNT(b.id) as visits, COALESCE(SUM(b.total), 0) as total_spent
             FROM bills b
             JOIN customers c ON b.customer_id = c.id
-            WHERE b.status = 'PAID'
+            WHERE b.status IN ('PAID', 'REFUNDED')
         `;
         const params: any[] = [];
         if (startDate) { sql += " AND date(b.date, 'localtime') >= ?"; params.push(startDate); }
@@ -436,7 +488,7 @@ export const reportService = {
         today.setHours(0, 0, 0, 0);
 
         const salesRes = await databaseService.query(
-            `SELECT COALESCE(SUM(total), 0) as total, COUNT(*) as count FROM bills WHERE date(date, 'localtime') >= date('now', 'localtime') AND (status = 'PAID' OR status IS NULL OR status = '')`
+            `SELECT COALESCE(SUM(total), 0) as total, COUNT(*) as count FROM bills WHERE date(date, 'localtime') >= date('now', 'localtime') AND status != 'CANCELLED'`
         );
 
         // 2. Low Stock Count
@@ -453,7 +505,7 @@ export const reportService = {
         const trendRes = await databaseService.query(
             `SELECT date(date) as day, SUM(total) as total 
              FROM bills 
-             WHERE date >= date('now', '-7 days') AND status = 'PAID'
+             WHERE date >= date('now', '-7 days') AND status IN ('PAID', 'REFUNDED')
              GROUP BY day ORDER BY day ASC`
         );
 
@@ -481,8 +533,8 @@ export const reportService = {
     // --- INTELLIGENT ANALYTICS (AI) ---
     getSalesComparison: async (period1Start: string, period1End: string, period2Start: string, period2End: string) => {
         const [sales1, sales2] = await Promise.all([
-            databaseService.query(`SELECT COALESCE(SUM(total), 0) as total FROM bills WHERE date >= ? AND date <= ? AND status = 'PAID'`, [period1Start, period1End]),
-            databaseService.query(`SELECT COALESCE(SUM(total), 0) as total FROM bills WHERE date >= ? AND date <= ? AND status = 'PAID'`, [period2Start, period2End])
+            databaseService.query(`SELECT COALESCE(SUM(total), 0) as total FROM bills WHERE date >= ? AND date <= ? AND status IN ('PAID', 'REFUNDED')`, [period1Start, period1End]),
+            databaseService.query(`SELECT COALESCE(SUM(total), 0) as total FROM bills WHERE date >= ? AND date <= ? AND status IN ('PAID', 'REFUNDED')`, [period2Start, period2End])
         ]);
 
         const total1 = sales1[0]?.total || 0;
@@ -510,7 +562,7 @@ export const reportService = {
             FROM bill_items bi
             JOIN bills b ON bi.bill_id = b.id
             JOIN products p ON bi.product_id = p.id
-            WHERE b.date >= date('now', '-7 days') AND b.status = 'PAID'
+            WHERE b.date >= date('now', '-7 days') AND b.status IN ('PAID', 'REFUNDED')
             GROUP BY p.id
             ORDER BY qty_sold DESC
             LIMIT ?
@@ -525,7 +577,7 @@ export const reportService = {
         const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
 
         const salesRes = await databaseService.query(
-            `SELECT COALESCE(SUM(total), 0) as total FROM bills WHERE date >= ? AND status = 'PAID'`,
+            `SELECT COALESCE(SUM(total), 0) as total FROM bills WHERE date >= ? AND status IN ('PAID', 'REFUNDED')`,
             [startOfMonth]
         );
 
@@ -551,7 +603,7 @@ export const reportService = {
             SELECT p.name, COALESCE(SUM(bi.quantity), 0) as qty_sold, COALESCE(SUM(bi.taxable_value + bi.gst_amount), 0) as revenue
             FROM products p
             LEFT JOIN bill_items bi ON p.id = bi.product_id 
-            LEFT JOIN bills b ON bi.bill_id = b.id AND b.date >= date('now', '-30 days') AND b.status = 'PAID'
+            LEFT JOIN bills b ON bi.bill_id = b.id AND b.date >= date('now', '-30 days') AND b.status IN ('PAID', 'REFUNDED')
             GROUP BY p.id
             ORDER BY qty_sold ASC
             LIMIT ?
@@ -569,7 +621,7 @@ export const reportService = {
                 FROM bill_items bi
                 JOIN bills b ON bi.bill_id = b.id
                 WHERE b.date >= date('now', '-' || ? || ' days')
-                AND b.status = 'PAID'
+                AND b.status IN ('PAID', 'REFUNDED')
             )
             ORDER BY p.stock DESC
             LIMIT 50
@@ -602,7 +654,7 @@ export const reportService = {
             SELECT p.id, p.name, p.stock, p.min_stock_level, SUM(bi.quantity) as total_sold
             FROM products p
             LEFT JOIN bill_items bi ON p.id = bi.product_id
-            LEFT JOIN bills b ON bi.bill_id = b.id AND date(b.date, 'localtime') >= ? AND b.status = 'PAID'
+            LEFT JOIN bills b ON bi.bill_id = b.id AND date(b.date, 'localtime') >= ? AND b.status IN ('PAID', 'REFUNDED')
             GROUP BY p.id
         `, [startDate]);
 
@@ -641,7 +693,7 @@ export const reportService = {
                 COALESCE(SUM(gst_amount)/2, 0) as sgst
             FROM bill_items bi
             JOIN bills b ON bi.bill_id = b.id
-            WHERE b.status = 'PAID' AND date(b.date, 'localtime') BETWEEN ? AND ?
+            WHERE b.status IN ('PAID', 'REFUNDED') AND date(b.date, 'localtime') BETWEEN ? AND ?
         `, [from, to]);
 
         // 2. Input GST / ITC (from Purchases)
@@ -713,7 +765,7 @@ export const reportService = {
             FROM bill_items bi
             JOIN bills b ON bi.bill_id = b.id
             LEFT JOIN customers c ON b.customer_id = c.id
-            WHERE b.status = 'PAID' AND date(b.date, 'localtime') BETWEEN ? AND ?
+            WHERE b.status IN ('PAID', 'REFUNDED') AND date(b.date, 'localtime') BETWEEN ? AND ?
             GROUP BY b.id, bi.gst_rate
             ORDER BY b.date DESC
         `, [from, to]);
@@ -734,7 +786,7 @@ export const reportService = {
                 0 as cess
             FROM bill_items bi
             JOIN bills b ON bi.bill_id = b.id
-            WHERE b.status = 'PAID' AND date(b.date, 'localtime') BETWEEN ? AND ?
+            WHERE b.status IN ('PAID', 'REFUNDED') AND date(b.date, 'localtime') BETWEEN ? AND ?
         `, [from, to]);
 
         const inward = await databaseService.query(`
