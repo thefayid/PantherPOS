@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import type { Product, InventoryLog } from '../types/db';
 import { Button } from './Button';
-import { Plus, X, Upload, Trash2, Copy, RefreshCw, Box, Layers, History, Calendar } from 'lucide-react';
+import { Plus, X, Upload, Trash2, Copy, RefreshCw, Box, Layers, History, Calendar, Package, LayoutGrid, Info, Tag, DollarSign, Percent, AlertTriangle } from 'lucide-react';
 import { BatchManager } from './BatchManager';
 import { productService } from '../services/productService';
 import { inventoryService } from '../services/inventoryService';
@@ -262,52 +262,62 @@ export function ProductForm({ initialData, onSubmit, onCancel }: ProductFormProp
     return (
         <div className="flex flex-col h-full">
             {/* TABS */}
-            <div className="flex border-b border-border mb-4 gap-4 px-1">
+            <div className="flex bg-muted/30 p-1.5 rounded-xl mb-6 gap-1 w-full sm:w-fit border border-border/50 shadow-inner">
                 <button
+                    type="button"
                     onClick={() => setActiveTab('GENERAL')}
                     className={clsx(
-                        "py-2 px-4 border-b-2 text-sm font-bold transition-all",
-                        activeTab === 'GENERAL' ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
+                        "flex items-center justify-center gap-2 py-2.5 px-5 rounded-lg text-sm font-bold transition-all duration-200",
+                        activeTab === 'GENERAL'
+                            ? "bg-surface text-primary shadow-sm border border-border"
+                            : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
                     )}
                 >
-                    General Info
+                    <Box size={16} />
+                    <span>General Info</span>
                 </button>
                 <button
+                    type="button"
                     onClick={() => setActiveTab('VARIANTS')}
                     disabled={!initialData?.id}
                     className={clsx(
-                        "py-2 px-4 border-b-2 text-sm font-bold transition-all",
+                        "flex items-center justify-center gap-2 py-2.5 px-5 rounded-lg text-sm font-bold transition-all duration-200",
                         activeTab === 'VARIANTS'
-                            ? "border-primary text-primary"
-                            : !initialData?.id ? "border-transparent text-muted-foreground/30 cursor-not-allowed" : "border-transparent text-muted-foreground hover:text-foreground"
+                            ? "bg-surface text-primary shadow-sm border border-border"
+                            : !initialData?.id ? "opacity-30 cursor-not-allowed hidden" : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
                     )}
                 >
-                    Variants {variants.length > 0 && `(${variants.length})`}
+                    <Layers size={16} />
+                    <span>Variants {variants.length > 0 && `(${variants.length})`}</span>
                 </button>
                 <button
+                    type="button"
                     onClick={() => setActiveTab('BUNDLE')}
-                    disabled={!isBundle && !initialData?.id} // Only if marked as bundle or editing
+                    disabled={!isBundle && !initialData?.id}
                     className={clsx(
-                        "py-2 px-4 border-b-2 text-sm font-bold transition-all",
+                        "flex items-center justify-center gap-2 py-2.5 px-5 rounded-lg text-sm font-bold transition-all duration-200",
                         activeTab === 'BUNDLE'
-                            ? "border-primary text-primary"
-                            : (!isBundle && !initialData?.id) ? "border-transparent text-muted-foreground/30 cursor-not-allowed hidden" : "border-transparent text-muted-foreground hover:text-foreground",
+                            ? "bg-surface text-primary shadow-sm border border-border"
+                            : (!isBundle && !initialData?.id) ? "opacity-30 cursor-not-allowed hidden" : "text-muted-foreground hover:bg-muted/50 hover:text-foreground",
                         isBundle && "inline-flex"
                     )}
                 >
-                    Bundle Items {bundleComponents.length > 0 && `(${bundleComponents.length})`}
+                    <Package size={16} />
+                    <span>Bundle Items {bundleComponents.length > 0 && `(${bundleComponents.length})`}</span>
                 </button>
                 <button
+                    type="button"
                     onClick={() => setActiveTab('HISTORY')}
                     disabled={!initialData?.id}
                     className={clsx(
-                        "py-2 px-4 border-b-2 text-sm font-bold transition-all",
+                        "flex items-center justify-center gap-2 py-2.5 px-5 rounded-lg text-sm font-bold transition-all duration-200",
                         activeTab === 'HISTORY'
-                            ? "border-primary text-primary"
-                            : !initialData?.id ? "border-transparent text-muted-foreground/30 cursor-not-allowed" : "border-transparent text-muted-foreground hover:text-foreground"
+                            ? "bg-surface text-primary shadow-sm border border-border"
+                            : !initialData?.id ? "opacity-30 cursor-not-allowed hidden" : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
                     )}
                 >
-                    Stock History
+                    <History size={16} />
+                    <span>History</span>
                 </button>
                 {formData.is_batch_tracked === 1 && (
                     <button
@@ -315,201 +325,309 @@ export function ProductForm({ initialData, onSubmit, onCancel }: ProductFormProp
                         onClick={() => setActiveTab('BATCHES')}
                         disabled={!initialData?.id}
                         className={clsx(
-                            "py-2 px-4 border-b-2 text-sm font-bold transition-all",
+                            "flex items-center justify-center gap-2 py-2.5 px-5 rounded-lg text-sm font-bold transition-all duration-200",
                             activeTab === 'BATCHES'
-                                ? "border-primary text-primary"
-                                : !initialData?.id ? "border-transparent text-muted-foreground/30 cursor-not-allowed" : "border-transparent text-muted-foreground hover:text-foreground"
+                                ? "bg-surface text-primary shadow-sm border border-border"
+                                : !initialData?.id ? "opacity-30 cursor-not-allowed hidden" : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
                         )}
                     >
-                        Batches
+                        <Calendar size={16} />
+                        <span>Batches</span>
                     </button>
                 )}
             </div>
 
             {/* TAB CONTENT: GENERAL */}
             {activeTab === 'GENERAL' && (
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    <div className="flex items-center gap-2 mb-4 bg-muted/20 p-3 rounded-lg border border-border">
-                        <input
-                            type="checkbox"
-                            id="is_bundle"
-                            checked={isBundle}
-                            onChange={e => {
-                                setIsBundle(e.target.checked);
-                                if (e.target.checked) setActiveTab('BUNDLE');
-                            }}
-                            className="w-4 h-4 text-primary rounded border-gray-300 focus:ring-primary"
-                        />
-                        <label htmlFor="is_bundle" className="text-sm font-bold text-foreground">
-                            This is a Bundle / Combo Product
-                        </label>
-                        <span className="text-xs text-muted-foreground ml-2">(Stock will be calculated based on components)</span>
+                <form onSubmit={handleSubmit} className="space-y-6">
+                    {/* Bundle Toggle Card */}
+                    <div className={clsx(
+                        "group relative overflow-hidden p-4 rounded-xl border transition-all duration-300",
+                        isBundle
+                            ? "bg-primary/5 border-primary/30 shadow-md"
+                            : "bg-surface border-border hover:border-primary/20"
+                    )}>
+                        <div className="flex items-start gap-4">
+                            <div className={clsx(
+                                "p-3 rounded-xl transition-colors",
+                                isBundle ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                            )}>
+                                <LayoutGrid size={24} />
+                            </div>
+                            <div className="flex-1">
+                                <div className="flex items-center justify-between">
+                                    <label htmlFor="is_bundle" className="text-base font-bold text-foreground cursor-pointer select-none">
+                                        Bundle / Combo Product
+                                    </label>
+                                    <input
+                                        type="checkbox"
+                                        id="is_bundle"
+                                        checked={isBundle}
+                                        onChange={e => {
+                                            setIsBundle(e.target.checked);
+                                            if (e.target.checked) setActiveTab('BUNDLE');
+                                        }}
+                                        className="w-5 h-5 text-primary rounded-md border-border focus:ring-primary/50 transition-all cursor-pointer"
+                                    />
+                                </div>
+                                <p className="text-sm text-muted-foreground mt-1">
+                                    Sell multiple items together as one package. {isBundle ? "Stock is computed from components." : "Stock is managed directly."}
+                                </p>
+                            </div>
+                        </div>
                     </div>
 
-                    <div className="flex flex-col md:flex-row gap-4">
-                        {/* Image Upload Section */}
-                        <div className="w-full md:w-1/3 space-y-2">
-                            <label className="block text-sm font-medium text-foreground">Product Image</label>
-                            <div className="relative aspect-square rounded-xl border-2 border-dashed border-border flex flex-col items-center justify-center bg-muted/30 overflow-hidden hover:bg-muted/50 transition-colors group">
-                                {formData.image ? (
-                                    <>
-                                        <img src={formData.image} alt="Product" className="w-full h-full object-cover" />
-                                        <button
-                                            type="button"
-                                            onClick={() => setFormData(prev => ({ ...prev, image: '' }))}
-                                            className="absolute top-2 right-2 p-1 bg-destructive text-destructive-foreground rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                                        >
-                                            <X className="w-4 h-4" />
-                                        </button>
-                                        <div className="absolute bottom-2 right-2 px-2 py-1 bg-black/50 text-white text-[10px] rounded-md opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                                            {isAutoImage ? 'Auto-Generated' : 'Custom Image'}
-                                        </div>
-                                    </>
-                                ) : (
-                                    <label className="cursor-pointer w-full h-full flex flex-col items-center justify-center">
-                                        <Upload className="w-8 h-8 text-muted-foreground mb-2" />
-                                        <span className="text-xs text-muted-foreground font-medium">Click to upload</span>
-                                        <input type="file" className="hidden" accept="image/*" onChange={handleImageChange} />
+                    <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+                        {/* LEFT: Image & Identifiers */}
+                        <div className="md:col-span-4 space-y-6">
+                            {/* Image Section */}
+                            <div className="space-y-2">
+                                <div className="flex items-center justify-between">
+                                    <label className="text-sm font-bold text-muted-foreground flex items-center gap-1.5 uppercase tracking-wider">
+                                        Product Image
                                     </label>
-                                )}
+                                    <span className={clsx(
+                                        "text-[10px] px-2 py-0.5 rounded-full font-bold",
+                                        isAutoImage ? "bg-blue-500/10 text-blue-500" : "bg-emerald-500/10 text-emerald-500"
+                                    )}>
+                                        {isAutoImage ? 'AI Generated' : 'Verified Image'}
+                                    </span>
+                                </div>
+                                <div className="group relative aspect-square rounded-2xl border-2 border-dashed border-border flex flex-col items-center justify-center bg-muted/20 overflow-hidden hover:border-primary/40 hover:bg-muted/40 transition-all duration-300 shadow-inner">
+                                    {formData.image ? (
+                                        <>
+                                            <img src={formData.image} alt="Product" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                                                <label className="p-2.5 bg-surface text-foreground rounded-xl cursor-pointer hover:bg-primary hover:text-primary-foreground transition-all shadow-xl">
+                                                    <Upload size={20} />
+                                                    <input type="file" className="hidden" accept="image/*" onChange={handleImageChange} />
+                                                </label>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setFormData(prev => ({ ...prev, image: '' }))}
+                                                    className="p-2.5 bg-surface text-destructive rounded-xl hover:bg-destructive hover:text-white transition-all shadow-xl"
+                                                >
+                                                    <Trash2 size={20} />
+                                                </button>
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <label className="cursor-pointer w-full h-full flex flex-col items-center justify-center gap-3">
+                                            <div className="p-4 bg-muted/50 rounded-2xl text-muted-foreground group-hover:text-primary group-hover:bg-primary/10 transition-all">
+                                                <Upload size={32} />
+                                            </div>
+                                            <div className="text-center">
+                                                <span className="text-sm font-bold text-foreground block">Upload Image</span>
+                                                <span className="text-[10px] text-muted-foreground uppercase tracking-widest mt-1 block">JPG, PNG, WEBP</span>
+                                            </div>
+                                            <input type="file" className="hidden" accept="image/*" onChange={handleImageChange} />
+                                        </label>
+                                    )}
+                                </div>
                             </div>
                         </div>
 
-                        {/* Form Fields Section */}
-                        <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="col-span-1 md:col-span-2">
-                                <label className="block text-sm font-medium text-foreground">Product Name</label>
-                                <input
-                                    type="text"
-                                    required
-                                    className="mt-1 block w-full rounded-md border-border bg-background text-foreground shadow-sm focus:border-primary focus:ring-primary sm:text-sm border p-2"
-                                    value={formData.name}
-                                    onChange={e => handleChange('name', e.target.value)}
-                                    autoFocus
-                                />
-                            </div>
-
-                            <div className="col-span-1">
-                                <label className="block text-sm font-medium text-foreground">Barcode</label>
-                                <div className="flex gap-2">
+                        {/* RIGHT: Main Details & Pricing */}
+                        <div className="md:col-span-8 space-y-6">
+                            {/* Main Info & Identifiers merged for horizontal flow */}
+                            <div className="bg-surface p-6 rounded-2xl border border-border shadow-sm space-y-6">
+                                <div className="space-y-2">
+                                    <label className="text-sm font-bold text-foreground">Product Name</label>
                                     <input
                                         type="text"
                                         required
-                                        className="mt-1 block w-full rounded-md border-border bg-background text-foreground shadow-sm focus:border-primary focus:ring-primary sm:text-sm border p-2"
-                                        value={formData.barcode}
-                                        onChange={e => handleChange('barcode', e.target.value)}
+                                        placeholder="e.g. Classic White T-Shirt"
+                                        className="w-full bg-muted/30 border border-border rounded-xl px-5 py-3 text-lg font-bold placeholder:text-muted-foreground/30 focus:bg-background focus:ring-2 focus:ring-primary/20 transition-all outline-none"
+                                        value={formData.name}
+                                        onChange={e => handleChange('name', e.target.value)}
+                                        autoFocus
                                     />
-                                    <button
-                                        type="button"
-                                        onClick={handleFetchInfo}
-                                        disabled={isFetchingInfo || !formData.barcode}
-                                        className="mt-1 px-3 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-md border border-blue-200 transition-all flex items-center justify-center"
-                                        title="Search Online (OpenFoodFacts)"
-                                    >
-                                        {isFetchingInfo ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => {
-                                            const random = Math.floor(100000000000 + Math.random() * 900000000000);
-                                            handleChange('barcode', random.toString());
-                                        }}
-                                        className="mt-1 px-3 bg-muted hover:bg-muted/80 text-muted-foreground rounded-md border border-border text-xs font-bold transition-all"
-                                        title="Generate Unique Barcode"
-                                    >
-                                        GEN
-                                    </button>
+                                </div>
+
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                    <div>
+                                        <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-2 block flex items-center gap-1.5">
+                                            Barcode Identification
+                                        </label>
+                                        <div className="flex gap-2">
+                                            <div className="relative flex-1">
+                                                <input
+                                                    type="text"
+                                                    required
+                                                    placeholder="Scan or type..."
+                                                    className="w-full bg-muted/30 border border-border rounded-xl px-4 py-2.5 text-sm font-mono focus:bg-background focus:ring-2 focus:ring-primary/20 transition-all outline-none"
+                                                    value={formData.barcode}
+                                                    onChange={e => handleChange('barcode', e.target.value)}
+                                                />
+                                            </div>
+                                            <div className="flex gap-1 bg-muted/50 p-1 rounded-xl border border-border">
+                                                <button
+                                                    type="button"
+                                                    onClick={handleFetchInfo}
+                                                    disabled={isFetchingInfo || !formData.barcode}
+                                                    className="p-2 text-primary hover:bg-surface rounded-lg transition-all disabled:opacity-30"
+                                                    title="Smart Search"
+                                                >
+                                                    {isFetchingInfo ? <Loader2 size={16} className="animate-spin" /> : <Search size={16} />}
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        const random = Math.floor(100000000000 + Math.random() * 900000000000);
+                                                        handleChange('barcode', random.toString());
+                                                    }}
+                                                    className="px-2 text-[10px] font-black text-muted-foreground hover:text-foreground hover:bg-surface rounded-lg transition-all"
+                                                    title="Generate"
+                                                >
+                                                    GEN
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-2 block flex items-center gap-1.5">
+                                            HSN / SAC Code
+                                        </label>
+                                        <input
+                                            type="text"
+                                            placeholder="Enter HSN..."
+                                            className="w-full bg-muted/30 border border-border rounded-xl px-4 py-2.5 text-sm focus:bg-background focus:ring-2 focus:ring-primary/20 transition-all outline-none"
+                                            value={formData.hsn_code || ''}
+                                            onChange={e => handleChange('hsn_code', e.target.value)}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-6 pt-2">
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-bold text-muted-foreground flex items-center gap-2">
+                                            Cost Price
+                                        </label>
+                                        <div className="relative">
+                                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground font-bold">₹</span>
+                                            <input
+                                                type="number"
+                                                min="0"
+                                                step="0.01"
+                                                className="w-full bg-muted/30 border border-border rounded-xl pl-8 pr-4 py-3 text-base font-bold focus:bg-background focus:ring-2 focus:ring-primary/20 transition-all outline-none"
+                                                value={formData.cost_price}
+                                                onChange={e => handleChange('cost_price', parseFloat(e.target.value) || 0)}
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-bold text-foreground flex items-center gap-2">
+                                            Selling Price
+                                        </label>
+                                        <div className="relative">
+                                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-primary font-black">₹</span>
+                                            <input
+                                                type="number"
+                                                min="0"
+                                                step="0.01"
+                                                required
+                                                className="w-full bg-primary/5 border border-primary/20 rounded-xl pl-8 pr-4 py-3 text-lg font-black text-primary focus:bg-background focus:ring-2 focus:ring-primary/20 transition-all outline-none shadow-sm"
+                                                value={formData.sell_price}
+                                                onChange={e => handleChange('sell_price', parseFloat(e.target.value) || 0)}
+                                            />
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
 
-                            <div>
-                                <label className="block text-sm font-medium text-foreground">HSN Code</label>
-                                <input
-                                    type="text"
-                                    className="mt-1 block w-full rounded-md border-border bg-background text-foreground shadow-sm focus:border-primary focus:ring-primary sm:text-sm border p-2"
-                                    value={formData.hsn_code || ''}
-                                    onChange={e => handleChange('hsn_code', e.target.value)}
-                                />
-                            </div>
+                            {/* Inventory & Tax */}
+                            <div className="bg-surface p-6 rounded-2xl border border-border shadow-sm">
+                                <h3 className="text-xs font-black text-muted-foreground uppercase tracking-widest mb-6 flex items-center gap-2">
+                                    Inventory & Tax Policies
+                                </h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-bold text-muted-foreground">Initial Stock</label>
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            className="w-full bg-muted/30 border border-border rounded-xl px-4 py-2.5 text-base focus:bg-background transition-all outline-none"
+                                            value={formData.stock}
+                                            onChange={e => handleChange('stock', parseInt(e.target.value) || 0)}
+                                        />
+                                    </div>
 
-                            <div>
-                                <label className="block text-sm font-medium text-foreground">Cost Price</label>
-                                <input
-                                    type="number"
-                                    min="0"
-                                    step="0.01"
-                                    className="mt-1 block w-full rounded-md border-border bg-background text-foreground shadow-sm focus:border-primary focus:ring-primary sm:text-sm border p-2"
-                                    value={formData.cost_price}
-                                    onChange={e => handleChange('cost_price', parseFloat(e.target.value) || 0)}
-                                />
-                            </div>
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-bold text-muted-foreground flex items-center gap-2">
+                                            GST Rate
+                                        </label>
+                                        <select
+                                            className="w-full bg-muted/30 border border-border rounded-xl px-4 py-2.5 text-base focus:bg-background transition-all outline-none appearance-none cursor-pointer"
+                                            value={formData.gst_rate}
+                                            onChange={e => handleChange('gst_rate', parseFloat(e.target.value))}
+                                        >
+                                            {[0, 5, 12, 18, 28].map(rate => (
+                                                <option key={rate} value={rate}>{rate}% GST</option>
+                                            ))}
+                                        </select>
+                                    </div>
 
-                            <div>
-                                <label className="block text-sm font-medium text-foreground">Selling Price</label>
-                                <input
-                                    type="number"
-                                    min="0"
-                                    step="0.01"
-                                    required
-                                    className="mt-1 block w-full rounded-md border-border bg-background text-foreground shadow-sm focus:border-primary focus:ring-primary sm:text-sm border p-2"
-                                    value={formData.sell_price}
-                                    onChange={e => handleChange('sell_price', parseFloat(e.target.value) || 0)}
-                                />
-                            </div>
+                                    <div className="space-y-2">
+                                        <div className="flex items-center justify-between">
+                                            <label className="text-sm font-bold text-muted-foreground">Min Stock</label>
+                                            {formData.stock <= formData.min_stock_level && (
+                                                <div className="w-2 h-2 rounded-full bg-orange-500 animate-pulse" />
+                                            )}
+                                        </div>
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            className="w-full bg-muted/30 border border-border rounded-xl px-4 py-2.5 text-base focus:bg-background transition-all outline-none"
+                                            value={formData.min_stock_level}
+                                            onChange={e => handleChange('min_stock_level', parseInt(e.target.value) || 5)}
+                                        />
+                                    </div>
 
-                            <div>
-                                <label className="block text-sm font-medium text-foreground">Stock</label>
-                                <input
-                                    type="number"
-                                    min="0"
-                                    className="mt-1 block w-full rounded-md border-border bg-background text-foreground shadow-sm focus:border-primary focus:ring-primary sm:text-sm border p-2"
-                                    value={formData.stock}
-                                    onChange={e => handleChange('stock', parseInt(e.target.value) || 0)}
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-foreground">GST Rate (%)</label>
-                                <select
-                                    className="mt-1 block w-full rounded-md border-border bg-background text-foreground shadow-sm focus:border-primary focus:ring-primary sm:text-sm border p-2"
-                                    value={formData.gst_rate}
-                                    onChange={e => handleChange('gst_rate', parseFloat(e.target.value))}
-                                >
-                                    {[0, 5, 12, 18, 28].map(rate => (
-                                        <option key={rate} value={rate}>{rate}%</option>
-                                    ))}
-                                </select>
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-foreground">Min Stock Level</label>
-                                <input
-                                    type="number"
-                                    min="0"
-                                    className="mt-1 block w-full rounded-md border-border bg-background text-foreground shadow-sm focus:border-primary focus:ring-primary sm:text-sm border p-2"
-                                    value={formData.min_stock_level}
-                                    onChange={e => handleChange('min_stock_level', parseInt(e.target.value) || 5)}
-                                />
-                            </div>
-
-                            <div className="md:col-span-2 flex items-center space-x-2 pt-2">
-                                <input
-                                    type="checkbox"
-                                    id="is_batch_tracked"
-                                    checked={formData.is_batch_tracked === 1}
-                                    onChange={(e) => setFormData(prev => ({ ...prev, is_batch_tracked: e.target.checked ? 1 : 0 }))}
-                                    className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary"
-                                />
-                                <label htmlFor="is_batch_tracked" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                                    Enable Batch Tracking (Expiry Dates)
-                                </label>
+                                    <div className="flex items-center pt-6">
+                                        <label className="relative flex items-center gap-3 cursor-pointer group">
+                                            <input
+                                                type="checkbox"
+                                                id="is_batch_tracked"
+                                                checked={formData.is_batch_tracked === 1}
+                                                onChange={(e) => setFormData(prev => ({ ...prev, is_batch_tracked: e.target.checked ? 1 : 0 }))}
+                                                className="hidden"
+                                            />
+                                            <div className={clsx(
+                                                "w-12 h-6 rounded-full transition-all duration-300 relative shrink-0",
+                                                formData.is_batch_tracked === 1 ? "bg-primary shadow-glow-sm" : "bg-muted-foreground/20"
+                                            )}>
+                                                <div className={clsx(
+                                                    "absolute top-1 w-4 h-4 bg-white rounded-full transition-all duration-300 shadow-sm",
+                                                    formData.is_batch_tracked === 1 ? "left-7" : "left-1"
+                                                )} />
+                                            </div>
+                                            <div className="flex flex-col">
+                                                <span className="text-xs font-bold text-foreground">Batch Track</span>
+                                            </div>
+                                        </label>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
 
-                    <div className="flex justify-end space-x-3 pt-4 border-t border-gray-100">
-                        <Button type="button" variant="secondary" onClick={onCancel}>Cancel</Button>
-                        <Button type="submit">Save Product</Button>
+                    {/* Footer Actions */}
+                    <div className="flex flex-col sm:flex-row justify-end items-center gap-4 pt-8 border-t border-border mt-8">
+                        <button
+                            type="button"
+                            onClick={onCancel}
+                            className="w-full sm:w-auto px-8 py-3 text-sm font-bold text-muted-foreground hover:text-foreground transition-all hover:bg-muted/50 rounded-xl"
+                        >
+                            Discard Changes
+                        </button>
+                        <button
+                            type="submit"
+                            className="w-full sm:w-auto px-10 py-3.5 bg-primary text-primary-foreground rounded-xl font-black text-sm shadow-glow hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                        >
+                            <span>Save Product Record</span>
+                            <Box size={18} />
+                        </button>
                     </div>
                 </form>
             )}
@@ -517,29 +635,35 @@ export function ProductForm({ initialData, onSubmit, onCancel }: ProductFormProp
             {/* TAB CONTENT: VARIANTS */}
             {activeTab === 'VARIANTS' && (
                 <div className="space-y-6">
-                    <div className="bg-primary/5 p-4 rounded-xl border border-primary/20">
-                        <h4 className="text-sm font-bold text-primary mb-2">Create New Variant</h4>
-                        <div className="grid grid-cols-4 gap-3 items-end">
-                            <div className="space-y-1">
-                                <label className="text-xs font-bold uppercase text-muted-foreground">Size</label>
-                                <input className="mac-input w-full bg-background border-border text-foreground" placeholder="S, M, L..." value={variantAttributes.Size} onChange={e => setVariantAttributes({ ...variantAttributes, Size: e.target.value })} />
+                    <div className="bg-surface p-6 rounded-2xl border border-border shadow-sm space-y-4">
+                        <div className="flex items-center gap-2 text-primary">
+                            <Layers size={18} />
+                            <h4 className="text-sm font-black uppercase tracking-widest">Create New Product Variant</h4>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Size Attribute</label>
+                                <input className="w-full bg-muted/30 border border-border rounded-xl px-4 py-2 text-sm focus:bg-background transition-all outline-none" placeholder="e.g. XL, 42..." value={variantAttributes.Size} onChange={e => setVariantAttributes({ ...variantAttributes, Size: e.target.value })} />
                             </div>
-                            <div className="space-y-1">
-                                <label className="text-xs font-bold uppercase text-muted-foreground">Color</label>
-                                <input className="mac-input w-full bg-background border-border text-foreground" placeholder="Red, Blue..." value={variantAttributes.Color} onChange={e => setVariantAttributes({ ...variantAttributes, Color: e.target.value })} />
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Color Attribute</label>
+                                <input className="w-full bg-muted/30 border border-border rounded-xl px-4 py-2 text-sm focus:bg-background transition-all outline-none" placeholder="e.g. Navy, Slate..." value={variantAttributes.Color} onChange={e => setVariantAttributes({ ...variantAttributes, Color: e.target.value })} />
                             </div>
-                            <div className="space-y-1">
-                                <label className="text-xs font-bold uppercase text-muted-foreground">New Barcode</label>
+                            <div className="space-y-1.5 md:col-span-1">
+                                <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Variant Barcode</label>
                                 <div className="flex gap-2">
-                                    <input className="mac-input w-full bg-background border-border text-foreground" placeholder="Scan or Type" value={newVariantBarcode} onChange={e => setNewVariantBarcode(e.target.value)} />
-                                    <button onClick={() => setNewVariantBarcode(Math.floor(100000000000 + Math.random() * 900000000000).toString())} className="p-2 bg-muted rounded-lg hover:bg-muted/80 text-foreground border border-border" title="Generate">
-                                        <RefreshCw className="w-4 h-4" />
+                                    <input className="w-full bg-muted/30 border border-border rounded-xl px-4 py-2 text-sm font-mono focus:bg-background transition-all outline-none" placeholder="Unique Barcode" value={newVariantBarcode} onChange={e => setNewVariantBarcode(e.target.value)} />
+                                    <button onClick={() => setNewVariantBarcode(Math.floor(100000000000 + Math.random() * 900000000000).toString())} className="p-2 bg-muted hover:bg-muted/80 rounded-lg border border-border transition-all" title="Generate">
+                                        <RefreshCw size={14} />
                                     </button>
                                 </div>
                             </div>
-                            <Button onClick={handleCreateVariant} className="h-10">
-                                <Copy className="w-4 h-4 mr-2" /> Add Variant
-                            </Button>
+                            <button
+                                onClick={handleCreateVariant}
+                                className="h-10 bg-primary text-primary-foreground rounded-xl font-bold text-sm shadow-sm hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center"
+                            >
+                                <Plus size={16} className="mr-2" /> Add Variant
+                            </button>
                         </div>
                     </div>
 
@@ -567,32 +691,42 @@ export function ProductForm({ initialData, onSubmit, onCancel }: ProductFormProp
             {/* TAB CONTENT: BUNDLE */}
             {activeTab === 'BUNDLE' && (
                 <div className="space-y-6 h-full flex flex-col">
-                    <div className="bg-primary/5 p-4 rounded-xl border border-primary/20 space-y-3">
-                        <h4 className="text-sm font-bold text-primary">Add Components to Bundle</h4>
+                    <div className="bg-surface p-6 rounded-2xl border border-border shadow-sm space-y-4">
+                        <div className="flex items-center gap-2 text-primary">
+                            <Package size={18} />
+                            <h4 className="text-sm font-black uppercase tracking-widest">Add Components to Bundle</h4>
+                        </div>
                         <div className="relative">
                             <div className="flex gap-2">
-                                <Search className="absolute left-3 top-2.5 text-muted-foreground w-4 h-4" />
-                                <input
-                                    className="pl-9 w-full bg-background border border-border rounded-lg py-2 text-sm"
-                                    placeholder="Search products to add..."
-                                    value={componentSearch}
-                                    onChange={e => handleComponentSearch(e.target.value)}
-                                />
+                                <div className="relative flex-1">
+                                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                                    <input
+                                        className="w-full bg-muted/30 border border-border rounded-xl pl-11 pr-4 py-3 text-sm focus:bg-background transition-all outline-none"
+                                        placeholder="Search products by name or barcode..."
+                                        value={componentSearch}
+                                        onChange={e => handleComponentSearch(e.target.value)}
+                                    />
+                                </div>
                             </div>
                             {foundComponents.length > 0 && (
-                                <div className="absolute z-10 w-full mt-1 bg-surface border border-border rounded-lg shadow-xl max-h-60 overflow-y-auto">
+                                <div className="absolute z-20 w-full mt-2 bg-surface border border-border rounded-2xl shadow-2xl max-h-64 overflow-y-auto animate-in fade-in slide-in-from-top-2 duration-200">
                                     {foundComponents.map(p => (
                                         <button
                                             key={p.id}
                                             type="button"
                                             onClick={() => addComponent(p)}
-                                            className="w-full text-left px-4 py-3 hover:bg-muted border-b border-border/50 last:border-0 flex justify-between items-center group"
+                                            className="w-full text-left px-5 py-4 hover:bg-muted/50 border-b border-border last:border-0 flex justify-between items-center group transition-colors"
                                         >
-                                            <div>
-                                                <div className="font-bold text-sm text-foreground">{p.name}</div>
-                                                <div className="text-xs text-muted-foreground">Qty: {p.stock} | ₹{p.sell_price}</div>
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-10 h-10 rounded-lg bg-muted border border-border overflow-hidden">
+                                                    {p.image ? <img src={p.image} className="w-full h-full object-cover" /> : <Box className="w-full h-full p-2 text-muted-foreground" />}
+                                                </div>
+                                                <div>
+                                                    <div className="font-bold text-sm text-foreground">{p.name}</div>
+                                                    <div className="text-[10px] text-muted-foreground font-black uppercase">Stock: {p.stock} • ₹{p.sell_price}</div>
+                                                </div>
                                             </div>
-                                            <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity">Add</span>
+                                            <span className="text-xs bg-primary/10 text-primary px-3 py-1.5 rounded-lg font-bold opacity-0 group-hover:opacity-100 transition-all transform scale-95 group-hover:scale-100">Add Item</span>
                                         </button>
                                     ))}
                                 </div>
@@ -651,11 +785,19 @@ export function ProductForm({ initialData, onSubmit, onCancel }: ProductFormProp
             {/* TAB CONTENT: HISTORY */}
             {activeTab === 'HISTORY' && (
                 <div className="space-y-4 h-full flex flex-col overflow-hidden">
-                    <div className="bg-primary/5 p-4 rounded-xl border border-primary/20 flex justify-between items-center">
-                        <h4 className="text-sm font-bold text-primary">Stock Movement History</h4>
-                        <Button variant="secondary" size="sm" onClick={loadHistory} disabled={loadingHistory}>
-                            <RefreshCw className={clsx("w-4 h-4 mr-2", loadingHistory && "animate-spin")} /> Refresh
-                        </Button>
+                    <div className="bg-surface p-6 rounded-2xl border border-border shadow-sm flex justify-between items-center">
+                        <div className="flex items-center gap-2 text-primary">
+                            <History size={18} />
+                            <h4 className="text-sm font-black uppercase tracking-widest">Stock Movement History</h4>
+                        </div>
+                        <button
+                            onClick={loadHistory}
+                            disabled={loadingHistory}
+                            className="flex items-center gap-2 px-4 py-2 bg-muted hover:bg-muted/80 rounded-xl text-sm font-bold text-muted-foreground transition-all border border-border"
+                        >
+                            <RefreshCw className={clsx("w-4 h-4", loadingHistory && "animate-spin")} />
+                            <span>Sync Logs</span>
+                        </button>
                     </div>
 
                     <div className="flex-1 border border-border rounded-xl overflow-hidden flex flex-col">

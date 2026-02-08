@@ -122,5 +122,21 @@ export const customerService = {
         } catch (e) {
             console.error('Accounting Post Failed (Customer Payment):', e);
         }
+    },
+
+    getReceivablesSummary: async (): Promise<{ totalBalance: number; customerCount: number }> => {
+        const res = await databaseService.query(
+            `SELECT SUM(balance) as total, COUNT(*) as count FROM customers WHERE balance > 0`
+        );
+        return {
+            totalBalance: res[0]?.total || 0,
+            customerCount: res[0]?.count || 0
+        };
+    },
+
+    getCustomersWithBalance: async (): Promise<Customer[]> => {
+        return await databaseService.query(
+            `SELECT * FROM customers WHERE balance > 0 ORDER BY balance DESC`
+        );
     }
 };

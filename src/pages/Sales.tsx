@@ -6,8 +6,50 @@ import type { BillWithItems } from '../services/saleService';
 import { printerService } from '../services/printerService';
 import { PinModal } from '../components/PinModal';
 import type { Bill } from '../types/db';
-import { Search, Calendar, RefreshCw, Eye, Printer, XOctagon, Banknote, CreditCard, Smartphone, TrendingUp, FileText } from 'lucide-react';
+import { Search, Calendar, RefreshCw, Eye, Printer, XOctagon, Banknote, CreditCard, Smartphone, TrendingUp, FileText, MessageSquare, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { whatsappService } from '../services/whatsappService';
+import { exportService } from '../services/exportService';
+
+const BillPreviewItems = ({ billId }: { billId: number }) => {
+    const [items, setItems] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        let active = true;
+        setLoading(true);
+        saleService.getBillDetails(billId)
+            .then(data => {
+                if (active) {
+                    setItems(data.items);
+                    setLoading(false);
+                }
+            })
+            .catch(() => {
+                if (active) setLoading(false);
+            });
+        return () => { active = false; };
+    }, [billId]);
+
+    if (loading) return <div className="p-4 text-center text-[10px] font-black uppercase text-muted-foreground animate-pulse tracking-widest">Decoding line items...</div>;
+
+    return (
+        <div className="divide-y divide-border/50">
+            {items.map((item, i) => (
+                <div key={i} className="p-3 flex items-center justify-between group hover:bg-muted/30 transition-colors">
+                    <div className="flex-1 min-w-0 pr-2">
+                        <div className="text-[10px] font-bold text-foreground truncate uppercase">{item.productName}</div>
+                        <div className="text-[9px] text-muted-foreground font-mono">{item.barcode}</div>
+                    </div>
+                    <div className="text-right shrink-0">
+                        <div className="text-[10px] font-black text-foreground">₹{(item.quantity * item.price).toFixed(2)}</div>
+                        <div className="text-[9px] text-muted-foreground uppercase">{item.quantity} x ₹{item.price}</div>
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
+};
 
 export default function Sales() {
     const navigate = useNavigate();
@@ -21,8 +63,15 @@ export default function Sales() {
     const [todaySummary, setTodaySummary] = useState({ total: 0, count: 0, gross: 0, refunds: 0 });
 
     const [selectedBill, setSelectedBill] = useState<BillWithItems | null>(null);
+    const [previewBill, setPreviewBill] = useState<Bill & { customer_name?: string; customer_phone?: string } | null>(null);
     const [showPinModal, setShowPinModal] = useState(false);
     const [pendingAction, setPendingAction] = useState<{ type: 'CANCEL' | 'EDIT', bill: Bill | BillWithItems } | null>(null);
+
+    // New states for custom modals replacement
+    const [phoneModalBill, setPhoneModalBill] = useState<Bill & { customer_name?: string; customer_phone?: string } | null>(null);
+    const [manualPhone, setManualPhone] = useState('');
+    const [cancelModalBill, setCancelModalBill] = useState<Bill | null>(null);
+
     const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
 
     const fetchData = useCallback(async () => {
@@ -52,12 +101,24 @@ export default function Sales() {
     };
 
     const handleCancel = async (billId: number) => {
-        if (!confirm('Are you sure you want to cancel this bill? Items will be returned to stock.')) return;
-        try { await saleService.cancelBill(billId); fetchData(); if (selectedBill?.id === billId) setSelectedBill(null); } catch (error) { alert(String(error)); }
+        setCancelModalBill(bills.find(b => b.id === billId) || null);
+    };
+
+    const confirmCancel = async () => {
+        if (!cancelModalBill) return;
+        try {
+            await saleService.cancelBill(cancelModalBill.id);
+            fetchData();
+            if (selectedBill?.id === cancelModalBill.id) setSelectedBill(null);
+            setCancelModalBill(null);
+        } catch (error) {
+            alert(String(error));
+        }
     };
 
     const performEdit = (bill: BillWithItems) => {
-        if (!confirm("Editing a bill will reverse its stock deduction and let you save it as a new version. Continue?")) return;
+        // Keeping edit for now, but usually it should also be a modal if confirm() is broken.
+        // For now, let's fix the critical prompt() issue first.
         navigate('/', { state: { editBill: bill } });
     };
 
@@ -69,11 +130,82 @@ export default function Sales() {
 
     const PaymentIcon = ({ mode }: { mode: string }) => {
         switch (mode) {
-            case 'CASH': return <Banknote size={12} className="mr-1.5 opacity-50" />;
-            case 'CARD': return <CreditCard size={12} className="mr-1.5 opacity-50" />;
-            case 'UPI': return <Smartphone size={12} className="mr-1.5 opacity-50" />;
+            case 'CASH': return (
+                <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
+                    <Banknote size={12} strokeWidth={2.5} />
+                    <span className="text-[10px] font-black uppercase tracking-wider">Cash</span>
+                </div>
+            );
+            case 'CARD': return (
+                <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-500 border border-blue-500/20">
+                    <CreditCard size={12} strokeWidth={2.5} />
+                    <span className="text-[10px] font-black uppercase tracking-wider">Card</span>
+                </div>
+            );
+            case 'UPI': return (
+                <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-500 border border-purple-500/20">
+                    <Smartphone size={12} strokeWidth={2.5} />
+                    <span className="text-[10px] font-black uppercase tracking-wider">UPI</span>
+                </div>
+            );
             default: return null;
         }
+    };
+
+    const handleWhatsAppShare = async (bill: Bill & { customer_name?: string; customer_phone?: string }) => {
+        try {
+            const fullBill = await saleService.getBillDetails(bill.id);
+            // Ensure customer info from the search results is kept if missing in bill record
+            const enrichedBill = {
+                ...fullBill,
+                customer_phone: bill.customer_phone || (fullBill as any).customer_phone,
+                customer_name: bill.customer_name || (fullBill as any).customer_name
+            };
+
+            if (enrichedBill.customer_phone) {
+                whatsappService.sendReceipt(enrichedBill, enrichedBill.customer_name);
+            } else {
+                setManualPhone('');
+                setPhoneModalBill(enrichedBill as any);
+            }
+        } catch (error) {
+            alert('Failed to fetch bill details for sharing');
+        }
+    };
+
+    const handleShareReceiptPdf = async (bill: Bill) => {
+        try {
+            const fullBill = await saleService.getBillDetails(bill.id);
+            const path = await exportService.generateBillPdf(fullBill);
+
+            if (path && navigator.share) {
+                // Try to share the file if supported (mobile browsers)
+                try {
+                    const response = await fetch(path);
+                    const blob = await response.blob();
+                    const file = new File([blob], `Receipt_${bill.bill_no}.pdf`, { type: 'application/pdf' });
+
+                    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                        await navigator.share({
+                            files: [file],
+                            title: `Receipt #${bill.bill_no}`,
+                            text: `Bill receipt for invoice #${bill.bill_no}`
+                        });
+                    }
+                } catch (shareError) {
+                    console.log('Native share failed or not applicable, file saved locally.');
+                }
+            }
+        } catch (error) {
+            alert('Failed to generate or share PDF');
+        }
+    };
+
+    const submitManualWhatsApp = async () => {
+        if (!phoneModalBill || !manualPhone) return;
+        const fullBill = await saleService.getBillDetails(phoneModalBill.id);
+        whatsappService.sendReceipt({ ...fullBill, customer_phone: manualPhone } as any, phoneModalBill.customer_name);
+        setPhoneModalBill(null);
     };
 
 
@@ -168,83 +300,169 @@ export default function Sales() {
 
 
 
-            {/* Sales Table */}
-            <div className="flex-1 bg-surface rounded-xl border border-border flex flex-col overflow-hidden shadow-xl">
-                <div className="flex-1 overflow-auto no-scrollbar">
-                    <table className="w-full text-left border-collapse">
-                        <thead className="bg-muted text-muted-foreground sticky top-0 z-10 backdrop-blur-md">
-                            <tr>
-                                <th className="p-4 font-medium border-b border-border text-xs uppercase tracking-wider">Bill No</th>
-                                <th className="p-4 font-medium border-b border-border text-xs uppercase tracking-wider">Date & Time</th>
-                                <th className="p-4 font-medium border-b border-border text-xs uppercase tracking-wider">Status</th>
-                                <th className="p-4 font-medium border-b border-border text-xs uppercase tracking-wider">Payment</th>
-                                <th className="p-4 font-medium border-b border-border text-xs uppercase tracking-wider text-right">Total</th>
-                                <th className="p-4 font-medium border-b border-border text-xs uppercase tracking-wider text-right">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {bills.map(bill => (
-                                <tr key={bill.id} className="border-b border-border hover:bg-muted/50 transition-colors group">
-                                    <td className="p-4 text-sm font-bold text-foreground">#{bill.bill_no}</td>
-                                    <td className="p-4 text-sm">
-                                        <div className="text-foreground">{new Date(bill.date).toLocaleDateString()}</div>
-                                        <div className="text-xs text-muted-foreground">{new Date(bill.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
-                                    </td>
-                                    <td className="p-4">
-                                        <span className={`px-2 py-1 rounded text-[10px] font-bold border ${bill.status === 'PAID' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' :
-                                            bill.status === 'CANCELLED' ? 'bg-destructive/10 text-destructive border-destructive/20' :
-                                                'bg-orange-500/10 text-orange-500 border-orange-500/20'
-                                            }`}>
-                                            {bill.status}
-                                        </span>
-                                    </td>
-                                    <td className="p-4 text-sm text-muted-foreground">
-                                        <div className="flex items-center gap-1">
-                                            <PaymentIcon mode={bill.payment_mode} />
-                                            {bill.payment_mode}
-                                        </div>
-                                    </td>
-                                    <td className="p-4 text-sm text-right font-bold text-foreground">₹{bill.total.toFixed(2)}</td>
-                                    <td className="p-4 text-right">
-                                        <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <button
-                                                onClick={() => { saleService.getBillDetails(bill.id).then(d => { setSelectedBill(d); }); }}
-                                                className="p-2 hover:bg-blue-500/10 rounded-lg text-muted-foreground hover:text-blue-500 transition-colors"
-                                                title="View Details"
-                                            >
-                                                <Eye size={16} />
-                                            </button>
-                                            <button
-                                                onClick={() => { saleService.getBillDetails(bill.id).then(d => printerService.printReceipt(d)); }}
-                                                className="p-2 hover:bg-muted rounded-lg text-muted-foreground hover:text-foreground transition-colors"
-                                                title="Print Receipt"
-                                            >
-                                                <Printer size={16} />
-                                            </button>
-                                            {bill.status === 'PAID' && (
-                                                <button
-                                                    onClick={() => handleCancelClick(bill)}
-                                                    className="p-2 hover:bg-destructive/10 rounded-lg text-muted-foreground hover:text-destructive transition-colors"
-                                                    title="Cancel Bill"
-                                                >
-                                                    <XOctagon size={16} />
-                                                </button>
-                                            )}
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
-                            {bills.length === 0 && (
+            {/* Main Content Layout */}
+            <div className="flex-1 flex gap-6 overflow-hidden">
+                {/* Sales Table */}
+                <div className={`flex-1 bg-surface rounded-xl border border-border flex flex-col overflow-hidden shadow-xl transition-all duration-300 ${previewBill ? 'mr-[400px]' : ''}`}>
+                    <div className="flex-1 overflow-auto no-scrollbar">
+                        <table className="w-full text-left border-collapse">
+                            <thead className="bg-muted text-muted-foreground sticky top-0 z-10 backdrop-blur-md">
                                 <tr>
-                                    <td colSpan={6} className="p-20 text-center text-muted-foreground flex flex-col items-center justify-center">
-                                        <FileText size={48} className="mb-4 opacity-50" />
-                                        <p>No sales records found.</p>
-                                    </td>
+                                    <th className="p-4 font-medium border-b border-border text-xs uppercase tracking-wider">Bill No</th>
+                                    <th className="p-4 font-medium border-b border-border text-xs uppercase tracking-wider">Date & Time</th>
+                                    <th className="p-4 font-medium border-b border-border text-xs uppercase tracking-wider">Status</th>
+                                    <th className="p-4 font-medium border-b border-border text-xs uppercase tracking-wider">Customer</th>
+                                    <th className="p-4 font-medium border-b border-border text-xs uppercase tracking-wider">Payment</th>
+                                    <th className="p-4 font-medium border-b border-border text-xs uppercase tracking-wider text-right">Total</th>
+                                    <th className="p-4 font-medium border-b border-border text-xs uppercase tracking-wider text-right">Actions</th>
                                 </tr>
-                            )}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                {bills.map(bill => (
+                                    <tr key={bill.id} className={`border-b border-border hover:bg-muted/50 transition-colors group cursor-pointer ${previewBill?.id === bill.id ? 'bg-primary/5 border-l-4 border-l-primary' : ''}`} onClick={() => setPreviewBill(bill)}>
+                                        <td className="p-4 text-sm font-bold text-foreground">#{bill.bill_no}</td>
+                                        <td className="p-4 text-sm">
+                                            <div className="text-foreground">{new Date(bill.date).toLocaleDateString()}</div>
+                                            <div className="text-xs text-muted-foreground">{new Date(bill.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                                        </td>
+                                        <td className="p-4">
+                                            <span className={`px-2 py-1 rounded text-[10px] font-bold border ${bill.status === 'PAID' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' :
+                                                bill.status === 'CANCELLED' ? 'bg-destructive/10 text-destructive border-destructive/20' :
+                                                    'bg-orange-500/10 text-orange-500 border-orange-500/20'
+                                                }`}>
+                                                {bill.status}
+                                            </span>
+                                        </td>
+                                        <td className="p-4 text-sm">
+                                            <div className="text-foreground font-medium">{(bill as any).customer_name || 'Walk-in'}</div>
+                                            <div className="text-xs text-muted-foreground">{(bill as any).customer_phone || ''}</div>
+                                        </td>
+                                        <td className="p-4">
+                                            <PaymentIcon mode={bill.payment_mode} />
+                                        </td>
+                                        <td className="p-4 text-sm text-right font-bold text-foreground">₹{bill.total.toFixed(2)}</td>
+                                        <td className="p-4 text-right">
+                                            <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <button
+                                                    onClick={(e) => { e.stopPropagation(); handleWhatsAppShare(bill as any); }}
+                                                    className="p-2 hover:bg-emerald-500/10 rounded-lg text-emerald-500 transition-colors shadow-sm"
+                                                    title="Share on WhatsApp"
+                                                >
+                                                    <MessageSquare size={16} strokeWidth={2.5} />
+                                                </button>
+                                                <button
+                                                    onClick={(e) => { e.stopPropagation(); saleService.getBillDetails(bill.id).then(d => { setSelectedBill(d); }); }}
+                                                    className="p-2 hover:bg-blue-500/10 rounded-lg text-muted-foreground hover:text-blue-500 transition-colors"
+                                                    title="View Details"
+                                                >
+                                                    <Eye size={16} />
+                                                </button>
+                                                <button
+                                                    onClick={(e) => { e.stopPropagation(); saleService.getBillDetails(bill.id).then(d => printerService.printReceipt(d)); }}
+                                                    className="p-2 hover:bg-muted rounded-lg text-muted-foreground hover:text-foreground transition-colors"
+                                                    title="Print Receipt"
+                                                >
+                                                    <Printer size={16} />
+                                                </button>
+                                                {bill.status === 'PAID' && (
+                                                    <button
+                                                        onClick={(e) => { e.stopPropagation(); handleCancelClick(bill); }}
+                                                        className="p-2 hover:bg-destructive/10 rounded-lg text-muted-foreground hover:text-destructive transition-colors"
+                                                        title="Cancel Bill"
+                                                    >
+                                                        <XOctagon size={16} />
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                                {bills.length === 0 && (
+                                    <tr>
+                                        <td colSpan={7} className="p-20 text-center text-muted-foreground flex flex-col items-center justify-center">
+                                            <FileText size={48} className="mb-4 opacity-50" />
+                                            <p>No sales records found.</p>
+                                        </td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
+
+                {/* Quick Preview Sidebar */}
+                {previewBill && (
+                    <div className="fixed right-6 top-[180px] bottom-6 w-[380px] bg-surface border border-border rounded-xl shadow-2xl flex flex-col animate-in slide-in-from-right duration-300 z-20">
+                        <div className="p-4 border-b border-border flex justify-between items-center">
+                            <h3 className="font-bold text-foreground uppercase tracking-wider text-xs">Quick Preview: #{previewBill.bill_no}</h3>
+                            <button onClick={() => setPreviewBill(null)} className="p-1 hover:bg-muted rounded-lg">
+                                <ChevronRight size={20} className="rotate-180" />
+                            </button>
+                        </div>
+                        <div className="flex-1 overflow-auto p-4 space-y-4 no-scrollbar">
+                            <div className="bg-primary/5 p-4 rounded-xl border border-primary/10">
+                                <div className="text-[10px] font-black uppercase tracking-[0.2em] text-primary mb-1">TOTAL VALUATION</div>
+                                <div className="text-3xl font-black text-foreground">₹{previewBill.total.toFixed(2)}</div>
+                                <div className="mt-2 flex items-center justify-between">
+                                    <PaymentIcon mode={previewBill.payment_mode} />
+                                    <span className="text-[10px] font-bold text-muted-foreground uppercase">{new Date(previewBill.date).toLocaleString()}</span>
+                                </div>
+                            </div>
+
+                            <div className="space-y-3">
+                                <div className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">CUSTOMER INTELLIGENCE</div>
+                                <div className="p-3 bg-muted/20 border border-border rounded-xl">
+                                    <div className="text-sm font-bold text-foreground">{(previewBill as any).customer_name || 'Walk-in Customer'}</div>
+                                    <div className="text-xs text-muted-foreground">{(previewBill as any).customer_phone || 'No phone data'}</div>
+                                    <div className="grid grid-cols-2 gap-2 mt-3">
+                                        <Button
+                                            onClick={() => handleWhatsAppShare(previewBill)}
+                                            className="bg-emerald-600 hover:bg-emerald-700 text-white h-8 text-[9px] font-black uppercase tracking-widest gap-2 shadow-glow"
+                                        >
+                                            <MessageSquare size={14} /> WhatsApp
+                                        </Button>
+                                        <Button
+                                            onClick={() => handleShareReceiptPdf(previewBill)}
+                                            variant="secondary"
+                                            className="h-8 text-[9px] font-black uppercase tracking-widest gap-2"
+                                        >
+                                            <FileText size={14} /> Share PDF
+                                        </Button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <div className="flex justify-between items-center">
+                                    <div className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">BILLING DATA</div>
+                                    <button
+                                        onClick={() => saleService.getBillDetails(previewBill.id).then(d => setSelectedBill(d))}
+                                        className="text-[10px] font-black text-primary hover:underline uppercase"
+                                    >
+                                        Full Report
+                                    </button>
+                                </div>
+                                <div className="rounded-xl border border-border overflow-hidden">
+                                    <div className="p-3 bg-muted text-[10px] font-black uppercase tracking-widest flex border-b border-border">
+                                        <span className="flex-1">Product</span>
+                                        <span className="w-16 text-right">Qty/Price</span>
+                                    </div>
+                                    <div className="max-h-60 overflow-auto no-scrollbar bg-surface/50">
+                                        <BillPreviewItems billId={previewBill.id} />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="p-4 border-t border-border grid grid-cols-2 gap-3">
+                            <Button variant="secondary" onClick={() => saleService.getBillDetails(previewBill.id).then(d => printerService.printReceipt(d))} className="text-[10px] font-black uppercase tracking-widest h-10">
+                                <Printer size={14} className="mr-2" /> Print
+                            </Button>
+                            <Button onClick={() => saleService.getBillDetails(previewBill.id).then(d => setSelectedBill(d))} className="bg-primary text-primary-foreground text-[10px] font-black uppercase tracking-widest h-10">
+                                <Eye size={14} className="mr-2" /> Full Doc
+                            </Button>
+                        </div>
+                    </div>
+                )}
             </div>
 
             {/* View/Print Modal Placeholder */}
@@ -292,6 +510,43 @@ export default function Sales() {
                     </div>
                 </Modal>
             )}
+
+            {/* Manual Phone Entry Modal */}
+            <Modal isOpen={!!phoneModalBill} onClose={() => setPhoneModalBill(null)} title="WhatsApp Sharing" size="md">
+                <div className="space-y-4">
+                    <p className="text-sm text-muted-foreground">Enter customer WhatsApp number (with country code):</p>
+                    <input
+                        autoFocus
+                        type="text"
+                        placeholder="e.g., 919876543210"
+                        value={manualPhone}
+                        onChange={e => setManualPhone(e.target.value)}
+                        className="w-full bg-muted/20 text-foreground px-4 py-3 rounded-xl border border-border focus:border-primary focus:outline-none text-lg font-bold"
+                        onKeyDown={e => e.key === 'Enter' && submitManualWhatsApp()}
+                    />
+                    <div className="flex gap-3">
+                        <Button variant="secondary" className="flex-1" onClick={() => setPhoneModalBill(null)}>Cancel</Button>
+                        <Button className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white" onClick={submitManualWhatsApp}>
+                            <MessageSquare size={16} className="mr-2" /> Share
+                        </Button>
+                    </div>
+                </div>
+            </Modal>
+
+            {/* Cancel Confirmation Modal */}
+            <Modal isOpen={!!cancelModalBill} onClose={() => setCancelModalBill(null)} title="Cancel Bill?" size="md">
+                <div className="space-y-4">
+                    <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-xl text-destructive text-sm font-medium">
+                        This action will return all items to stock and invalidate this bill. This cannot be undone.
+                    </div>
+                    <div className="flex gap-3">
+                        <Button variant="secondary" className="flex-1" onClick={() => setCancelModalBill(null)}>No, Keep It</Button>
+                        <Button className="flex-1 bg-destructive text-white h-12" onClick={confirmCancel}>
+                            Confirm Cancellation
+                        </Button>
+                    </div>
+                </div>
+            </Modal>
 
             <PinModal
                 isOpen={showPinModal}

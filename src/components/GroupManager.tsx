@@ -1,11 +1,12 @@
-import { useState, useEffect } from 'react';
+
+import { useState, useEffect, useMemo } from 'react';
 import type { ProductGroup } from '../services/groupService';
 import { groupService } from '../services/groupService';
 import { productService } from '../services/productService';
 import type { Product } from '../types/db';
 import { Button } from './Button';
 import { Modal } from './Modal';
-import { Plus, Trash2, Search, X, Folder, Package } from 'lucide-react';
+import { Plus, Trash2, Search, X, Folder, Package, Edit, ArrowRight } from 'lucide-react';
 import clsx from 'clsx';
 
 interface GroupManagerProps {
@@ -18,15 +19,15 @@ export function GroupManager({ isOpen, onClose }: GroupManagerProps) {
     const [selectedGroup, setSelectedGroup] = useState<ProductGroup | null>(null);
     const [groupProducts, setGroupProducts] = useState<Product[]>([]);
 
-
-    // Create Group State
+    // Group Management State
     const [isCreating, setIsCreating] = useState(false);
-    const [newGroupName, setNewGroupName] = useState('');
-    const [newGroupDesc, setNewGroupDesc] = useState('');
+    const [isEditing, setIsEditing] = useState(false);
+    const [groupForm, setGroupForm] = useState({ name: '', description: '' });
+    const [groupSearch, setGroupSearch] = useState('');
 
-    // Add Product State
+    // Product Management State
     const [isAddingProduct, setIsAddingProduct] = useState(false);
-    const [search, setSearch] = useState('');
+    const [productSearch, setProductSearch] = useState('');
     const [searchResults, setSearchResults] = useState<Product[]>([]);
     const [searchLoading, setSearchLoading] = useState(false);
 
@@ -39,14 +40,17 @@ export function GroupManager({ isOpen, onClose }: GroupManagerProps) {
     useEffect(() => {
         if (selectedGroup) {
             loadGroupProducts(selectedGroup.id);
+        } else {
+            setGroupProducts([]);
         }
     }, [selectedGroup]);
 
+    // Product Search Debounce
     useEffect(() => {
         const timer = setTimeout(async () => {
-            if (search && isAddingProduct) {
+            if (productSearch && isAddingProduct) {
                 setSearchLoading(true);
-                const results = await productService.search(search);
+                const results = await productService.search(productSearch);
                 setSearchResults(results);
                 setSearchLoading(false);
             } else {
@@ -54,7 +58,7 @@ export function GroupManager({ isOpen, onClose }: GroupManagerProps) {
             }
         }, 300);
         return () => clearTimeout(timer);
-    }, [search, isAddingProduct]);
+    }, [productSearch, isAddingProduct]);
 
     const loadGroups = async () => {
         const data = await groupService.getAll();
@@ -66,19 +70,25 @@ export function GroupManager({ isOpen, onClose }: GroupManagerProps) {
         setGroupProducts(prod);
     };
 
-    const handleCreateGroup = async () => {
-        if (!newGroupName) return;
-        console.log('Creating group:', newGroupName);
+    const handleSaveGroup = async () => {
+        if (!groupForm.name) return;
         try {
-            const res = await groupService.create(newGroupName, newGroupDesc);
-            console.log('Group created, ID:', res);
-            setNewGroupName('');
-            setNewGroupDesc('');
+            if (isEditing && selectedGroup) {
+                await groupService.update(selectedGroup.id, groupForm.name, groupForm.description);
+                // Update local state to reflect changes immediately
+                const updatedGroups = groups.map(g => g.id === selectedGroup.id ? { ...g, ...groupForm } : g);
+                setGroups(updatedGroups);
+                setSelectedGroup({ ...selectedGroup, ...groupForm });
+            } else {
+                await groupService.create(groupForm.name, groupForm.description);
+                loadGroups();
+            }
+            setGroupForm({ name: '', description: '' });
             setIsCreating(false);
-            loadGroups();
+            setIsEditing(false);
         } catch (error) {
-            console.error('Failed to create group:', error);
-            alert('Failed to create group. Please try restarting the app if this persists.');
+            console.error('Failed to save group:', error);
+            alert('Failed to save group.');
         }
     };
 
@@ -96,7 +106,7 @@ export function GroupManager({ isOpen, onClose }: GroupManagerProps) {
         await groupService.addProduct(selectedGroup.id, product.id);
         loadGroupProducts(selectedGroup.id);
         loadGroups(); // Update counts
-        setSearch('');
+        setProductSearch('');
     };
 
     const handleRemoveProduct = async (productId: number) => {
@@ -107,181 +117,248 @@ export function GroupManager({ isOpen, onClose }: GroupManagerProps) {
         loadGroups(); // Update counts
     };
 
+    const openEditGroup = (e: React.MouseEvent, group: ProductGroup) => {
+        e.stopPropagation();
+        setGroupForm({ name: group.name, description: group.description });
+        setSelectedGroup(group);
+        setIsEditing(true);
+    };
+
+    const filteredGroups = useMemo(() => {
+        return groups.filter(g => g.name.toLowerCase().includes(groupSearch.toLowerCase()));
+    }, [groups, groupSearch]);
+
+    const groupTotalValue = useMemo(() => {
+        return groupProducts.reduce((sum, p) => sum + (p.sell_price * p.stock), 0);
+    }, [groupProducts]);
+
     return (
-        <Modal isOpen={isOpen} onClose={onClose} title="Product Groups" size="lg">
-            <div className="flex h-[600px] gap-4">
-                {/* Left Panel: Group List */}
-                <div className="w-1/3 flex flex-col border-r border-border pr-4">
-                    <div className="flex justify-between items-center mb-4">
-                        <h3 className="font-bold text-muted-foreground uppercase tracking-wider text-xs">Groups</h3>
-                        <button
-                            onClick={() => setIsCreating(true)}
-                            className="p-1 hover:bg-muted/50 rounded-lg transition-colors text-primary"
-                        >
-                            <Plus className="w-5 h-5" />
-                        </button>
+        <Modal isOpen={isOpen} onClose={onClose} title="Product Groups" size="xl">
+            <div className="flex flex-col h-[700px] overflow-hidden">
+                {/* Horizontal Group Carousel Section */}
+                <div className="shrink-0 border-b border-border bg-muted/5 p-4 flex flex-col gap-4">
+                    <div className="flex justify-between items-center">
+                        <div className="relative w-64">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                            <input
+                                value={groupSearch}
+                                onChange={e => setGroupSearch(e.target.value)}
+                                placeholder="Search groups..."
+                                className="w-full bg-surface border border-border rounded-xl pl-9 pr-4 py-2 text-sm focus:outline-none focus:border-primary/50 transition-all font-bold"
+                            />
+                        </div>
+                        <Button onClick={() => { setIsCreating(true); setGroupForm({ name: '', description: '' }); }} className="gap-2">
+                            <Plus size={16} /> New Group
+                        </Button>
                     </div>
 
-                    {isCreating && (
-                        <div className="bg-muted/40 rounded-xl p-3 mb-3 space-y-2 animate-in fade-in slide-in-from-top-2">
-                            <input
-                                autoFocus
-                                className="w-full bg-background border border-border rounded-lg px-2 py-1.5 text-sm text-foreground"
-                                placeholder="Group Name"
-                                value={newGroupName}
-                                onChange={e => setNewGroupName(e.target.value)}
-                            />
-                            <input
-                                className="w-full bg-background border border-border rounded-lg px-2 py-1.5 text-xs text-foreground"
-                                placeholder="Description (Optional)"
-                                value={newGroupDesc}
-                                onChange={e => setNewGroupDesc(e.target.value)}
-                            />
-                            <div className="flex gap-2">
-                                <Button size="sm" className="flex-1" onClick={handleCreateGroup}>Save</Button>
-                                <Button size="sm" variant="secondary" onClick={() => setIsCreating(false)}>Cancel</Button>
-                            </div>
-                        </div>
-                    )}
-
-                    <div className="flex-1 overflow-y-auto space-y-2">
-                        {groups.map(group => (
-                            <button
+                    <div className="flex gap-4 overflow-x-auto pb-4 custom-scrollbar snap-x">
+                        {filteredGroups.map(group => (
+                            <div
                                 key={group.id}
-                                onClick={() => setSelectedGroup(group)}
+                                onClick={() => { setSelectedGroup(group); setIsAddingProduct(false); }}
                                 className={clsx(
-                                    "w-full text-left p-3 rounded-xl transition-all flex items-start justify-between group",
+                                    "shrink-0 w-64 p-4 rounded-2xl border transition-all cursor-pointer snap-start group relative overflow-hidden",
                                     selectedGroup?.id === group.id
-                                        ? "bg-primary/10 border border-primary/20 shadow-lg"
-                                        : "hover:bg-muted/50 border border-transparent"
+                                        ? "bg-primary text-primary-foreground border-primary shadow-lg scale-[1.02]"
+                                        : "bg-surface border-border hover:border-primary/50 hover:shadow-md"
                                 )}
                             >
-                                <div className="flex items-center gap-3">
-                                    <Folder className={clsx("w-5 h-5", selectedGroup?.id === group.id ? "text-primary" : "text-muted-foreground opacity-50")} />
-                                    <div>
-                                        <div className={clsx("font-bold text-sm", selectedGroup?.id === group.id ? "text-primary" : "text-foreground")}>{group.name}</div>
-                                        <div className="text-[10px] text-muted-foreground opacity-60 font-mono">{group.item_count || 0} items</div>
+                                <div className="flex justify-between items-start mb-2">
+                                    <Folder size={20} className={selectedGroup?.id === group.id ? "text-primary-foreground" : "text-primary"} />
+                                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <button
+                                            onClick={(e) => openEditGroup(e, group)}
+                                            className={clsx("p-1.5 rounded-lg transition-colors", selectedGroup?.id === group.id ? "hover:bg-white/20" : "hover:bg-muted")}
+                                        >
+                                            <Edit size={14} />
+                                        </button>
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); handleDeleteGroup(group.id); }}
+                                            className={clsx("p-1.5 rounded-lg transition-colors", selectedGroup?.id === group.id ? "hover:bg-white/20 text-white" : "hover:bg-destructive/10 text-destructive")}
+                                        >
+                                            <Trash2 size={14} />
+                                        </button>
                                     </div>
                                 </div>
-                                <div
-                                    onClick={(e) => { e.stopPropagation(); handleDeleteGroup(group.id); }}
-                                    className="opacity-0 group-hover:opacity-100 p-1 hover:text-destructive transition-all text-muted-foreground"
-                                >
-                                    <Trash2 className="w-4 h-4" />
+                                <h3 className="font-black text-lg truncate mb-1">{group.name}</h3>
+                                <p className={clsx("text-xs truncate mb-3", selectedGroup?.id === group.id ? "opacity-80" : "text-muted-foreground")}>
+                                    {group.description || "No description"}
+                                </p>
+                                <div className={clsx("text-[10px] font-mono p-2 rounded-lg inline-block font-bold", selectedGroup?.id === group.id ? "bg-white/20" : "bg-muted")}>
+                                    {group.item_count || 0} ITEMS
                                 </div>
-                            </button>
+                            </div>
                         ))}
+
+                        {filteredGroups.length === 0 && (
+                            <div className="w-full text-center py-8 text-muted-foreground text-sm font-bold opacity-50 uppercase tracking-widest">
+                                {groups.length === 0 ? "Create your first group" : "No groups found"}
+                            </div>
+                        )}
                     </div>
                 </div>
 
-                {/* Right Panel: Group Details */}
-                <div className="flex-1 flex flex-col">
+                {/* Main Content Area */}
+                <div className="flex-1 bg-surface flex flex-col min-h-0 relative">
                     {selectedGroup ? (
                         <>
-                            <div className="flex justify-between items-start mb-6">
+                            {/* Group Header Stats */}
+                            <div className="p-6 border-b border-border flex justify-between items-center bg-background/50 backdrop-blur-sm sticky top-0 z-10">
                                 <div>
-                                    <h2 className="text-xl font-bold text-foreground">{selectedGroup.name}</h2>
-                                    <p className="text-xs text-muted-foreground opacity-60 mt-1">{selectedGroup.description || "No description"}</p>
+                                    <div className="flex items-center gap-3">
+                                        <h2 className="text-2xl font-black text-foreground uppercase tracking-tight">{selectedGroup.name}</h2>
+                                        <span className="bg-primary/10 text-primary text-[10px] px-2 py-1 rounded-md font-black tracking-widest border border-primary/20">
+                                            ACTIVE
+                                        </span>
+                                    </div>
+                                    <p className="text-muted-foreground text-xs mt-1 font-medium flex items-center gap-2">
+                                        Total Inventory Value: <span className="text-foreground font-bold">₹{groupTotalValue.toLocaleString()}</span>
+                                    </p>
                                 </div>
+
                                 <Button
-                                    size="sm"
-                                    onClick={() => { setIsAddingProduct(!isAddingProduct); setSearch(''); }}
-                                    className={clsx(isAddingProduct ? "bg-red-500/10 text-red-500 hover:bg-red-500/20" : "")}
+                                    onClick={() => { setIsAddingProduct(!isAddingProduct); setProductSearch(''); }}
+                                    className={clsx("shadow-glow transition-all", isAddingProduct ? "bg-muted text-foreground hover:bg-muted/80" : "bg-primary text-primary-foreground")}
                                 >
-                                    {isAddingProduct ? <X className="w-4 h-4 mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
-                                    {isAddingProduct ? 'Cancel' : 'Add Items'}
+                                    {isAddingProduct ? <X size={16} className="mr-2" /> : <Plus size={16} className="mr-2" />}
+                                    {isAddingProduct ? "Close Product Search" : "Add Products"}
                                 </Button>
                             </div>
 
-                            {isAddingProduct ? (
-                                <div className="flex-1 flex flex-col min-h-0 bg-muted/10 rounded-2xl border border-border overflow-hidden">
-                                    <div className="p-4 border-b border-border">
-                                        <div className="relative">
-                                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground opacity-50" />
-                                            <input
-                                                autoFocus
-                                                value={search}
-                                                onChange={e => setSearch(e.target.value)}
-                                                className="w-full bg-background/50 border border-border rounded-xl pl-10 pr-4 py-3 text-sm text-foreground focus:border-primary/50 outline-none"
-                                                placeholder="Search products to add..."
-                                            />
-                                        </div>
-                                    </div>
-                                    <div className="flex-1 overflow-y-auto p-2 space-y-1">
-                                        {searchResults.map(p => {
-                                            const isAlreadyIn = groupProducts.some(gp => gp.id === p.id);
-                                            return (
-                                                <button
-                                                    key={p.id}
-                                                    disabled={isAlreadyIn}
-                                                    onClick={() => handleAddProduct(p)}
-                                                    className="w-full flex items-center justify-between p-3 hover:bg-muted/50 disabled:opacity-50 disabled:hover:bg-transparent rounded-lg transition-colors group"
-                                                >
-                                                    <div className="flex items-center gap-3">
-                                                        <div className="w-8 h-8 rounded-lg bg-background flex items-center justify-center border border-border">
-                                                            <Package className="w-4 h-4 text-muted-foreground" />
-                                                        </div>
-                                                        <div className="text-left">
-                                                            <div className="font-bold text-sm text-foreground">{p.name}</div>
-                                                            <div className="text-[10px] font-mono text-muted-foreground opacity-60">{p.barcode}</div>
-                                                        </div>
+                            {/* Content */}
+                            <div className="flex-1 overflow-hidden relative">
+                                {isAddingProduct ? (
+                                    <div className="absolute inset-0 bg-background/50 backdrop-blur-md z-20 p-6 flex flex-col animate-in fade-in duration-200">
+                                        <div className="max-w-2xl mx-auto w-full flex flex-col h-full bg-surface border border-border rounded-2xl shadow-2xl overflow-hidden">
+                                            <div className="p-4 border-b border-border bg-muted/30">
+                                                <div className="relative">
+                                                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                                                    <input
+                                                        autoFocus
+                                                        value={productSearch}
+                                                        onChange={e => setProductSearch(e.target.value)}
+                                                        className="w-full bg-background border border-border rounded-xl pl-10 pr-4 py-3 text-sm focus:border-primary/50 outline-none font-bold shadow-inner"
+                                                        placeholder="Search products to add..."
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div className="flex-1 overflow-y-auto p-2">
+                                                {searchResults.map(p => {
+                                                    const isInGroup = groupProducts.some(gp => gp.id === p.id);
+                                                    return (
+                                                        <button
+                                                            key={p.id}
+                                                            disabled={isInGroup}
+                                                            onClick={() => handleAddProduct(p)}
+                                                            className="w-full flex items-center justify-between p-3 hover:bg-muted/50 rounded-xl transition-all disabled:opacity-50 group border border-transparent hover:border-border"
+                                                        >
+                                                            <div className="flex items-center gap-3">
+                                                                <div className="w-10 h-10 rounded-lg bg-background border border-border flex items-center justify-center">
+                                                                    <Package size={18} className="text-muted-foreground" />
+                                                                </div>
+                                                                <div className="text-left">
+                                                                    <div className="font-bold text-sm text-foreground">{p.name}</div>
+                                                                    <div className="text-[10px] font-mono text-muted-foreground">{p.barcode}</div>
+                                                                </div>
+                                                            </div>
+                                                            {!isInGroup ? (
+                                                                <span className="text-xs font-black text-primary bg-primary/10 px-3 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all">ADD +</span>
+                                                            ) : (
+                                                                <span className="text-[10px] font-bold text-muted-foreground px-3">ADDED</span>
+                                                            )}
+                                                        </button>
+                                                    );
+                                                })}
+                                                {!productSearch && (
+                                                    <div className="h-full flex flex-col items-center justify-center opacity-30 text-center p-8">
+                                                        <Search size={48} className="mb-4" strokeWidth={1} />
+                                                        <p className="font-black uppercase tracking-widest text-xs">Type to search inventory</p>
                                                     </div>
-                                                    {!isAlreadyIn && (
-                                                        <span className="text-xs font-bold text-primary opacity-0 group-hover:opacity-100 transition-opacity">
-                                                            Add
-                                                        </span>
-                                                    )}
-                                                    {isAlreadyIn && <span className="text-[10px] font-bold text-muted-foreground opacity-40">Added</span>}
-                                                </button>
-                                            );
-                                        })}
-                                        {search && searchResults.length === 0 && !searchLoading && (
-                                            <div className="text-center p-8 opacity-40 text-xs">No products found</div>
-                                        )}
-                                        {!search && (
-                                            <div className="text-center p-8 opacity-40 text-xs">Type to search...</div>
-                                        )}
-                                    </div>
-                                </div>
-                            ) : (
-                                <div className="flex-1 overflow-y-auto min-h-0 space-y-2 pr-2">
-                                    {groupProducts.length === 0 ? (
-                                        <div className="h-full flex flex-col items-center justify-center opacity-30">
-                                            <Folder className="w-12 h-12 mb-2" />
-                                            <p className="text-sm font-bold">This group is empty</p>
+                                                )}
+                                            </div>
                                         </div>
-                                    ) : (
-                                        groupProducts.map(p => (
-                                            <div key={p.id} className="flex items-center justify-between p-3 bg-muted/10 rounded-xl group border border-transparent hover:border-border transition-all">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="w-10 h-10 rounded-lg bg-background flex items-center justify-center text-xs font-bold text-muted-foreground border border-border">
-                                                        {p.stock}
+                                    </div>
+                                ) : (
+                                    <div className="h-full overflow-y-auto p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pb-20">
+                                        {groupProducts.map(p => (
+                                            <div key={p.id} className="bg-background border border-border rounded-xl p-4 flex justify-between items-start group hover:border-primary/50 hover:shadow-lg transition-all relative">
+                                                <div className="flex items-start gap-3">
+                                                    <div className="w-10 h-10 rounded-lg bg-muted/30 border border-border flex items-center justify-center shrink-0">
+                                                        <span className="text-xs font-black text-muted-foreground">{p.stock}</span>
                                                     </div>
                                                     <div>
-                                                        <div className="font-bold text-foreground text-sm">{p.name}</div>
-                                                        <div className="text-[10px] font-mono opacity-50 text-muted-foreground">{p.barcode} • ₹{p.sell_price}</div>
+                                                        <h4 className="font-bold text-sm text-foreground line-clamp-1">{p.name}</h4>
+                                                        <p className="text-[10px] font-mono text-muted-foreground mt-1">₹{p.sell_price}</p>
                                                     </div>
                                                 </div>
                                                 <button
                                                     onClick={() => handleRemoveProduct(p.id)}
-                                                    className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                                                    className="absolute top-2 right-2 p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
                                                 >
-                                                    <Trash2 className="w-4 h-4" />
+                                                    <Trash2 size={16} />
                                                 </button>
                                             </div>
-                                        ))
-                                    )}
-                                </div>
-                            )}
+                                        ))}
+                                        {groupProducts.length === 0 && (
+                                            <div className="col-span-full h-64 flex flex-col items-center justify-center opacity-20">
+                                                <Package size={64} strokeWidth={1} className="mb-4" />
+                                                <p className="font-black uppercase tracking-widest text-sm">No products in this group</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
                         </>
                     ) : (
-                        <div className="h-full flex flex-col items-center justify-center opacity-20">
-                            <Folder className="w-16 h-16 mb-4" />
-                            <p className="font-bold uppercase tracking-widest">Select a Group</p>
+                        <div className="h-full flex flex-col items-center justify-center opacity-10 space-y-6">
+                            <Folder size={120} strokeWidth={0.5} />
+                            <p className="font-black text-2xl uppercase tracking-[0.2em]">Select a Group</p>
                         </div>
                     )}
                 </div>
             </div>
+
+            {/* Create/Edit Modal Overlay */}
+            {(isCreating || isEditing) && (
+                <div className="absolute inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
+                    <div className="bg-surface border border-border rounded-2xl w-full max-w-md shadow-2xl p-6 ring-1 ring-white/10">
+                        <div className="flex justify-between items-center mb-6">
+                            <h3 className="font-black text-lg uppercase tracking-wider">{isEditing ? 'Edit Group' : 'New Group'}</h3>
+                            <button onClick={() => { setIsCreating(false); setIsEditing(false); }} className="hover:bg-muted p-1 rounded-lg transition-colors">
+                                <X size={20} />
+                            </button>
+                        </div>
+                        <div className="space-y-4">
+                            <div>
+                                <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1.5 block">Group Name</label>
+                                <input
+                                    autoFocus
+                                    className="w-full bg-background border border-border rounded-xl px-4 py-3 font-bold focus:border-primary focus:outline-none transition-all"
+                                    placeholder="e.g., Summer Sale"
+                                    value={groupForm.name}
+                                    onChange={e => setGroupForm(prev => ({ ...prev, name: e.target.value }))}
+                                />
+                            </div>
+                            <div>
+                                <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1.5 block">Description</label>
+                                <textarea
+                                    className="w-full bg-background border border-border rounded-xl px-4 py-3 text-sm focus:border-primary focus:outline-none transition-all resize-none h-24"
+                                    placeholder="Optional details..."
+                                    value={groupForm.description}
+                                    onChange={e => setGroupForm(prev => ({ ...prev, description: e.target.value }))}
+                                />
+                            </div>
+                            <div className="flex gap-3 pt-2">
+                                <Button variant="secondary" onClick={() => { setIsCreating(false); setIsEditing(false); }} className="flex-1">Cancel</Button>
+                                <Button onClick={handleSaveGroup} className="flex-1 bg-primary text-primary-foreground shadow-glow">
+                                    {isEditing ? 'Save Changes' : 'Create Group'}
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </Modal>
     );
 }

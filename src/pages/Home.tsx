@@ -202,9 +202,10 @@ export default function Home() {
 
         // Keyboard Shortcuts
         const handleKeyDown = (e: KeyboardEvent) => {
+            // TURBO MODES
             if (e.key === 'F1') { e.preventDefault(); setPaymentMode('CASH'); setPaidAmount(grandTotal); setPaymentStep('CONFIRM_AMOUNT'); setPaymentModalOpen(true); }
-            if (e.key === 'F2') { e.preventDefault(); setPaymentMode('CARD'); setPaidAmount(grandTotal); setPaymentStep('CONFIRM_AMOUNT'); setPaymentModalOpen(true); }
-            if (e.key === 'F3') { e.preventDefault(); setPaymentMode('UPI'); setPaidAmount(grandTotal); setPaymentStep('CONFIRM_AMOUNT'); setPaymentModalOpen(true); }
+            if (e.key === 'F2') { e.preventDefault(); setPaymentMode('UPI'); setPaidAmount(grandTotal); setPaymentStep('CONFIRM_AMOUNT'); setPaymentModalOpen(true); }
+            if (e.key === 'F3') { e.preventDefault(); setPaymentMode('CARD'); setPaidAmount(grandTotal); setPaymentStep('CONFIRM_AMOUNT'); setPaymentModalOpen(true); }
             if (e.key === 'F4') {
                 e.preventDefault();
                 if (selectedCartIndex !== null && cart[selectedCartIndex]) {
@@ -217,6 +218,11 @@ export default function Home() {
                     setQuantityModalOpen(true);
                 }
             }
+            // Quick Pay Shortcuts
+            if (e.key === 'F7') { e.preventDefault(); setPaymentMode('CASH'); setPaidAmount(100); setPaymentStep('CONFIRM_AMOUNT'); setPaymentModalOpen(true); }
+            if (e.key === 'F8') { e.preventDefault(); setPaymentMode('CASH'); setPaidAmount(500); setPaymentStep('CONFIRM_AMOUNT'); setPaymentModalOpen(true); }
+            if (e.key === 'F9') { e.preventDefault(); setPaymentMode('CASH'); setPaidAmount(2000); setPaymentStep('CONFIRM_AMOUNT'); setPaymentModalOpen(true); }
+
             if (e.key === 'F10' || (e.ctrlKey && e.key === 'f')) { e.preventDefault(); searchInputRef.current?.focus(); }
             if (e.key === 'F12' && cart.length > 0) { e.preventDefault(); setPaymentModalOpen(true); }
             if (e.key === 'Escape') {
@@ -225,6 +231,7 @@ export default function Home() {
                 setCommentModalOpen(false);
                 setQuantityModalOpen(false);
                 setWhatsAppModalOpen(false);
+                setQuickAddModalOpen(false);
             }
             if (e.key === 'Delete') {
                 if (selectedCartIndex !== null && cart[selectedCartIndex]) {
@@ -925,7 +932,22 @@ export default function Home() {
                                 type="text"
                                 value={searchTerm}
                                 onChange={e => setSearchTerm(e.target.value)}
-                                onKeyDown={e => { if (e.key === 'Enter' && products.length > 0) addToCart(products[0]); }}
+                                onKeyDown={async (e) => {
+                                    if (e.key === 'Enter' && searchTerm) {
+                                        // TURBO: Try strict match first for barcodes to skip debounce
+                                        const exactProduct = await productService.getByBarcode(searchTerm);
+                                        if (exactProduct) {
+                                            addToCart(exactProduct);
+                                            setSearchTerm('');
+                                            return;
+                                        }
+                                        // Fallback to first result if available
+                                        if (products.length > 0) {
+                                            addToCart(products[0]);
+                                            setSearchTerm('');
+                                        }
+                                    }
+                                }}
                                 placeholder="Scan barcode or search... (Enter to add)"
                                 className="w-full bg-surface text-foreground text-lg placeholder:text-muted-foreground rounded-2xl pl-14 pr-14 py-4 border border-border shadow-[0_2px_10px_-3px_rgba(0,0,0,0.07)] focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all"
                             />
@@ -2237,6 +2259,38 @@ export default function Home() {
                 </div>
             </Modal >
             {/* GST Reports Modal - Phase 5 */}
+
+            {/* Turbo Pad Overlay */}
+            <div className="fixed bottom-4 left-1/2 -translate-x-1/2 hidden lg:flex items-center gap-2 bg-black/80 backdrop-blur-md text-white p-2 rounded-full border border-white/10 shadow-2xl z-50 pointer-events-none opacity-80 hover:opacity-100 transition-opacity">
+                <div className="flex items-center gap-1.5 px-3 border-r border-white/20">
+                    <span className="font-mono font-bold text-xs bg-white/20 px-1.5 py-0.5 rounded">F1</span>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-white/80">Cash</span>
+                </div>
+                <div className="flex items-center gap-1.5 px-3 border-r border-white/20">
+                    <span className="font-mono font-bold text-xs bg-white/20 px-1.5 py-0.5 rounded">F2</span>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-white/80">UPI</span>
+                </div>
+                <div className="flex items-center gap-1.5 px-3 border-r border-white/20">
+                    <span className="font-mono font-bold text-xs bg-white/20 px-1.5 py-0.5 rounded">F3</span>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-white/80">Card</span>
+                </div>
+                <div className="flex items-center gap-1.5 px-3 border-r border-white/20">
+                    <span className="font-mono font-bold text-xs bg-white/20 px-1.5 py-0.5 rounded">F4</span>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-white/80">Qty</span>
+                </div>
+                <div className="flex items-center gap-1.5 px-3 border-r border-white/20">
+                    <span className="font-mono font-bold text-xs bg-white/20 px-1.5 py-0.5 rounded">F7</span>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-400">₹100</span>
+                </div>
+                <div className="flex items-center gap-1.5 px-3 border-r border-white/20">
+                    <span className="font-mono font-bold text-xs bg-white/20 px-1.5 py-0.5 rounded">F8</span>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-400">₹500</span>
+                </div>
+                <div className="flex items-center gap-1.5 px-3">
+                    <span className="font-mono font-bold text-xs bg-white/20 px-1.5 py-0.5 rounded">F12</span>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-white/80">Pay</span>
+                </div>
+            </div>
 
         </div >
     );

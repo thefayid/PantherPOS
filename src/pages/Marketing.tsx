@@ -2,9 +2,12 @@ import { useState } from 'react';
 import { Megaphone, Image, Users, Send, Sparkles } from 'lucide-react';
 import { Button } from '../components/Button';
 import { CatalogueBuilder } from '../components/marketing/CatalogueBuilder';
+import { SocialPostCreator } from '../components/marketing/SocialPostCreator';
+import { EventCalendar } from '../components/marketing/EventCalendar';
+import { Calendar } from 'lucide-react';
 
 export default function Marketing() {
-    const [activeTab, setActiveTab] = useState<'dashboard' | 'catalogue' | 'campaigns'>('dashboard');
+    const [activeTab, setActiveTab] = useState<'dashboard' | 'catalogue' | 'social' | 'calendar' | 'campaigns'>('dashboard');
 
     return (
         <div className="h-full bg-background text-foreground flex flex-col overflow-hidden">
@@ -37,6 +40,20 @@ export default function Marketing() {
                     >
                         <Megaphone size={16} className="mr-2" />
                         Campaigns
+                    </Button>
+                    <Button
+                        variant={activeTab === 'social' ? 'primary' : 'secondary'}
+                        onClick={() => setActiveTab('social')}
+                    >
+                        <Sparkles size={16} className="mr-2" />
+                        Social Creator
+                    </Button>
+                    <Button
+                        variant={activeTab === 'calendar' ? 'primary' : 'secondary'}
+                        onClick={() => setActiveTab('calendar')}
+                    >
+                        <Calendar size={16} className="mr-2" />
+                        Calendar
                     </Button>
                 </div>
             </div>
@@ -109,6 +126,14 @@ export default function Marketing() {
                         <h2 className="text-2xl font-bold mb-2">Campaign Manager Coming Soon</h2>
                         <p className="text-muted-foreground max-w-md">We are building a powerful tool to help you send bulk WhatsApp messages safely and effectively.</p>
                     </div>
+                )}
+
+                {activeTab === 'social' && (
+                    <SocialPostCreator />
+                )}
+
+                {activeTab === 'calendar' && (
+                    <EventCalendar />
                 )}
             </div>
         </div>

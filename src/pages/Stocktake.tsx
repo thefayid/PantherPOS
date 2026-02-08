@@ -124,12 +124,7 @@ export default function Stocktake() {
                 } catch { /* ignore */ }
             }
 
-            // 3) Last fallback: local mock search
-            if (!product) {
-                try {
-                    product = productService.searchProductsLocal(q)[0];
-                } catch { /* ignore */ }
-            }
+
 
             if (!product) {
                 alert(`Product not found for: ${q}`);
@@ -241,26 +236,26 @@ export default function Stocktake() {
                 {activeTab === 'ACTIVE' && (
                     <div className="flex-1 flex flex-col items-center justify-center">
                         <div className="bg-surface p-10 rounded-2xl border border-border shadow-2xl flex flex-col items-center max-w-2xl w-full text-center">
-                    <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mb-6">
-                        <ClipboardList size={40} className="text-primary" />
-                    </div>
-                    <h2 className="text-3xl font-bold mb-4 tracking-tight">System Stocktake</h2>
-                    <p className="text-muted-foreground mb-8 leading-relaxed">
-                        Verify your physical inventory and reconcile it with the system. Click start to begin a new counting session.
-                    </p>
-                    <div className="w-full max-w-xl mb-6 text-left">
-                        <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest ml-1">Session Notes (optional)</label>
-                        <textarea
-                            value={sessionNotes}
-                            onChange={(e) => setSessionNotes(e.target.value)}
-                            className="w-full mt-2 h-24 p-4 bg-muted/20 text-foreground border border-border rounded-2xl resize-none focus:border-primary/50 focus:outline-none focus:ring-1 focus:ring-primary/50 transition-all font-bold placeholder:text-muted-foreground/30 text-sm shadow-inner"
-                            placeholder="e.g. Monthly audit, Aisle 1–4 only, Team: Rahul/Meera"
-                        />
-                    </div>
-                    <Button onClick={handleStartSession} className="w-full text-lg py-6 bg-primary hover:bg-primary/90 text-primary-foreground shadow-glow h-auto">
-                        <PlusCircle size={20} className="mr-2" /> Start New Session
-                    </Button>
-                </div>
+                            <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mb-6">
+                                <ClipboardList size={40} className="text-primary" />
+                            </div>
+                            <h2 className="text-3xl font-bold mb-4 tracking-tight">System Stocktake</h2>
+                            <p className="text-muted-foreground mb-8 leading-relaxed">
+                                Verify your physical inventory and reconcile it with the system. Click start to begin a new counting session.
+                            </p>
+                            <div className="w-full max-w-xl mb-6 text-left">
+                                <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest ml-1">Session Notes (optional)</label>
+                                <textarea
+                                    value={sessionNotes}
+                                    onChange={(e) => setSessionNotes(e.target.value)}
+                                    className="w-full mt-2 h-24 p-4 bg-muted/20 text-foreground border border-border rounded-2xl resize-none focus:border-primary/50 focus:outline-none focus:ring-1 focus:ring-primary/50 transition-all font-bold placeholder:text-muted-foreground/30 text-sm shadow-inner"
+                                    placeholder="e.g. Monthly audit, Aisle 1–4 only, Team: Rahul/Meera"
+                                />
+                            </div>
+                            <Button onClick={handleStartSession} className="w-full text-lg py-6 bg-primary hover:bg-primary/90 text-primary-foreground shadow-glow h-auto">
+                                <PlusCircle size={20} className="mr-2" /> Start New Session
+                            </Button>
+                        </div>
                     </div>
                 )}
 
@@ -286,13 +281,12 @@ export default function Stocktake() {
                                         <tr key={s.id} className="hover:bg-muted/40 transition-colors">
                                             <td className="p-4 font-bold">#{s.id}</td>
                                             <td className="p-4">
-                                                <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${
-                                                    s.status === 'COMPLETED'
+                                                <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${s.status === 'COMPLETED'
                                                         ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'
                                                         : s.status === 'IN_PROGRESS'
                                                             ? 'bg-primary/10 text-primary border-primary/20'
                                                             : 'bg-destructive/10 text-destructive border-destructive/20'
-                                                }`}>
+                                                    }`}>
                                                     {s.status}
                                                 </span>
                                             </td>

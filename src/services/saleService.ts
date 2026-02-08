@@ -6,31 +6,35 @@ export interface BillWithItems extends Bill {
 }
 
 export const saleService = {
-    getSales: async (filters?: { search?: string; startDate?: string; endDate?: string; status?: string }): Promise<Bill[]> => {
-        let sql = `SELECT * FROM bills WHERE 1=1`;
+    getSales: async (filters?: { search?: string; startDate?: string; endDate?: string; status?: string }): Promise<(Bill & { customer_name?: string; customer_phone?: string })[]> => {
+        let sql = `
+            SELECT b.*, c.name as customer_name, c.phone as customer_phone 
+            FROM bills b 
+            LEFT JOIN customers c ON b.customer_id = c.id 
+            WHERE 1=1`;
         const params: any[] = [];
 
         if (filters?.search) {
-            sql += ` AND bill_no LIKE ?`;
-            params.push(`%${filters.search}%`);
+            sql += ` AND (b.bill_no LIKE ? OR c.name LIKE ? OR c.phone LIKE ?)`;
+            params.push(`%${filters.search}%`, `%${filters.search}%`, `%${filters.search}%`);
         }
 
         if (filters?.startDate) {
-            sql += ` AND date >= ?`;
+            sql += ` AND b.date >= ?`;
             params.push(filters.startDate);
         }
 
         if (filters?.endDate) {
-            sql += ` AND date <= ?`;
+            sql += ` AND b.date <= ?`;
             params.push(filters.endDate);
         }
 
         if (filters?.status && filters.status !== 'ALL') {
-            sql += ` AND status = ?`;
+            sql += ` AND b.status = ?`;
             params.push(filters.status);
         }
 
-        sql += ` ORDER BY date DESC LIMIT 1000`;
+        sql += ` ORDER BY b.date DESC LIMIT 1000`;
         return await databaseService.query(sql, params);
     },
 
@@ -82,13 +86,34 @@ export const saleService = {
         };
     },
 
-    getTodaySummary: async (): Promise<{ total: number; count: number }> => {
+    getTodaySummary: async (): Promise<{ total: number; count: number; gross: number; refunds: number }> => {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
-        // Call master summary function to ensure same logic (PAID + REFUNDED)
         return saleService.getSalesSummary({ startDate: today.toISOString(), status: 'ALL' });
     },
 
+    cancelBill: async (billId: number): Promise<void> => {
+        // Start a transaction
+        await databaseService.query('BEGIN TRANSACTION');
+        try {
+            // Get bill items to return to stock
+            const items = await databaseService.query('SELECT * FROM bill_items WHERE bill_id = ?', [billId]);
+            for (const item of items) {
+                await databaseService.query('UPDATE products SET stock = stock + ? WHERE id = ?', [item.quantity, item.product_id]);
+                // Log inventory change
+                await databaseService.query(
+                    'INSERT INTO inventory_logs (product_id, type, quantity_change, reason, date) VALUES (?, ?, ?, ?, ?)',
+                    [item.product_id, 'RETURN', item.quantity, `Bill #${billId} Cancelled`, new Date().toISOString()]
+                );
+            }
+            // Update bill status
+            await databaseService.query("UPDATE bills SET status = 'CANCELLED' WHERE id = ?", [billId]);
+            await databaseService.query('COMMIT');
+        } catch (error) {
+            await databaseService.query('ROLLBACK');
+            throw error;
+        }
+    },
     getBillDetails: async (billId: number): Promise<BillWithItems> => {
         const billResult = await databaseService.query(`SELECT * FROM bills WHERE id = ?`, [billId]);
         if (billResult.length === 0) throw new Error('Bill not found');
@@ -110,9 +135,6 @@ export const saleService = {
         if (billResult.length === 0) throw new Error('Bill not found');
         return saleService.getBillDetails(billResult[0].id);
     },
-
-    // ... existing cancel/refund methods ...
-    // Refund/Cancel methods removed by user request.
 
     getLastBill: async (): Promise<BillWithItems | null> => {
         const res = await databaseService.query("SELECT * FROM bills WHERE status != 'CANCELLED' ORDER BY id DESC LIMIT 1");

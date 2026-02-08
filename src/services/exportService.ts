@@ -3,6 +3,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { getAccountingSalesReportNarrative } from './accountingSalesReportContent';
 import { formatInr, generatePosReportPdf, sanitizeAscii } from './posReportPdfEngine';
+import { settingsService } from './settingsService';
 
 export const exportService = {
     generatePosReportPdf,
@@ -68,7 +69,7 @@ export const exportService = {
                     y = 30;
                     col = 0;
                     x = 20;
-                    drawHeaderFooter(doc.internal.getNumberOfPages());
+                    drawHeaderFooter(doc.getNumberOfPages());
                 }
 
                 // Calculate Position
@@ -144,17 +145,138 @@ export const exportService = {
             });
         }
 
+    },
+    generateBillPdf: async (bill: any) => {
+        const settings = await settingsService.getSettings();
+        const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+        const pageWidth = 210;
+        const marginX = 20;
+        const contentWidth = pageWidth - marginX * 2;
+        let y = 30;
+
+        // --- Header (Business Info) ---
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(24);
+        doc.setTextColor(16, 185, 129); // Panther Green
+        doc.text(sanitizeAscii(settings.store_name || 'PantherPOS'), marginX, y);
+        y += 10;
+
+        doc.setFontSize(10);
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(100);
+        doc.text(sanitizeAscii(settings.store_address || ''), marginX, y);
+        y += 5;
+        doc.text(`GSTIN: ${sanitizeAscii(settings.gst_no || 'N/A')} | Phone: ${sanitizeAscii(settings.store_phone || '')}`, marginX, y);
+        y += 15;
+
+        // --- Bill Info ---
+        doc.setDrawColor(240);
+        doc.line(marginX, y, pageWidth - marginX, y);
+        y += 10;
+
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(12);
+        doc.setTextColor(17, 24, 39);
+        doc.text(`TAX INVOICE: #${bill.bill_no}`, marginX, y);
+        doc.setFont("helvetica", "normal");
+        doc.text(`Date: ${new Date(bill.date).toLocaleString()}`, pageWidth - marginX, y, { align: 'right' });
+        y += 10;
+
+        // Customer Info
+        const customerName = bill.customer_name || 'Walk-in Customer';
+        doc.setFontSize(10);
+        doc.text(`Customer: ${sanitizeAscii(customerName)}`, marginX, y);
+        if (bill.customer_phone) {
+            y += 5;
+            doc.text(`Phone: ${sanitizeAscii(bill.customer_phone)}`, marginX, y);
+        }
+        y += 10;
+
+        // --- Items Table ---
+        autoTable(doc, {
+            startY: y,
+            margin: { left: marginX, right: marginX },
+            head: [['Item Name', 'HSN', 'Qty', 'Rate', 'GST', 'Total']],
+            body: (bill.items || []).map((item: any) => [
+                sanitizeAscii(item.productName),
+                sanitizeAscii(item.hsn_code || '---'),
+                item.quantity,
+                formatInr(item.price),
+                `${item.gst_rate}%`,
+                formatInr(item.quantity * item.price)
+            ]),
+            theme: 'striped',
+            headStyles: { fillColor: [16, 185, 129], textColor: [255, 255, 255], fontStyle: 'bold' },
+            styles: { fontSize: 9, cellPadding: 3 },
+            columnStyles: {
+                0: { cellWidth: 'auto' },
+                1: { cellWidth: 25 },
+                2: { cellWidth: 15, halign: 'center' },
+                3: { cellWidth: 30, halign: 'right' },
+                4: { cellWidth: 15, halign: 'center' },
+                5: { cellWidth: 30, halign: 'right', fontStyle: 'bold' }
+            }
+        });
+
+        y = (doc as any).lastAutoTable.finalY + 10;
+
+        // --- Totals Section ---
+        const totalX = pageWidth - marginX - 60;
+        const drawTotalLine = (label: string, value: string, isBold: boolean = false) => {
+            if (isBold) {
+                doc.setFont("helvetica", "bold");
+                doc.setFontSize(14);
+                doc.setTextColor(16, 185, 129);
+            } else {
+                doc.setFont("helvetica", "normal");
+                doc.setFontSize(10);
+                doc.setTextColor(100);
+            }
+            doc.text(label, totalX, y);
+            doc.text(value, pageWidth - marginX, y, { align: 'right' });
+            y += isBold ? 10 : 6;
+        };
+
+        drawTotalLine('Subtotal:', formatInr(bill.subtotal));
+        if (bill.cgst > 0) {
+            drawTotalLine('CGST:', formatInr(bill.cgst));
+            drawTotalLine('SGST:', formatInr(bill.sgst));
+        }
+        if (bill.igst > 0) {
+            drawTotalLine('IGST:', formatInr(bill.igst));
+        }
+        y += 2;
+        doc.setDrawColor(240);
+        doc.line(totalX, y - 4, pageWidth - marginX, y - 4);
+        drawTotalLine('NET TOTAL:', formatInr(bill.total), true);
+
+        // --- Footer ---
+        y = 270;
+        doc.setFontSize(9);
+        doc.setTextColor(150);
+        doc.setFont("helvetica", "italic");
+        doc.text("Thank you for your business!", pageWidth / 2, y, { align: 'center' });
+        y += 5;
+        doc.text("This is a computer generated invoice.", pageWidth / 2, y, { align: 'center' });
+
+        const filename = `Receipt_${bill.bill_no}.pdf`;
         const buffer = doc.output('arraybuffer');
+
         if (window.electronAPI) {
             try {
                 const res: any = await window.electronAPI.saveFile(filename, buffer);
-                if (res.success) console.log(`[exportService] Catalogue saved: ${res.path}`);
+                if (res.success) {
+                    console.log(`[exportService] PDF saved: ${res.path}`);
+                    return res.path;
+                }
             } catch (err) {
-                console.error('PDF Error', err);
+                console.error('PDF Save Error', err);
             }
         } else {
             doc.save(filename);
+            return filename;
         }
+        return null;
     },
 
     exportToCsv: (filename: string, data: any[]) => {
@@ -596,7 +718,7 @@ export const exportService = {
         doc.text(narrative.closingLine, marginX, y);
 
         // Standard footer appears once (last page only)
-        doc.setPage(doc.internal.getNumberOfPages());
+        doc.setPage(doc.getNumberOfPages());
         doc.setDrawColor(220);
         doc.line(marginX, 282, marginX + contentWidth, 282);
         doc.setFont('helvetica', 'normal');

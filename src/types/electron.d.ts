@@ -15,7 +15,7 @@ export interface ElectronAPI {
     getAuditLogs: (limit?: number) => Promise<any[]>;
     saveFile: (filename: string, data: any) => Promise<{ success: boolean; path?: string; error?: string; canceled?: boolean }>;
 
-    addNotification: (payload: { type: 'LOW_STOCK' | 'SYSTEM', title: string, message: string }) => Promise<any>;
+    addNotification: (payload: { type: 'LOW_STOCK' | 'SYSTEM' | 'CASH_VARIANCE' | 'STOCKTAKE_OVERDUE', title: string, message: string }) => Promise<any>;
     getNotifications: (unreadOnly?: boolean) => Promise<any[]>;
     markNotificationRead: (id: number) => Promise<any>;
     markAllNotificationsRead: () => Promise<any>;

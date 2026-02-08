@@ -676,7 +676,7 @@ export default function Products() {
             </div>
 
             {/* Modals */}
-            <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingProduct ? 'Edit Product' : 'Add New Product'}>
+            <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} size="4xl" title={editingProduct ? 'Edit Product' : 'Add New Product'}>
                 <ProductForm initialData={editingProduct} onSubmit={handleSave} onCancel={() => setIsModalOpen(false)} />
             </Modal>
 

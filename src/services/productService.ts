@@ -2,24 +2,6 @@ import type { Product } from '../types/db';
 import { databaseService } from './databaseService';
 import { inventoryService } from './inventoryService';
 
-const STORAGE_KEY = 'mock_products';
-
-const getMockProducts = (): Product[] => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (!stored) {
-        const initial: Product[] = [
-            { id: 1, name: 'Sample Product 1', barcode: '1234567890123', cost_price: 100, sell_price: 150, stock: 50, gst_rate: 18, hsn_code: '1234', min_stock_level: 10 },
-            { id: 2, name: 'Sample Product 2', barcode: '9876543210987', cost_price: 200, sell_price: 300, stock: 5, gst_rate: 12, hsn_code: '5678', min_stock_level: 10 },
-        ];
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(initial));
-        return initial;
-    }
-    return JSON.parse(stored);
-};
-
-const saveMockProducts = (products: Product[]) => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(products));
-};
 
 export const productService = {
     getAll: async (): Promise<Product[]> => {
@@ -49,20 +31,6 @@ export const productService = {
         );
     },
 
-    // Lightweight local search used by some UI flows (e.g. Stocktake)
-    // Works against mock products (non-Electron) and can be extended for cached datasets.
-    searchProductsLocal: (query: string): Product[] => {
-        const q = query.trim().toLowerCase();
-        const products = getMockProducts();
-        if (!q) return products;
-
-        return products.filter((p) => {
-            const nameMatch = p.name?.toLowerCase().includes(q);
-            const barcodeMatch = p.barcode?.includes(query);
-            const hsnMatch = p.hsn_code?.toLowerCase().includes(q);
-            return nameMatch || barcodeMatch || hsnMatch;
-        });
-    },
 
     // --- BUNDLES ---
     getBundleComponents: async (parentId: number): Promise<{ product: Product, quantity: number }[]> => {
@@ -205,17 +173,6 @@ export const productService = {
     },
 
     update: async (product: Product & { components?: { id: number, quantity: number }[] }): Promise<number> => {
-        if (!window.electronAPI) {
-            const products = getMockProducts();
-            const index = products.findIndex(p => p.id === product.id);
-            if (index !== -1) {
-                products[index] = product;
-                saveMockProducts(products);
-                return 1;
-            }
-            return 0;
-        }
-
         const imgLen = product.image ? product.image.length : 0;
         console.log(`Updating product: ${product.name}, Image Length: ${imgLen}`);
 
@@ -257,8 +214,6 @@ export const productService = {
     },
 
     createVariant: async (parentId: number, attributes: Record<string, string>, newBarcode: string): Promise<void> => {
-        if (!window.electronAPI) return;
-
         // 1. Fetch Parent
         const parentRes = await databaseService.query('SELECT * FROM products WHERE id = ?', [parentId]);
         const parent = parentRes[0];
@@ -292,16 +247,6 @@ export const productService = {
     // --- QUICK UPDATES (AI) ---
     updateStock: async (id: number, quantity: number): Promise<{ success: boolean; message?: string }> => {
         console.log(`[ProductService] updateStock: ID=${id}, Qty=${quantity}`);
-        if (!window.electronAPI) {
-            const products = getMockProducts();
-            const product = products.find(p => p.id === id);
-            if (product) {
-                product.stock = quantity;
-                saveMockProducts(products);
-                return { success: true };
-            }
-            return { success: false, message: 'Mock product not found' };
-        }
         try {
             const result = await databaseService.query('UPDATE products SET stock = ? WHERE id = ?', [quantity, id]);
             console.log('[ProductService] DB Result:', result);
@@ -332,16 +277,6 @@ export const productService = {
 
     updatePrice: async (id: number, price: number): Promise<{ success: boolean; message?: string }> => {
         console.log(`[ProductService] updatePrice: ID=${id}, Price=${price}`);
-        if (!window.electronAPI) {
-            const products = getMockProducts();
-            const product = products.find(p => p.id === id);
-            if (product) {
-                product.sell_price = price;
-                saveMockProducts(products);
-                return { success: true };
-            }
-            return { success: false, message: 'Mock product not found' };
-        }
         try {
             const result = await databaseService.query('UPDATE products SET sell_price = ? WHERE id = ?', [price, id]);
             console.log('[ProductService] DB Result:', result);

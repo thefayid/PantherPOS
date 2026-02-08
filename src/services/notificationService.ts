@@ -63,7 +63,6 @@ export const notificationService = {
         }
     },
 
-<<<<<<< HEAD
     checkOverdueStocktake: async (days: number = 7) => {
         try {
             // Ensure we don't spam: if an unread overdue alert exists within last 24h, skip.
@@ -119,7 +118,9 @@ export const notificationService = {
             });
         } catch (e) {
             console.error('Cash variance notification failed', e);
-=======
+        }
+    },
+
     checkExpiry: async () => {
         try {
             // Get batches expiring in next 30 days
@@ -158,7 +159,6 @@ export const notificationService = {
             }
         } catch (e) {
             console.error('Expiry check failed', e);
->>>>>>> c2439d0 (latest changes)
         }
     },
 

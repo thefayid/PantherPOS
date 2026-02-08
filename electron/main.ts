@@ -257,18 +257,93 @@ ipcMain.handle('db-query', async (event: any, sql: any, params: any) => {
 ipcMain.handle('print-raw', async (event: any, data: number[]) => {
   try {
     const buffer = Buffer.from(data);
-    log(`[Printer] ESC/POS Pulse Command Sent: ${buffer.toString('hex')}`);
+    log(`[Printer] Received ${buffer.length} bytes to print.`);
 
-    // Virtual printer success logic (simulation)
-    // Real implementation would use node-printer or raw system piping
-    return { success: true };
-  } catch (err: any) {
-    log(`Printer error: ${err.message}`);
-    // Show user-friendly error in dev if main window exists
-    if (mainWindow) {
-      mainWindow.webContents.executeJavaScript(`console.warn("Printer Error: ${err.message}")`);
+    if (!dbModule) throw new Error('DB not initialized');
+
+    // 1. Fetch Printer Settings
+    const methodRows = await dbModule.query(
+      "SELECT key, value FROM settings WHERE key IN ('printer_type', 'printer_interface')"
+    );
+    const config: any = { printer_type: 'USB_SHARED', printer_interface: '\\\\localhost\\ReceiptPrinter' };
+    methodRows.forEach((r: any) => { config[r.key] = r.value; });
+
+    log(`[Printer] Mode: ${config.printer_type}, Interface: ${config.printer_interface}`);
+
+    // 2. Dispatch based on type
+    if (config.printer_type === 'NETWORK') {
+      return new Promise((resolve) => {
+        const net = require('net');
+        const [host, portStr] = config.printer_interface.split(':');
+        const port = parseInt(portStr) || 9100;
+
+        const client = new net.Socket();
+        client.setTimeout(3000);
+
+        client.connect(port, host, () => {
+          client.write(buffer, () => {
+            client.end();
+            resolve({ success: true });
+          });
+        });
+
+        client.on('error', (err: any) => {
+          log(`[Printer-Network] Error: ${err.message}`);
+          resolve({ success: false, error: err.message });
+        });
+
+        client.on('timeout', () => {
+          client.destroy();
+          resolve({ success: false, error: 'Connection timed out' });
+        });
+      });
     }
-    return { success: false, error: "Printer not found or busy. Please check connection." };
+
+    else if (config.printer_type === 'SERIAL') {
+      return new Promise((resolve) => {
+        const { SerialPort } = require('serialport');
+        const port = new SerialPort({
+          path: config.printer_interface,
+          baudRate: 9600, // Standard default, maybe make configurable later
+          autoOpen: false
+        });
+
+        port.open((err: any) => {
+          if (err) {
+            return resolve({ success: false, error: 'Failed to open port: ' + err.message });
+          }
+          port.write(buffer, (err: any) => {
+            if (err) {
+              port.close();
+              return resolve({ success: false, error: 'Write failed: ' + err.message });
+            }
+            port.drain(() => {
+              port.close();
+              resolve({ success: true });
+            });
+          });
+        });
+      });
+    }
+
+    else {
+      // DEFAULT: USB_SHARED (Windows Printer Share / LPT)
+      // Write directly to the UNC path or file handle
+      const fs = require('fs');
+      // Flag 'w' (Write) 
+      // Note: For some shares, standard fs.writeFile works. 
+      try {
+        fs.writeFileSync(config.printer_interface, buffer);
+        return { success: true };
+      } catch (e: any) {
+        log(`[Printer-File] Error: ${e.message}`);
+        return { success: false, error: e.message };
+      }
+    }
+
+  } catch (err: any) {
+    log(`Printer System Error: ${err.message}`);
+    return { success: false, error: "System Error: " + err.message };
   }
 });
 

@@ -19,6 +19,7 @@ import Notifications from './pages/Notifications';
 import Barcodes from './pages/Barcodes';
 import Marketing from './pages/Marketing';
 import Dashboard from './pages/Dashboard';
+import Khata from './pages/Khata';
 import Tasks from './pages/Tasks';
 import TaskManagementPage from './pages/TasksV2';
 import AIAssist from './pages/AIAssist';
@@ -148,11 +149,8 @@ function App() {
         // Keep stock checks async and non-blocking.
         setTimeout(() => {
           notificationService.checkStockLevels();
-<<<<<<< HEAD
           notificationService.checkOverdueStocktake(7);
-=======
           notificationService.checkExpiry();
->>>>>>> c2439d0 (latest changes)
         }, 1000);
 
         // Optional: load the large training corpus only when explicitly enabled.
@@ -256,6 +254,7 @@ function App() {
             <Route path="/inventory" element={<Products />} />
             <Route path="/marketing" element={<Marketing />} />
             <Route path="/customers" element={<Customers />} />
+            <Route path="/khata" element={<Khata />} />
             <Route path="/sales" element={<Sales />} />
             <Route path="/reports" element={<Reports />} />
             <Route path="/settings" element={<Settings />} />

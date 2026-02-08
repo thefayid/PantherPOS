@@ -24,6 +24,7 @@ import {
     ChevronLeft,
     Megaphone,
     ListTodo,
+    BookOpen,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { databaseService } from '../services/databaseService';
@@ -68,6 +69,7 @@ export default function Sidebar({ user, onLogout, isOpen = false, onClose }: Sid
         { icon: BarChart3, label: 'Sales', path: '/sales' },
         { icon: Megaphone, label: 'Marketing', path: '/marketing' },
         { icon: Users, label: 'Customers', path: '/customers' },
+        { icon: BookOpen, label: 'Customer Khata', path: '/khata' },
         { icon: History, label: 'Reports', path: '/reports' },
         { icon: Tag, label: 'Taxation', path: '/taxation' },
         { icon: Settings, label: 'Settings', path: '/settings' },

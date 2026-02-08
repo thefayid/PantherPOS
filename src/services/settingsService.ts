@@ -15,7 +15,17 @@ export interface AppSettings {
     invoice_terms: string;
     invoice_footer: string;
     scale_protocol: string;
+
     touch_mode: boolean;
+    printer_type: 'NETWORK' | 'SERIAL' | 'USB_SHARED';
+    printer_interface: string;
+    printer_width: number;
+
+    // New Fields
+    invoice_prefix: string;
+    invoice_start_number: number;
+    currency_symbol: string;
+    barcode_prefix: string;
 }
 
 let initPromise: Promise<void> | null = null;
@@ -54,7 +64,17 @@ export const settingsService = {
                 ['scale_port', 'COM1'],
                 ['scale_baud_rate', '9600'],
                 ['scale_protocol', 'GENERIC'],
-                ['touch_mode', 'false']
+                ['scale_protocol', 'GENERIC'],
+                ['touch_mode', 'false'],
+                ['printer_type', 'USB_SHARED'],
+                ['printer_interface', '\\\\localhost\\ReceiptPrinter'],
+                ['printer_width', '48'],
+
+                // New Defaults
+                ['invoice_prefix', ''],
+                ['invoice_start_number', '1001'],
+                ['currency_symbol', '₹'],
+                ['barcode_prefix', 'GEN']
             ];
 
             // Use INSERT OR IGNORE to avoid race conditions and UNIQUE constraint errors
@@ -72,7 +92,7 @@ export const settingsService = {
         result.forEach((row: { key: string; value: string }) => {
             if (row.key === 'printer_enabled' || row.key === 'drawer_enabled' || row.key === 'scale_enabled' || row.key === 'touch_mode') {
                 settings[row.key] = row.value === 'true';
-            } else if (row.key === 'pulse_on' || row.key === 'pulse_off' || row.key === 'scale_baud_rate') {
+            } else if (row.key === 'pulse_on' || row.key === 'pulse_off' || row.key === 'scale_baud_rate' || row.key === 'printer_width' || row.key === 'invoice_start_number') {
                 settings[row.key] = parseInt(row.value);
             } else {
                 settings[row.key] = row.value;

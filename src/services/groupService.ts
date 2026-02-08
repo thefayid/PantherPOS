@@ -34,6 +34,13 @@ export const groupService = {
         return result.lastInsertRowid;
     },
 
+    update: async (id: number, name: string, description: string): Promise<void> => {
+        await databaseService.query(
+            'UPDATE product_groups SET name = ?, description = ? WHERE id = ?',
+            [name, description, id]
+        );
+    },
+
     delete: async (id: number): Promise<void> => {
         await databaseService.query('DELETE FROM product_groups WHERE id = ?', [id]);
     },

@@ -1,10 +1,50 @@
-import { Search, Bell, User } from 'lucide-react';
+import { Search, Bell, User, Cloud, RefreshCw, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { eventBus } from '../utils/EventBus';
+import { cloudService } from '../services/cloudService';
 
 interface TopBarProps {
     title?: string;
 }
 
 export function TopBar({ title }: TopBarProps) {
+    const [syncStatus, setSyncStatus] = useState<'ONLINE' | 'SYNCING' | 'ERROR' | 'OFFLINE'>('OFFLINE');
+    const [lastSync, setLastSync] = useState<string>('');
+
+    useEffect(() => {
+        // Init status
+        const config = cloudService.getConfig();
+        if (config.serverUrl && config.apiKey) {
+            setSyncStatus('ONLINE'); // Assume online if configured for now
+        }
+
+        const unsubStatus = eventBus.on('SYNC_STATUS', (status) => setSyncStatus(status));
+        const unsubLastSync = eventBus.on('LAST_SYNC_UPDATE', (date) => setLastSync(date));
+
+        return () => {
+            unsubStatus();
+            unsubLastSync();
+        };
+    }, []);
+
+    const getStatusIcon = () => {
+        switch (syncStatus) {
+            case 'SYNCING': return <RefreshCw className="w-4 h-4 text-blue-500 animate-spin" />;
+            case 'ONLINE': return <Cloud className="w-4 h-4 text-emerald-500" />;
+            case 'ERROR': return <AlertCircle className="w-4 h-4 text-red-500" />;
+            default: return <Cloud className="w-4 h-4 text-slate-300" />;
+        }
+    };
+
+    const getStatusText = () => {
+        switch (syncStatus) {
+            case 'SYNCING': return 'Syncing...';
+            case 'ONLINE': return 'Cloud Active';
+            case 'ERROR': return 'Sync Error';
+            default: return 'Offline';
+        }
+    };
+
     return (
         <header className="h-14 flex items-center justify-between px-6 shrink-0 z-50 relative">
             {/* Left: Window Controls (Decorative) */}
@@ -22,13 +62,19 @@ export function TopBar({ title }: TopBarProps) {
             </div>
 
             {/* Right: Search & Profile */}
-            <div className="flex items-center gap-4 w-48 justify-end">
-                <div className="relative group">
+            <div className="flex items-center gap-4 w-auto justify-end">
+                {/* Cloud Status */}
+                <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-white/50 rounded-full border border-black/5 shadow-sm" title={lastSync ? `Last Sync: ${new Date(lastSync).toLocaleTimeString()}` : 'Not synced yet'}>
+                    {getStatusIcon()}
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-600">{getStatusText()}</span>
+                </div>
+
+                <div className="relative group hidden sm:block">
                     <Search className="w-4 h-4 text-theme-text-secondary absolute left-3 top-1/2 -translate-y-1/2 group-focus-within:text-mac-blue transition-colors" />
                     <input
                         type="text"
                         placeholder="Search..."
-                        className="pl-9 pr-4 py-1.5 w-48 text-sm input-mac rounded-full focus:w-64 transition-all duration-300 shadow-sm"
+                        className="pl-9 pr-4 py-1.5 w-32 lg:w-48 text-sm input-mac rounded-full focus:w-64 transition-all duration-300 shadow-sm"
                     />
                 </div>
 

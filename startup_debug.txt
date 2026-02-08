@@ -1,54 +1,53 @@
 --- BOOT SEQUENCE STARTS ---
-[2026-02-07T18:42:14.623Z] Process ExecPath: D:\POS\node_modules\electron\dist\electron.exe
-[2026-02-07T18:42:14.624Z] CWD: D:\POS
-[2026-02-07T18:42:14.624Z] ELECTRON_RUN_AS_NODE: undefined
-[2026-02-07T18:42:14.624Z] VITE_DEV_SERVER_URL: http://127.0.0.1:5174 
-[2026-02-07T18:42:14.625Z] Electron Version: 28.0.0
-[2026-02-07T18:42:14.625Z] App available: true
-[2026-02-07T18:42:14.625Z] App isPackaged: false
-[2026-02-07T18:42:14.625Z] BrowserWindow available: true
-[2026-02-07T18:42:14.656Z] App ready event received
-[2026-02-07T18:42:14.656Z] Requiring DB module...
-[2026-02-07T18:42:14.683Z] Initializing DB...
-[2026-02-07T18:42:14.684Z] Initializing DB (sql.js) at: D:\POS\pos.db
-[2026-02-07T18:42:14.684Z] Backup Directory: C:\Users\rahma\AppData\Roaming\panther-pos\backups
-[2026-02-07T18:42:14.684Z] Mode: Development
-[2026-02-07T18:42:14.684Z] WASM Path: D:\POS\node_modules\sql.js\dist\sql-wasm.wasm
-[2026-02-07T18:42:14.684Z] WASM Exists: true
-[2026-02-07T18:42:14.700Z] SQL.js initialized
-[2026-02-07T18:42:14.741Z] Migration Note (image column): duplicate column name: image
-[2026-02-07T18:42:14.742Z] Migration: Created customer_ledger table
-[2026-02-07T18:42:14.761Z] DB Initialized
-[2026-02-07T18:42:14.761Z] Starting API Server...
-[2026-02-07T18:42:14.770Z] API Server Started
-[2026-02-07T18:42:14.771Z] Creating window...
-[2026-02-07T18:42:14.816Z] Loading Dev URL
-[2026-02-07T18:42:14.843Z] Registering /api/ip endpoint...
-[2026-02-07T18:42:14.851Z] API Server listening on http://0.0.0.0:3000
-[2026-02-07T18:42:14.861Z] Network Interface: VMware Network Adapter VMnet1 -> 192.168.71.1
-[2026-02-07T18:42:14.862Z] Network Interface: VMware Network Adapter VMnet8 -> 192.168.72.1
-[2026-02-07T18:42:14.862Z] Network Interface: Wi-Fi -> 10.138.128.185
-[2026-02-07T18:42:14.862Z] Network Interface: Wi-Fi 2 -> 10.138.128.77
-[2026-02-07T18:42:15.646Z] [Renderer-DEBUG] [vite] connecting... (http://127.0.0.1:5174/@vite/client:733)
-[2026-02-07T18:42:15.662Z] [Renderer-DEBUG] [vite] connected. (http://127.0.0.1:5174/@vite/client:827)
-[2026-02-07T18:42:17.554Z] [Renderer-INFO] %cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold (http://127.0.0.1:5174/node_modules/.vite/deps/chunk-LPF6KSF2.js?v=1a30fab6:21609)
-[2026-02-07T18:42:17.596Z] [Renderer-INFO] Current Hash:  (http://127.0.0.1:5174/src/App.tsx:98)
-[2026-02-07T18:42:17.597Z] [Renderer-INFO] 🎤 Command Gateway Initialized (http://127.0.0.1:5174/src/services/CommandGateway.ts:16)
-[2026-02-07T18:42:17.597Z] [Renderer-INFO] 🤖 Proactive Service Initialized (http://127.0.0.1:5174/src/services/proactiveService.ts:6)
-[2026-02-07T18:42:17.597Z] [Renderer-INFO] [Proactive] Checking for low stock items... (http://127.0.0.1:5174/src/services/proactiveService.ts:18)
-[2026-02-07T18:42:17.604Z] [Renderer-INFO] Current Hash:  (http://127.0.0.1:5174/src/App.tsx:98)
-[2026-02-07T18:42:17.605Z] [Renderer-INFO] 🎤 Command Gateway Initialized (http://127.0.0.1:5174/src/services/CommandGateway.ts:16)
-[2026-02-07T18:42:17.606Z] [Renderer-INFO] 🤖 Proactive Service Initialized (http://127.0.0.1:5174/src/services/proactiveService.ts:6)
-[2026-02-07T18:42:17.606Z] [Renderer-INFO] [Proactive] Checking for low stock items... (http://127.0.0.1:5174/src/services/proactiveService.ts:18)
-[2026-02-07T18:42:17.608Z] [Renderer-INFO] [Proactive] Checking for low stock items... (http://127.0.0.1:5174/src/services/proactiveService.ts:18)
-[2026-02-07T18:42:17.610Z] [Renderer-WARN] %cElectron Security Warning (Disabled webSecurity) font-weight: bold; This renderer process has "webSecurity" disabled. This
+[2026-02-08T11:07:20.145Z] Process ExecPath: D:\POS\node_modules\electron\dist\electron.exe
+[2026-02-08T11:07:20.147Z] CWD: D:\POS
+[2026-02-08T11:07:20.147Z] ELECTRON_RUN_AS_NODE: undefined
+[2026-02-08T11:07:20.147Z] VITE_DEV_SERVER_URL: http://127.0.0.1:5174 
+[2026-02-08T11:07:20.148Z] Electron Version: 28.0.0
+[2026-02-08T11:07:20.148Z] App available: true
+[2026-02-08T11:07:20.148Z] App isPackaged: false
+[2026-02-08T11:07:20.148Z] BrowserWindow available: true
+[2026-02-08T11:07:20.206Z] App ready event received
+[2026-02-08T11:07:20.207Z] Requiring DB module...
+[2026-02-08T11:07:20.281Z] Initializing DB...
+[2026-02-08T11:07:20.283Z] Initializing DB (sql.js) at: D:\POS\pos.db
+[2026-02-08T11:07:20.284Z] Backup Directory: C:\Users\rahma\AppData\Roaming\panther-pos\backups
+[2026-02-08T11:07:20.284Z] Mode: Development
+[2026-02-08T11:07:20.284Z] WASM Path: D:\POS\node_modules\sql.js\dist\sql-wasm.wasm
+[2026-02-08T11:07:20.285Z] WASM Exists: true
+[2026-02-08T11:07:20.322Z] SQL.js initialized
+[2026-02-08T11:07:20.370Z] Migration Note (image column): duplicate column name: image
+[2026-02-08T11:07:20.376Z] Migration: Created customer_ledger table
+[2026-02-08T11:07:20.400Z] DB Initialized
+[2026-02-08T11:07:20.400Z] Starting API Server...
+[2026-02-08T11:07:20.408Z] API Server Started
+[2026-02-08T11:07:20.409Z] Creating window...
+[2026-02-08T11:07:20.468Z] Loading Dev URL
+[2026-02-08T11:07:20.520Z] Registering /api/ip endpoint...
+[2026-02-08T11:07:20.530Z] API Server listening on http://0.0.0.0:3000
+[2026-02-08T11:07:20.540Z] Network Interface: VMware Network Adapter VMnet1 -> 192.168.71.1
+[2026-02-08T11:07:20.540Z] Network Interface: VMware Network Adapter VMnet8 -> 192.168.72.1
+[2026-02-08T11:07:20.541Z] Network Interface: Wi-Fi -> 10.138.128.185
+[2026-02-08T11:07:22.879Z] [Renderer-DEBUG] [vite] connecting... (http://127.0.0.1:5174/@vite/client:733)
+[2026-02-08T11:07:22.912Z] [Renderer-DEBUG] [vite] connected. (http://127.0.0.1:5174/@vite/client:827)
+[2026-02-08T11:07:26.806Z] [Renderer-INFO] %cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold (http://127.0.0.1:5174/node_modules/.vite/deps/chunk-LPF6KSF2.js?v=1a30fab6:21609)
+[2026-02-08T11:07:26.981Z] [Renderer-INFO] Current Hash:  (http://127.0.0.1:5174/src/App.tsx:99)
+[2026-02-08T11:07:26.983Z] [Renderer-INFO] 🎤 Command Gateway Initialized (http://127.0.0.1:5174/src/services/CommandGateway.ts:16)
+[2026-02-08T11:07:26.985Z] [Renderer-INFO] 🤖 Proactive Service Initialized (http://127.0.0.1:5174/src/services/proactiveService.ts:6)
+[2026-02-08T11:07:26.985Z] [Renderer-INFO] [Proactive] Checking for low stock items... (http://127.0.0.1:5174/src/services/proactiveService.ts:18)
+[2026-02-08T11:07:27.001Z] [Renderer-INFO] Current Hash:  (http://127.0.0.1:5174/src/App.tsx:99)
+[2026-02-08T11:07:27.003Z] [Renderer-INFO] 🎤 Command Gateway Initialized (http://127.0.0.1:5174/src/services/CommandGateway.ts:16)
+[2026-02-08T11:07:27.003Z] [Renderer-INFO] 🤖 Proactive Service Initialized (http://127.0.0.1:5174/src/services/proactiveService.ts:6)
+[2026-02-08T11:07:27.004Z] [Renderer-INFO] [Proactive] Checking for low stock items... (http://127.0.0.1:5174/src/services/proactiveService.ts:18)
+[2026-02-08T11:07:27.006Z] [Renderer-INFO] [Proactive] Checking for low stock items... (http://127.0.0.1:5174/src/services/proactiveService.ts:18)
+[2026-02-08T11:07:27.010Z] [Renderer-WARN] %cElectron Security Warning (Disabled webSecurity) font-weight: bold; This renderer process has "webSecurity" disabled. This
   exposes users of this app to severe security risks.
 
 For more information and help, consult
 https://electronjs.org/docs/tutorial/security.
 This warning will not show up
 once the app is packaged. (node:electron/js2c/sandbox_bundle:2)
-[2026-02-07T18:42:17.611Z] [Renderer-WARN] %cElectron Security Warning (allowRunningInsecureContent) font-weight: bold; This renderer process has "allowRunningInsecureContent"
+[2026-02-08T11:07:27.010Z] [Renderer-WARN] %cElectron Security Warning (allowRunningInsecureContent) font-weight: bold; This renderer process has "allowRunningInsecureContent"
   enabled. This exposes users of this app to severe security risks.
 
   
@@ -56,7 +55,7 @@ For more information and help, consult
 https://electronjs.org/docs/tutorial/security.
 This warning will not show up
 once the app is packaged. (node:electron/js2c/sandbox_bundle:2)
-[2026-02-07T18:42:17.612Z] [Renderer-WARN] %cElectron Security Warning (Insecure Content-Security-Policy) font-weight: bold; This renderer process has either no Content Security
+[2026-02-08T11:07:27.011Z] [Renderer-WARN] %cElectron Security Warning (Insecure Content-Security-Policy) font-weight: bold; This renderer process has either no Content Security
   Policy set or a policy with "unsafe-eval" enabled. This exposes users of
   this app to unnecessary security risks.
 
@@ -64,424 +63,84 @@ For more information and help, consult
 https://electronjs.org/docs/tutorial/security.
 This warning will not show up
 once the app is packaged. (node:electron/js2c/sandbox_bundle:2)
-[2026-02-07T18:42:17.612Z] [Renderer-INFO] [Proactive] Low stock query result: [object Object],[object Object],[object Object] (http://127.0.0.1:5174/src/services/proactiveService.ts:24)
-[2026-02-07T18:42:17.612Z] [Renderer-INFO] [Proactive] Triggering toast for: Milk (5), Test33 (2), dsfds (0) (http://127.0.0.1:5174/src/services/proactiveService.ts:27)
-[2026-02-07T18:42:17.620Z] [Renderer-INFO] [Proactive] Low stock query result: [object Object],[object Object],[object Object] (http://127.0.0.1:5174/src/services/proactiveService.ts:24)
-[2026-02-07T18:42:17.621Z] [Renderer-INFO] [Proactive] Triggering toast for: Milk (5), Test33 (2), dsfds (0) (http://127.0.0.1:5174/src/services/proactiveService.ts:27)
-[2026-02-07T18:42:17.650Z] [Renderer-INFO] [Proactive] Low stock query result: [object Object],[object Object],[object Object] (http://127.0.0.1:5174/src/services/proactiveService.ts:24)
-[2026-02-07T18:42:17.651Z] [Renderer-INFO] [Proactive] Triggering toast for: Milk (5), Test33 (2), dsfds (0) (http://127.0.0.1:5174/src/services/proactiveService.ts:27)
-[2026-02-07T18:42:17.789Z] [Renderer-INFO] [DB][12:12:17 AM] Initializing for electron... (http://127.0.0.1:5174/src/services/databaseService.ts:11)
-[2026-02-07T18:42:17.791Z] [Renderer-INFO] [DB][12:12:17 AM] Electron platform detected. Initializing schema and migrations... (http://127.0.0.1:5174/src/services/databaseService.ts:11)
-[2026-02-07T18:42:18.065Z] [Renderer-INFO] [DB][12:12:18 AM] Running platform-agnostic migrations... (http://127.0.0.1:5174/src/services/databaseService.ts:11)
-[2026-02-07T18:42:18.094Z] [Renderer-INFO] DB Ready (http://127.0.0.1:5174/src/App.tsx:125)
-[2026-02-07T18:42:18.095Z] [Renderer-INFO] [TrainingService] Ingesting training data... 39 items (http://127.0.0.1:5174/src/services/trainingService.ts:124)
-[2026-02-07T18:42:18.096Z] [Renderer-INFO] [TrainingService] Ingestion complete. (http://127.0.0.1:5174/src/services/trainingService.ts:131)
-[2026-02-07T18:42:18.097Z] [Renderer-INFO] [IntentEngine] Ingesting training data for Fuse... 39 items (http://127.0.0.1:5174/src/services/IntentEngine.ts:41)
-[2026-02-07T18:42:18.097Z] [Renderer-INFO] DB Ready (http://127.0.0.1:5174/src/App.tsx:125)
-[2026-02-07T18:42:18.097Z] [Renderer-INFO] [TrainingService] Ingesting training data... 39 items (http://127.0.0.1:5174/src/services/trainingService.ts:124)
-[2026-02-07T18:42:18.097Z] [Renderer-INFO] [TrainingService] Ingestion complete. (http://127.0.0.1:5174/src/services/trainingService.ts:131)
-[2026-02-07T18:42:18.098Z] [Renderer-INFO] [IntentEngine] Ingesting training data for Fuse... 39 items (http://127.0.0.1:5174/src/services/IntentEngine.ts:41)
-[2026-02-07T18:42:18.098Z] [Renderer-INFO] DB Ready (http://127.0.0.1:5174/src/App.tsx:125)
-[2026-02-07T18:42:18.098Z] [Renderer-INFO] [TrainingService] Ingesting training data... 39 items (http://127.0.0.1:5174/src/services/trainingService.ts:124)
-[2026-02-07T18:42:18.098Z] [Renderer-INFO] [TrainingService] Ingestion complete. (http://127.0.0.1:5174/src/services/trainingService.ts:131)
-[2026-02-07T18:42:18.099Z] [Renderer-INFO] [IntentEngine] Ingesting training data for Fuse... 39 items (http://127.0.0.1:5174/src/services/IntentEngine.ts:41)
-[2026-02-07T18:42:18.099Z] [Renderer-INFO] DB Ready (http://127.0.0.1:5174/src/App.tsx:125)
-[2026-02-07T18:42:18.099Z] [Renderer-INFO] [TrainingService] Ingesting training data... 39 items (http://127.0.0.1:5174/src/services/trainingService.ts:124)
-[2026-02-07T18:42:18.100Z] [Renderer-INFO] [TrainingService] Ingestion complete. (http://127.0.0.1:5174/src/services/trainingService.ts:131)
-[2026-02-07T18:42:18.100Z] [Renderer-INFO] [IntentEngine] Ingesting training data for Fuse... 39 items (http://127.0.0.1:5174/src/services/IntentEngine.ts:41)
-[2026-02-07T18:42:22.609Z] [Renderer-INFO] [Proactive] Checking for low stock items... (http://127.0.0.1:5174/src/services/proactiveService.ts:18)
-[2026-02-07T18:42:22.611Z] [Renderer-INFO] [Proactive] Checking for low stock items... (http://127.0.0.1:5174/src/services/proactiveService.ts:18)
-[2026-02-07T18:42:22.612Z] [Renderer-INFO] [Proactive] Low stock query result: [object Object],[object Object],[object Object] (http://127.0.0.1:5174/src/services/proactiveService.ts:24)
-[2026-02-07T18:42:22.613Z] [Renderer-INFO] [Proactive] Triggering toast for: Milk (5), Test33 (2), dsfds (0) (http://127.0.0.1:5174/src/services/proactiveService.ts:27)
-[2026-02-07T18:42:22.613Z] [Renderer-INFO] [Proactive] Low stock query result: [object Object],[object Object],[object Object] (http://127.0.0.1:5174/src/services/proactiveService.ts:24)
-[2026-02-07T18:42:22.613Z] [Renderer-INFO] [Proactive] Triggering toast for: Milk (5), Test33 (2), dsfds (0) (http://127.0.0.1:5174/src/services/proactiveService.ts:27)
-[2026-02-07T18:42:23.437Z] [Renderer-WARN] ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition. (http://127.0.0.1:5174/node_modules/.vite/deps/react-router-dom.js?v=1a30fab6:4435)
-[2026-02-07T18:42:23.437Z] [Renderer-WARN] ⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath. (http://127.0.0.1:5174/node_modules/.vite/deps/react-router-dom.js?v=1a30fab6:4435)
-[2026-02-07T18:42:30.469Z] [Renderer-INFO] [saleService] getSalesSummary SQL: 
+[2026-02-08T11:07:27.013Z] [Renderer-INFO] [Proactive] Low stock query result: [object Object],[object Object],[object Object] (http://127.0.0.1:5174/src/services/proactiveService.ts:24)
+[2026-02-08T11:07:27.016Z] [Renderer-INFO] [Proactive] Triggering toast for: Milk (5), Test33 (2), dsfds (0) (http://127.0.0.1:5174/src/services/proactiveService.ts:27)
+[2026-02-08T11:07:27.027Z] [Renderer-INFO] [Proactive] Low stock query result: [object Object],[object Object],[object Object] (http://127.0.0.1:5174/src/services/proactiveService.ts:24)
+[2026-02-08T11:07:27.029Z] [Renderer-INFO] [Proactive] Triggering toast for: Milk (5), Test33 (2), dsfds (0) (http://127.0.0.1:5174/src/services/proactiveService.ts:27)
+[2026-02-08T11:07:27.030Z] [Renderer-INFO] [Proactive] Low stock query result: [object Object],[object Object],[object Object] (http://127.0.0.1:5174/src/services/proactiveService.ts:24)
+[2026-02-08T11:07:27.031Z] [Renderer-INFO] [Proactive] Triggering toast for: Milk (5), Test33 (2), dsfds (0) (http://127.0.0.1:5174/src/services/proactiveService.ts:27)
+[2026-02-08T11:07:27.533Z] [Renderer-INFO] [DB][4:37:27 PM] Initializing for electron... (http://127.0.0.1:5174/src/services/databaseService.ts:11)
+[2026-02-08T11:07:27.535Z] [Renderer-INFO] [DB][4:37:27 PM] Electron platform detected. Initializing schema and migrations... (http://127.0.0.1:5174/src/services/databaseService.ts:11)
+[2026-02-08T11:07:27.854Z] [Renderer-INFO] [DB][4:37:27 PM] Running platform-agnostic migrations... (http://127.0.0.1:5174/src/services/databaseService.ts:11)
+[2026-02-08T11:07:27.907Z] [Renderer-INFO] DB Ready (http://127.0.0.1:5174/src/App.tsx:126)
+[2026-02-08T11:07:27.909Z] [Renderer-INFO] [TrainingService] Ingesting training data... 39 items (http://127.0.0.1:5174/src/services/trainingService.ts:124)
+[2026-02-08T11:07:27.910Z] [Renderer-INFO] [TrainingService] Ingestion complete. (http://127.0.0.1:5174/src/services/trainingService.ts:131)
+[2026-02-08T11:07:27.911Z] [Renderer-INFO] [IntentEngine] Ingesting training data for Fuse... 39 items (http://127.0.0.1:5174/src/services/IntentEngine.ts:41)
+[2026-02-08T11:07:27.912Z] [Renderer-INFO] DB Ready (http://127.0.0.1:5174/src/App.tsx:126)
+[2026-02-08T11:07:27.912Z] [Renderer-INFO] [TrainingService] Ingesting training data... 39 items (http://127.0.0.1:5174/src/services/trainingService.ts:124)
+[2026-02-08T11:07:27.913Z] [Renderer-INFO] [TrainingService] Ingestion complete. (http://127.0.0.1:5174/src/services/trainingService.ts:131)
+[2026-02-08T11:07:27.913Z] [Renderer-INFO] [IntentEngine] Ingesting training data for Fuse... 39 items (http://127.0.0.1:5174/src/services/IntentEngine.ts:41)
+[2026-02-08T11:07:27.914Z] [Renderer-INFO] DB Ready (http://127.0.0.1:5174/src/App.tsx:126)
+[2026-02-08T11:07:27.915Z] [Renderer-INFO] [TrainingService] Ingesting training data... 39 items (http://127.0.0.1:5174/src/services/trainingService.ts:124)
+[2026-02-08T11:07:27.915Z] [Renderer-INFO] [TrainingService] Ingestion complete. (http://127.0.0.1:5174/src/services/trainingService.ts:131)
+[2026-02-08T11:07:27.915Z] [Renderer-INFO] [IntentEngine] Ingesting training data for Fuse... 39 items (http://127.0.0.1:5174/src/services/IntentEngine.ts:41)
+[2026-02-08T11:07:31.965Z] [Renderer-INFO] [Proactive] Checking for low stock items... (http://127.0.0.1:5174/src/services/proactiveService.ts:18)
+[2026-02-08T11:07:31.967Z] [Renderer-INFO] [Proactive] Checking for low stock items... (http://127.0.0.1:5174/src/services/proactiveService.ts:18)
+[2026-02-08T11:07:31.968Z] [Renderer-INFO] [Proactive] Low stock query result: [object Object],[object Object],[object Object] (http://127.0.0.1:5174/src/services/proactiveService.ts:24)
+[2026-02-08T11:07:31.968Z] [Renderer-INFO] [Proactive] Triggering toast for: Milk (5), Test33 (2), dsfds (0) (http://127.0.0.1:5174/src/services/proactiveService.ts:27)
+[2026-02-08T11:07:31.968Z] [Renderer-INFO] [Proactive] Low stock query result: [object Object],[object Object],[object Object] (http://127.0.0.1:5174/src/services/proactiveService.ts:24)
+[2026-02-08T11:07:31.969Z] [Renderer-INFO] [Proactive] Triggering toast for: Milk (5), Test33 (2), dsfds (0) (http://127.0.0.1:5174/src/services/proactiveService.ts:27)
+[2026-02-08T11:07:52.502Z] [Renderer-WARN] ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition. (http://127.0.0.1:5174/node_modules/.vite/deps/react-router-dom.js?v=1a30fab6:4435)
+[2026-02-08T11:07:52.503Z] [Renderer-WARN] ⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath. (http://127.0.0.1:5174/node_modules/.vite/deps/react-router-dom.js?v=1a30fab6:4435)
+[2026-02-08T11:08:06.583Z] [Renderer-INFO] [saleService] getSalesSummary SQL: 
             SELECT 
                 SUM(total) as net_total,
                 SUM(CASE WHEN total > 0 THEN total ELSE 0 END) as gross_total,
                 SUM(CASE WHEN total < 0 THEN total ELSE 0 END) as refund_total,
                 COUNT(*) as count 
             FROM bills WHERE 1=1 AND status != 'CANCELLED'
-          (http://127.0.0.1:5174/src/services/saleService.ts:54)
-[2026-02-07T18:42:30.470Z] [Renderer-INFO] [saleService] getSalesSummary SQL: 
+          (http://127.0.0.1:5174/src/services/saleService.ts:58)
+[2026-02-08T11:08:06.584Z] [Renderer-INFO] [saleService] getSalesSummary SQL: 
             SELECT 
                 SUM(total) as net_total,
                 SUM(CASE WHEN total > 0 THEN total ELSE 0 END) as gross_total,
                 SUM(CASE WHEN total < 0 THEN total ELSE 0 END) as refund_total,
                 COUNT(*) as count 
             FROM bills WHERE 1=1 AND date >= ? AND status != 'CANCELLED'
-         2026-02-07T18:30:00.000Z (http://127.0.0.1:5174/src/services/saleService.ts:54)
-[2026-02-07T18:42:30.471Z] [Renderer-INFO] [saleService] getSalesSummary SQL: 
+         2026-02-07T18:30:00.000Z (http://127.0.0.1:5174/src/services/saleService.ts:58)
+[2026-02-08T11:08:06.586Z] [Renderer-INFO] [saleService] getSalesSummary SQL: 
             SELECT 
                 SUM(total) as net_total,
                 SUM(CASE WHEN total > 0 THEN total ELSE 0 END) as gross_total,
                 SUM(CASE WHEN total < 0 THEN total ELSE 0 END) as refund_total,
                 COUNT(*) as count 
             FROM bills WHERE 1=1 AND status != 'CANCELLED'
-          (http://127.0.0.1:5174/src/services/saleService.ts:54)
-[2026-02-07T18:42:30.472Z] [Renderer-INFO] [saleService] getSalesSummary SQL: 
+          (http://127.0.0.1:5174/src/services/saleService.ts:58)
+[2026-02-08T11:08:06.587Z] [Renderer-INFO] [saleService] getSalesSummary SQL: 
             SELECT 
                 SUM(total) as net_total,
                 SUM(CASE WHEN total > 0 THEN total ELSE 0 END) as gross_total,
                 SUM(CASE WHEN total < 0 THEN total ELSE 0 END) as refund_total,
                 COUNT(*) as count 
             FROM bills WHERE 1=1 AND date >= ? AND status != 'CANCELLED'
-         2026-02-07T18:30:00.000Z (http://127.0.0.1:5174/src/services/saleService.ts:54)
-[2026-02-07T18:42:30.484Z] [Renderer-INFO] [saleService] getSalesSummary Result: [object Object] (http://127.0.0.1:5174/src/services/saleService.ts:56)
-[2026-02-07T18:42:30.485Z] [Renderer-INFO] [saleService] getSalesSummary Result: [object Object] (http://127.0.0.1:5174/src/services/saleService.ts:56)
-[2026-02-07T18:42:30.485Z] [Renderer-INFO] [saleService] getSalesSummary Result: [object Object] (http://127.0.0.1:5174/src/services/saleService.ts:56)
-[2026-02-07T18:42:30.485Z] [Renderer-INFO] [saleService] getSalesSummary Result: [object Object] (http://127.0.0.1:5174/src/services/saleService.ts:56)
-[2026-02-07T18:44:50.434Z] [Renderer-ERROR] [vite] Failed to reload /src/pages/AuditLogs.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) (http://127.0.0.1:5174/@vite/client:809)
-[2026-02-07T18:44:50.435Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/AuditLogs.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:50.435Z] [Renderer-DEBUG] [vite] hot updated: /src/index.css (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:50.502Z] [Renderer-ERROR] [vite] Failed to reload /src/App.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) (http://127.0.0.1:5174/@vite/client:809)
-[2026-02-07T18:44:50.866Z] [Renderer-DEBUG] [vite] hot updated: /src/index.css (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:50.866Z] [Renderer-DEBUG] [vite] hot updated: /src/App.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:50.868Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/Products.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:50.869Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/AIAssist.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:50.870Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/Home.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:50.871Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/Estimates.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:50.871Z] [Renderer-DEBUG] [vite] hot updated: /src/components/RefundModal.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:51.058Z] [Renderer-ERROR] [vite] Failed to reload /src/App.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) (http://127.0.0.1:5174/@vite/client:809)
-[2026-02-07T18:44:51.117Z] [Renderer-DEBUG] [vite] hot updated: /src/index.css (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:51.117Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/Login.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:51.117Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/StaffPage.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:51.118Z] [Renderer-DEBUG] [vite] hot updated: /src/components/PinModal.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:51.118Z] [Renderer-DEBUG] [vite] hot updated: /src/App.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:51.118Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/Products.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:51.119Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/AIAssist.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:51.119Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/Home.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:51.119Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/Estimates.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:51.119Z] [Renderer-DEBUG] [vite] hot updated: /src/components/RefundModal.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:51.150Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/Settings.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:51.150Z] [Renderer-DEBUG] [vite] hot updated: /src/index.css (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:51.176Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/Products.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:51.177Z] [Renderer-DEBUG] [vite] hot updated: /src/index.css (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:51.208Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/Dashboard.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:51.208Z] [Renderer-DEBUG] [vite] hot updated: /src/index.css (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:51.303Z] [Renderer-ERROR] [vite] Failed to reload /src/App.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) (http://127.0.0.1:5174/@vite/client:809)
-[2026-02-07T18:44:51.337Z] [Renderer-DEBUG] [vite] hot updated: /src/index.css (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:51.338Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/AuditLogs.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:51.338Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/Products.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:51.339Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/Login.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:51.339Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/StaffPage.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:51.339Z] [Renderer-DEBUG] [vite] hot updated: /src/components/PinModal.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:51.340Z] [Renderer-DEBUG] [vite] hot updated: /src/App.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:51.341Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/AIAssist.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:51.342Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/Home.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:51.342Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/Estimates.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:51.343Z] [Renderer-DEBUG] [vite] hot updated: /src/components/RefundModal.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:51.442Z] [Renderer-ERROR] [vite] Failed to reload /src/pages/Barcodes.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) (http://127.0.0.1:5174/@vite/client:809)
-[2026-02-07T18:44:51.443Z] [Renderer-ERROR] [vite] Failed to reload /src/App.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) (http://127.0.0.1:5174/@vite/client:809)
-[2026-02-07T18:44:51.569Z] [Renderer-DEBUG] [vite] hot updated: /src/index.css (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:51.570Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/Stocktake.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:51.570Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/Products.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:51.571Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/Barcodes.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:51.571Z] [Renderer-DEBUG] [vite] hot updated: /src/App.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:51.571Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/Notifications.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:51.572Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/AIAssist.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:51.572Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/Purchases.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:51.572Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/Home.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:51.572Z] [Renderer-DEBUG] [vite] hot updated: /src/components/GroupManager.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:51.573Z] [Renderer-DEBUG] [vite] hot updated: /src/components/ProductForm.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:51.573Z] [Renderer-DEBUG] [vite] hot updated: /src/components/QuickInventoryModal.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:51.573Z] [Renderer-DEBUG] [vite] hot updated: /src/components/marketing/CatalogueBuilder.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:51.573Z] [Renderer-DEBUG] [vite] hot updated: /src/components/QuickAddProductModal.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:51.574Z] [Renderer-DEBUG] [vite] hot updated: /src/components/BatchManager.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:51.574Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/Estimates.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:51.574Z] [Renderer-DEBUG] [vite] hot updated: /src/components/RefundModal.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:51.602Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/CompanySettings.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:51.603Z] [Renderer-DEBUG] [vite] hot updated: /src/index.css (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:51.653Z] [Renderer-ERROR] [vite] Failed to reload /src/App.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) (http://127.0.0.1:5174/@vite/client:809)
-[2026-02-07T18:44:51.726Z] [Renderer-DEBUG] [vite] hot updated: /src/index.css (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:51.727Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/Products.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:51.733Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/GstDashboard.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:51.734Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/Reports.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:51.735Z] [Renderer-DEBUG] [vite] hot updated: /src/App.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:51.736Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/AIAssist.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:51.736Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/Home.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:51.737Z] [Renderer-DEBUG] [vite] hot updated: /src/components/marketing/CatalogueBuilder.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:51.737Z] [Renderer-DEBUG] [vite] hot updated: /src/components/GSTReportModal.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:51.772Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/Home.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:51.772Z] [Renderer-DEBUG] [vite] hot updated: /src/index.css (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:51.806Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/EndOfDay.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:51.806Z] [Renderer-DEBUG] [vite] hot updated: /src/index.css (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:51.841Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/StaffPage.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:51.841Z] [Renderer-DEBUG] [vite] hot updated: /src/index.css (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:51.883Z] [Renderer-ERROR] [vite] Failed to reload /src/App.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) (http://127.0.0.1:5174/@vite/client:809)
-[2026-02-07T18:44:51.895Z] [Renderer-DEBUG] [vite] hot updated: /src/App.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:51.895Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/Products.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:51.896Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/Notifications.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:51.896Z] [Renderer-DEBUG] [vite] hot updated: /src/index.css (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:51.917Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/Reports.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:51.917Z] [Renderer-DEBUG] [vite] hot updated: /src/index.css (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:51.958Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/CashManagement.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:51.959Z] [Renderer-DEBUG] [vite] hot updated: /src/index.css (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:51.967Z] [Renderer-ERROR] [vite] Failed to reload /src/App.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) (http://127.0.0.1:5174/@vite/client:809)
-[2026-02-07T18:44:51.974Z] [Renderer-DEBUG] [vite] hot updated: /src/App.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:51.975Z] [Renderer-DEBUG] [vite] hot updated: /src/index.css (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:52.014Z] [Renderer-ERROR] [vite] Failed to reload /src/pages/Barcodes.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) (http://127.0.0.1:5174/@vite/client:809)
-[2026-02-07T18:44:52.025Z] [Renderer-ERROR] [vite] Failed to reload /src/App.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) (http://127.0.0.1:5174/@vite/client:809)
-[2026-02-07T18:44:52.130Z] [Renderer-DEBUG] [vite] hot updated: /src/index.css (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:52.131Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/Stocktake.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:52.132Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/Barcodes.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:52.132Z] [Renderer-DEBUG] [vite] hot updated: /src/App.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:52.133Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/Products.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:52.133Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/Notifications.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:52.133Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/AIAssist.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:52.133Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/Purchases.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:52.134Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/Home.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:52.134Z] [Renderer-DEBUG] [vite] hot updated: /src/components/GroupManager.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:52.134Z] [Renderer-DEBUG] [vite] hot updated: /src/components/ProductForm.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:52.135Z] [Renderer-DEBUG] [vite] hot updated: /src/components/QuickInventoryModal.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:52.135Z] [Renderer-DEBUG] [vite] hot updated: /src/components/marketing/CatalogueBuilder.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:52.136Z] [Renderer-DEBUG] [vite] hot updated: /src/components/QuickAddProductModal.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:52.156Z] [Renderer-DEBUG] [vite] hot updated: /src/index.css (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:52.158Z] [Renderer-DEBUG] [vite] hot updated: /src/components/CustomerForm.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:52.178Z] [Renderer-DEBUG] [vite] hot updated: /src/index.css (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:52.192Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/Notifications.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:52.193Z] [Renderer-DEBUG] [vite] hot updated: /src/index.css (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:52.208Z] [Renderer-ERROR] [vite] Failed to reload /src/pages/Barcodes.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) (http://127.0.0.1:5174/@vite/client:809)
-[2026-02-07T18:44:52.222Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/Barcodes.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:52.223Z] [Renderer-DEBUG] [vite] hot updated: /src/index.css (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:52.258Z] [Renderer-DEBUG] [vite] hot updated: /src/index.css (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:52.259Z] [Renderer-DEBUG] [vite] hot updated: /src/components/Sidebar.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:52.290Z] [Renderer-DEBUG] [vite] hot updated: /src/index.css (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:52.290Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/CompanySettings.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:52.296Z] [Renderer-DEBUG] [vite] hot updated: /src/index.css (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:52.320Z] [Renderer-ERROR] [vite] Failed to reload /src/App.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) (http://127.0.0.1:5174/@vite/client:809)
-[2026-02-07T18:44:52.661Z] [Renderer-ERROR] [vite] Failed to reload /src/pages/Barcodes.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) (http://127.0.0.1:5174/@vite/client:809)
-[2026-02-07T18:44:52.750Z] [Renderer-ERROR] Warning: Cannot update a component (`%s`) while rendering a different component (`%s`). To locate the bad setState() call inside `%s`, follow the stack trace as described in https://reactjs.org/link/setstate-in-render%s App Sidebar Sidebar 
-    at Sidebar (http://127.0.0.1:5174/src/components/Sidebar.tsx?t=1770489889896:37:35)
-    at div
-    at AppShell (http://127.0.0.1:5174/src/layouts/AppShell.tsx:9:36)
-    at UIProvider (http://127.0.0.1:5174/src/context/UIContext.tsx?t=1770489889904:6:30)
-    at Router (http://127.0.0.1:5174/node_modules/.vite/deps/react-router-dom.js?v=1a30fab6:4543:15)
-    at HashRouter (http://127.0.0.1:5174/node_modules/.vite/deps/react-router-dom.js?v=1a30fab6:5325:5)
-    at App (http://127.0.0.1:5174/src/App.tsx:54:27) (http://127.0.0.1:5174/node_modules/.vite/deps/chunk-LPF6KSF2.js?v=1a30fab6:521)
-[2026-02-07T18:44:52.751Z] [Renderer-ERROR] Uncaught Error: useUI must be used within a UIProvider (http://127.0.0.1:5174/src/context/UIContext.tsx:45)
-[2026-02-07T18:44:52.764Z] [Renderer-ERROR] Warning: Cannot update a component (`%s`) while rendering a different component (`%s`). To locate the bad setState() call inside `%s`, follow the stack trace as described in https://reactjs.org/link/setstate-in-render%s App Home Home 
-    at Home (http://127.0.0.1:5174/src/pages/Home.tsx?t=1770489889904:71:27)
-    at RenderedRoute (http://127.0.0.1:5174/node_modules/.vite/deps/react-router-dom.js?v=1a30fab6:4130:5)
-    at Routes (http://127.0.0.1:5174/node_modules/.vite/deps/react-router-dom.js?v=1a30fab6:4600:5)
-    at div
-    at main
-    at div
-    at AppShell (http://127.0.0.1:5174/src/layouts/AppShell.tsx:9:36)
-    at UIProvider (http://127.0.0.1:5174/src/context/UIContext.tsx?t=1770489889904:6:30)
-    at Router (http://127.0.0.1:5174/node_modules/.vite/deps/react-router-dom.js?v=1a30fab6:4543:15)
-    at HashRouter (http://127.0.0.1:5174/node_modules/.vite/deps/react-router-dom.js?v=1a30fab6:5325:5)
-    at App (http://127.0.0.1:5174/src/App.tsx:54:27) (http://127.0.0.1:5174/node_modules/.vite/deps/chunk-LPF6KSF2.js?v=1a30fab6:521)
-[2026-02-07T18:44:52.764Z] [Renderer-ERROR] Uncaught Error: useUI must be used within a UIProvider (http://127.0.0.1:5174/src/context/UIContext.tsx:45)
-[2026-02-07T18:44:52.765Z] [Renderer-ERROR] Warning: Cannot update a component (`%s`) while rendering a different component (`%s`). To locate the bad setState() call inside `%s`, follow the stack trace as described in https://reactjs.org/link/setstate-in-render%s App Modal Modal 
-    at Modal (http://127.0.0.1:5174/src/components/Modal.tsx:7:25)
-    at div
-    at main
-    at div
-    at AppShell (http://127.0.0.1:5174/src/layouts/AppShell.tsx:9:36)
-    at UIProvider (http://127.0.0.1:5174/src/context/UIContext.tsx?t=1770489889904:6:30)
-    at Router (http://127.0.0.1:5174/node_modules/.vite/deps/react-router-dom.js?v=1a30fab6:4543:15)
-    at HashRouter (http://127.0.0.1:5174/node_modules/.vite/deps/react-router-dom.js?v=1a30fab6:5325:5)
-    at App (http://127.0.0.1:5174/src/App.tsx:54:27) (http://127.0.0.1:5174/node_modules/.vite/deps/chunk-LPF6KSF2.js?v=1a30fab6:521)
-[2026-02-07T18:44:52.766Z] [Renderer-ERROR] Uncaught Error: useUI must be used within a UIProvider (http://127.0.0.1:5174/src/context/UIContext.tsx:45)
-[2026-02-07T18:44:52.801Z] [Renderer-ERROR] Uncaught Error: useUI must be used within a UIProvider (http://127.0.0.1:5174/src/context/UIContext.tsx:45)
-[2026-02-07T18:44:52.802Z] [Renderer-ERROR] Uncaught Error: useUI must be used within a UIProvider (http://127.0.0.1:5174/src/context/UIContext.tsx:45)
-[2026-02-07T18:44:52.802Z] [Renderer-ERROR] Uncaught Error: useUI must be used within a UIProvider (http://127.0.0.1:5174/src/context/UIContext.tsx:45)
-[2026-02-07T18:44:52.803Z] [Renderer-INFO] Current Hash: #/ (http://127.0.0.1:5174/src/App.tsx:98)
-[2026-02-07T18:44:52.883Z] [Renderer-DEBUG] [vite] hot updated: /src/App.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:52.884Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/Products.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:52.884Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/AIAssist.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:52.885Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/Notifications.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:52.885Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/CashManagement.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:52.885Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/Dashboard.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:52.886Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/EndOfDay.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:52.886Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/BalanceSheet.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:52.887Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/Vouchers.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:52.887Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/TrialBalance.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:52.887Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/ChartOfAccounts.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:52.887Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/AccountingDashboard.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:52.888Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/Home.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:52.888Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/Customers.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:52.888Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/Estimates.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:52.889Z] [Renderer-DEBUG] [vite] hot updated: /src/components/RefundModal.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:52.889Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/Suppliers.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:52.889Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/Purchases.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:52.890Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/Hardware.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:52.890Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/Settings.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:52.890Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/Reports.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:52.890Z] [Renderer-DEBUG] [vite] invalidate /src/context/UIContext.tsx: Could not Fast Refresh ("useUI" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:52.891Z] [Renderer-DEBUG] [vite] hot updated: /src/context/UIContext.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:52.891Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/Sales.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:52.891Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/Login.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:52.892Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/StaffPage.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:52.892Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/Stocktake.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:52.892Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/Barcodes.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:52.892Z] [Renderer-DEBUG] [vite] hot updated: /src/components/GroupManager.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:52.893Z] [Renderer-DEBUG] [vite] hot updated: /src/components/ProductForm.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:52.893Z] [Renderer-DEBUG] [vite] hot updated: /src/components/QuickInventoryModal.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:52.893Z] [Renderer-DEBUG] [vite] hot updated: /src/components/marketing/CatalogueBuilder.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:52.893Z] [Renderer-DEBUG] [vite] hot updated: /src/components/QuickAddProductModal.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:52.894Z] [Renderer-DEBUG] [vite] hot updated: /src/components/BatchManager.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:52.894Z] [Renderer-DEBUG] [vite] hot updated: /src/components/BottomNav.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:52.894Z] [Renderer-DEBUG] [vite] hot updated: /src/components/Sidebar.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:52.895Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/GstDashboard.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:52.895Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/Promotions.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:52.895Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/TasksV2.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:52.895Z] [Renderer-DEBUG] [vite] hot updated: /src/components/tasks/TaskKanban.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:52.896Z] [Renderer-DEBUG] [vite] hot updated: /src/components/tasks/TaskForm.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:52.896Z] [Renderer-DEBUG] [vite] hot updated: /src/components/PinModal.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:52.896Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/CompanySettings.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:52.896Z] [Renderer-DEBUG] [vite] hot updated: /src/components/GSTReportModal.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:52.897Z] [Renderer-DEBUG] [vite] hot updated: /src/index.css (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:52.897Z] [Renderer-ERROR] [vite] Error: send was called before connect (http://127.0.0.1:5174/@vite/client:809)
-[2026-02-07T18:44:52.906Z] [Renderer-DEBUG] [vite] hot updated: /src/index.css (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:52.907Z] [Renderer-DEBUG] [vite] hot updated: /src/components/QuickAddProductModal.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:52.934Z] [Renderer-DEBUG] [vite] hot updated: /src/index.css (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:52.935Z] [Renderer-DEBUG] [vite] hot updated: /src/components/ProductForm.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:52.967Z] [Renderer-ERROR] [vite] Failed to reload /src/App.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) (http://127.0.0.1:5174/@vite/client:809)
-[2026-02-07T18:44:53.134Z] [Renderer-DEBUG] [vite] hot updated: /src/App.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:53.135Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/CashManagement.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:53.135Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/Dashboard.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:53.135Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/EndOfDay.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:53.136Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/Products.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:53.136Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/AIAssist.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:53.136Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/BalanceSheet.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:53.137Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/Vouchers.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:53.137Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/TrialBalance.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:53.137Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/ChartOfAccounts.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:53.137Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/AccountingDashboard.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:53.138Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/Home.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:53.138Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/Customers.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:53.138Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/Estimates.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:53.139Z] [Renderer-DEBUG] [vite] hot updated: /src/components/RefundModal.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:53.139Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/Suppliers.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:53.139Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/Purchases.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:53.140Z] [Renderer-DEBUG] [vite] hot updated: /src/index.css (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:53.147Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/Stocktake.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:53.147Z] [Renderer-DEBUG] [vite] hot updated: /src/index.css (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:53.151Z] [Renderer-DEBUG] [vite] hot updated: /src/index.css (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:53.162Z] [Renderer-DEBUG] [vite] hot updated: /src/index.css (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:53.182Z] [Renderer-DEBUG] [vite] hot updated: /src/index.css (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:53.183Z] [Renderer-DEBUG] [vite] hot updated: /src/components/GSTReportModal.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:53.229Z] [Renderer-DEBUG] [vite] hot updated: /src/index.css (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:53.230Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/Home.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:53.230Z] [Renderer-DEBUG] [vite] hot updated: /src/components/CustomerForm.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:53.230Z] [Renderer-DEBUG] [vite] hot updated: /src/components/GSTReportModal.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:53.245Z] [Renderer-DEBUG] [vite] hot updated: /src/index.css (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:53.247Z] [Renderer-DEBUG] [vite] hot updated: /src/components/GSTBreakdownPanel.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:53.266Z] [Renderer-DEBUG] [vite] hot updated: /src/index.css (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:53.267Z] [Renderer-DEBUG] [vite] hot updated: /src/components/SimpleLabelDesigner.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:53.287Z] [Renderer-DEBUG] [vite] hot updated: /src/index.css (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:53.287Z] [Renderer-DEBUG] [vite] hot updated: /src/components/GSTReportModal.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:53.304Z] [Renderer-DEBUG] [vite] hot updated: /src/index.css (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:53.305Z] [Renderer-DEBUG] [vite] hot updated: /src/components/BatchManager.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:53.319Z] [Renderer-DEBUG] [vite] hot updated: /src/index.css (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:53.327Z] [Renderer-DEBUG] [vite] hot updated: /src/index.css (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:53.328Z] [Renderer-DEBUG] [vite] hot updated: /src/components/BatchManager.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:53.357Z] [Renderer-DEBUG] [vite] hot updated: /src/index.css (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:53.358Z] [Renderer-DEBUG] [vite] hot updated: /src/components/GSTBreakdownPanel.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:53.372Z] [Renderer-DEBUG] [vite] hot updated: /src/index.css (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:53.374Z] [Renderer-DEBUG] [vite] hot updated: /src/components/GSTReportModal.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:53.393Z] [Renderer-DEBUG] [vite] hot updated: /src/index.css (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:53.394Z] [Renderer-DEBUG] [vite] hot updated: /src/components/SimpleLabelDesigner.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:53.404Z] [Renderer-DEBUG] [vite] hot updated: /src/index.css (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:53.405Z] [Renderer-DEBUG] [vite] hot updated: /src/components/BatchManager.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:53.424Z] [Renderer-DEBUG] [vite] hot updated: /src/index.css (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:53.427Z] [Renderer-DEBUG] [vite] hot updated: /src/components/GSTBreakdownPanel.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:53.448Z] [Renderer-DEBUG] [vite] hot updated: /src/index.css (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:53.449Z] [Renderer-DEBUG] [vite] hot updated: /src/components/GSTReportModal.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:53.471Z] [Renderer-DEBUG] [vite] hot updated: /src/index.css (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:53.472Z] [Renderer-DEBUG] [vite] hot updated: /src/components/SimpleLabelDesigner.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:53.515Z] [Renderer-ERROR] [vite] Failed to reload /src/App.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) (http://127.0.0.1:5174/@vite/client:809)
-[2026-02-07T18:44:53.546Z] [Renderer-DEBUG] [vite] hot updated: /src/index.css (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:53.547Z] [Renderer-DEBUG] [vite] hot updated: /src/App.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:53.547Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/Products.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:53.548Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/AIAssist.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:53.548Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/Home.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:53.548Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/Estimates.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:53.548Z] [Renderer-DEBUG] [vite] hot updated: /src/components/RefundModal.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:53.558Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/Products.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:53.559Z] [Renderer-DEBUG] [vite] hot updated: /src/index.css (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:53.590Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/Dashboard.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:53.591Z] [Renderer-DEBUG] [vite] hot updated: /src/index.css (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:53.617Z] [Renderer-ERROR] [vite] Failed to reload /src/pages/Barcodes.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) (http://127.0.0.1:5174/@vite/client:809)
-[2026-02-07T18:44:53.631Z] [Renderer-ERROR] [vite] Failed to reload /src/App.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) (http://127.0.0.1:5174/@vite/client:809)
-[2026-02-07T18:44:53.756Z] [Renderer-DEBUG] [vite] hot updated: /src/index.css (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:53.756Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/Stocktake.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:53.757Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/Products.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:53.757Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/Barcodes.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:53.758Z] [Renderer-DEBUG] [vite] hot updated: /src/App.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:53.758Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/Notifications.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:53.758Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/AIAssist.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:53.758Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/Purchases.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:53.759Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/Home.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:53.759Z] [Renderer-DEBUG] [vite] hot updated: /src/components/GroupManager.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:53.759Z] [Renderer-DEBUG] [vite] hot updated: /src/components/ProductForm.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:53.759Z] [Renderer-DEBUG] [vite] hot updated: /src/components/QuickInventoryModal.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:53.760Z] [Renderer-DEBUG] [vite] hot updated: /src/components/marketing/CatalogueBuilder.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:53.760Z] [Renderer-DEBUG] [vite] hot updated: /src/components/QuickAddProductModal.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:53.760Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/Estimates.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:53.761Z] [Renderer-DEBUG] [vite] hot updated: /src/components/RefundModal.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:53.835Z] [Renderer-ERROR] [vite] Failed to reload /src/App.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) (http://127.0.0.1:5174/@vite/client:809)
-[2026-02-07T18:44:53.856Z] [Renderer-DEBUG] [vite] hot updated: /src/index.css (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:53.856Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/Products.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:53.857Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/GstDashboard.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:53.857Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/Reports.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:53.857Z] [Renderer-DEBUG] [vite] hot updated: /src/App.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:53.857Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/AIAssist.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:53.858Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/Home.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:53.858Z] [Renderer-DEBUG] [vite] hot updated: /src/components/marketing/CatalogueBuilder.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:53.858Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/AuditLogs.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:53.873Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/Home.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:53.874Z] [Renderer-DEBUG] [vite] hot updated: /src/index.css (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:53.915Z] [Renderer-ERROR] [vite] Failed to reload /src/App.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) (http://127.0.0.1:5174/@vite/client:809)
-[2026-02-07T18:44:53.919Z] [Renderer-DEBUG] [vite] hot updated: /src/App.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:53.920Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/Products.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:53.920Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/Notifications.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:53.920Z] [Renderer-DEBUG] [vite] hot updated: /src/index.css (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:53.958Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/Reports.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:53.959Z] [Renderer-DEBUG] [vite] hot updated: /src/index.css (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:53.973Z] [Renderer-ERROR] [vite] Failed to reload /src/App.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) (http://127.0.0.1:5174/@vite/client:809)
-[2026-02-07T18:44:53.974Z] [Renderer-DEBUG] [vite] hot updated: /src/App.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:53.975Z] [Renderer-DEBUG] [vite] hot updated: /src/index.css (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:54.040Z] [Renderer-ERROR] [vite] Failed to reload /src/pages/Barcodes.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) (http://127.0.0.1:5174/@vite/client:809)
-[2026-02-07T18:44:54.040Z] [Renderer-ERROR] [vite] Failed to reload /src/App.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) (http://127.0.0.1:5174/@vite/client:809)
-[2026-02-07T18:44:54.111Z] [Renderer-DEBUG] [vite] hot updated: /src/index.css (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:54.112Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/Stocktake.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:54.113Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/Barcodes.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:54.113Z] [Renderer-DEBUG] [vite] hot updated: /src/App.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:54.113Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/Products.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:54.113Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/Notifications.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:54.114Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/AIAssist.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:54.114Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/Purchases.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:54.114Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/Home.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:54.115Z] [Renderer-DEBUG] [vite] hot updated: /src/components/GroupManager.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:54.115Z] [Renderer-DEBUG] [vite] hot updated: /src/components/ProductForm.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:54.115Z] [Renderer-DEBUG] [vite] hot updated: /src/components/QuickInventoryModal.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:54.115Z] [Renderer-DEBUG] [vite] hot updated: /src/components/marketing/CatalogueBuilder.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:54.116Z] [Renderer-DEBUG] [vite] hot updated: /src/components/QuickAddProductModal.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:54.122Z] [Renderer-DEBUG] [vite] hot updated: /src/index.css (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:54.123Z] [Renderer-DEBUG] [vite] hot updated: /src/components/CustomerForm.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:54.128Z] [Renderer-DEBUG] [vite] hot updated: /src/index.css (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:54.151Z] [Renderer-ERROR] [vite] Failed to reload /src/pages/Barcodes.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) (http://127.0.0.1:5174/@vite/client:809)
-[2026-02-07T18:44:54.153Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/Barcodes.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:54.153Z] [Renderer-DEBUG] [vite] hot updated: /src/index.css (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:54.166Z] [Renderer-DEBUG] [vite] hot updated: /src/index.css (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:54.191Z] [Renderer-DEBUG] [vite] hot updated: /src/index.css (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:54.192Z] [Renderer-DEBUG] [vite] hot updated: /src/components/ProductForm.tsx (http://127.0.0.1:5174/@vite/client:810)
-[2026-02-07T18:44:54.192Z] [Renderer-INFO] [vite] server connection lost. Polling for restart... (http://127.0.0.1:5174/@vite/client:865)
-[2026-02-07T18:44:54.309Z] [Renderer-DEBUG] [vite] connecting... (http://127.0.0.1:5174/@vite/client:733)
-[2026-02-07T18:44:54.340Z] [Renderer-DEBUG] [vite] connected. (http://127.0.0.1:5174/@vite/client:827)
-[2026-02-07T18:44:54.341Z] [Renderer-WARN] %cElectron Security Warning (Disabled webSecurity) font-weight: bold; This renderer process has "webSecurity" disabled. This
+         2026-02-07T18:30:00.000Z (http://127.0.0.1:5174/src/services/saleService.ts:58)
+[2026-02-08T11:08:06.599Z] [Renderer-INFO] [saleService] getSalesSummary Result: [object Object] (http://127.0.0.1:5174/src/services/saleService.ts:60)
+[2026-02-08T11:08:06.599Z] [Renderer-INFO] [saleService] getSalesSummary Result: [object Object] (http://127.0.0.1:5174/src/services/saleService.ts:60)
+[2026-02-08T11:08:06.600Z] [Renderer-INFO] [saleService] getSalesSummary Result: [object Object] (http://127.0.0.1:5174/src/services/saleService.ts:60)
+[2026-02-08T11:08:06.600Z] [Renderer-INFO] [saleService] getSalesSummary Result: [object Object] (http://127.0.0.1:5174/src/services/saleService.ts:60)
+[2026-02-08T11:20:08.224Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/Marketing.tsx (http://127.0.0.1:5174/@vite/client:810)
+[2026-02-08T11:20:08.225Z] [Renderer-DEBUG] [vite] hot updated: /src/index.css (http://127.0.0.1:5174/@vite/client:810)
+[2026-02-08T11:20:09.778Z] [Renderer-DEBUG] [vite] connecting... (http://127.0.0.1:5174/@vite/client:733)
+[2026-02-08T11:20:09.901Z] [Renderer-DEBUG] [vite] connected. (http://127.0.0.1:5174/@vite/client:827)
+[2026-02-08T11:20:10.994Z] [Renderer-INFO] %cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold (http://127.0.0.1:5174/node_modules/.vite/deps/chunk-LPF6KSF2.js?v=56bfc946:21609)
+[2026-02-08T11:20:11.456Z] [Renderer-WARN] %cElectron Security Warning (Disabled webSecurity) font-weight: bold; This renderer process has "webSecurity" disabled. This
   exposes users of this app to severe security risks.
 
 For more information and help, consult
 https://electronjs.org/docs/tutorial/security.
 This warning will not show up
 once the app is packaged. (node:electron/js2c/sandbox_bundle:2)
-[2026-02-07T18:44:54.342Z] [Renderer-WARN] %cElectron Security Warning (allowRunningInsecureContent) font-weight: bold; This renderer process has "allowRunningInsecureContent"
+[2026-02-08T11:20:11.457Z] [Renderer-WARN] %cElectron Security Warning (allowRunningInsecureContent) font-weight: bold; This renderer process has "allowRunningInsecureContent"
   enabled. This exposes users of this app to severe security risks.
 
   
@@ -489,7 +148,7 @@ For more information and help, consult
 https://electronjs.org/docs/tutorial/security.
 This warning will not show up
 once the app is packaged. (node:electron/js2c/sandbox_bundle:2)
-[2026-02-07T18:44:54.342Z] [Renderer-WARN] %cElectron Security Warning (Insecure Content-Security-Policy) font-weight: bold; This renderer process has either no Content Security
+[2026-02-08T11:20:11.457Z] [Renderer-WARN] %cElectron Security Warning (Insecure Content-Security-Policy) font-weight: bold; This renderer process has either no Content Security
   Policy set or a policy with "unsafe-eval" enabled. This exposes users of
   this app to unnecessary security risks.
 
@@ -497,3 +156,487 @@ For more information and help, consult
 https://electronjs.org/docs/tutorial/security.
 This warning will not show up
 once the app is packaged. (node:electron/js2c/sandbox_bundle:2)
+[2026-02-08T11:20:11.458Z] [Renderer-INFO] Current Hash: #/marketing (http://127.0.0.1:5174/src/App.tsx?t=1770549586991:99)
+[2026-02-08T11:20:11.458Z] [Renderer-INFO] 🎤 Command Gateway Initialized (http://127.0.0.1:5174/src/services/CommandGateway.ts:16)
+[2026-02-08T11:20:11.459Z] [Renderer-INFO] 🤖 Proactive Service Initialized (http://127.0.0.1:5174/src/services/proactiveService.ts:6)
+[2026-02-08T11:20:11.459Z] [Renderer-INFO] [Proactive] Checking for low stock items... (http://127.0.0.1:5174/src/services/proactiveService.ts:18)
+[2026-02-08T11:20:11.464Z] [Renderer-INFO] Current Hash: #/marketing (http://127.0.0.1:5174/src/App.tsx?t=1770549586991:99)
+[2026-02-08T11:20:11.464Z] [Renderer-INFO] 🎤 Command Gateway Initialized (http://127.0.0.1:5174/src/services/CommandGateway.ts:16)
+[2026-02-08T11:20:11.465Z] [Renderer-INFO] 🤖 Proactive Service Initialized (http://127.0.0.1:5174/src/services/proactiveService.ts:6)
+[2026-02-08T11:20:11.465Z] [Renderer-INFO] [Proactive] Checking for low stock items... (http://127.0.0.1:5174/src/services/proactiveService.ts:18)
+[2026-02-08T11:20:11.466Z] [Renderer-INFO] [Proactive] Checking for low stock items... (http://127.0.0.1:5174/src/services/proactiveService.ts:18)
+[2026-02-08T11:20:11.468Z] [Renderer-INFO] [Proactive] Low stock query result: [object Object],[object Object],[object Object] (http://127.0.0.1:5174/src/services/proactiveService.ts:24)
+[2026-02-08T11:20:11.468Z] [Renderer-INFO] [Proactive] Triggering toast for: Milk (5), Test33 (2), dsfds (0) (http://127.0.0.1:5174/src/services/proactiveService.ts:27)
+[2026-02-08T11:20:11.473Z] [Renderer-INFO] [Proactive] Low stock query result: [object Object],[object Object],[object Object] (http://127.0.0.1:5174/src/services/proactiveService.ts:24)
+[2026-02-08T11:20:11.473Z] [Renderer-INFO] [Proactive] Triggering toast for: Milk (5), Test33 (2), dsfds (0) (http://127.0.0.1:5174/src/services/proactiveService.ts:27)
+[2026-02-08T11:20:11.474Z] [Renderer-INFO] [Proactive] Low stock query result: [object Object],[object Object],[object Object] (http://127.0.0.1:5174/src/services/proactiveService.ts:24)
+[2026-02-08T11:20:11.474Z] [Renderer-INFO] [Proactive] Triggering toast for: Milk (5), Test33 (2), dsfds (0) (http://127.0.0.1:5174/src/services/proactiveService.ts:27)
+[2026-02-08T11:20:11.571Z] [Renderer-INFO] [DB][4:50:11 PM] Initializing for electron... (http://127.0.0.1:5174/src/services/databaseService.ts:11)
+[2026-02-08T11:20:11.571Z] [Renderer-INFO] [DB][4:50:11 PM] Electron platform detected. Initializing schema and migrations... (http://127.0.0.1:5174/src/services/databaseService.ts:11)
+[2026-02-08T11:20:11.724Z] [Renderer-INFO] [DB][4:50:11 PM] Running platform-agnostic migrations... (http://127.0.0.1:5174/src/services/databaseService.ts:11)
+[2026-02-08T11:20:11.745Z] [Renderer-INFO] DB Ready (http://127.0.0.1:5174/src/App.tsx?t=1770549586991:126)
+[2026-02-08T11:20:11.745Z] [Renderer-INFO] [TrainingService] Ingesting training data... 39 items (http://127.0.0.1:5174/src/services/trainingService.ts:124)
+[2026-02-08T11:20:11.745Z] [Renderer-INFO] [TrainingService] Ingestion complete. (http://127.0.0.1:5174/src/services/trainingService.ts:131)
+[2026-02-08T11:20:11.746Z] [Renderer-INFO] [IntentEngine] Ingesting training data for Fuse... 39 items (http://127.0.0.1:5174/src/services/IntentEngine.ts:41)
+[2026-02-08T11:20:11.747Z] [Renderer-INFO] DB Ready (http://127.0.0.1:5174/src/App.tsx?t=1770549586991:126)
+[2026-02-08T11:20:11.747Z] [Renderer-INFO] [TrainingService] Ingesting training data... 39 items (http://127.0.0.1:5174/src/services/trainingService.ts:124)
+[2026-02-08T11:20:11.747Z] [Renderer-INFO] [TrainingService] Ingestion complete. (http://127.0.0.1:5174/src/services/trainingService.ts:131)
+[2026-02-08T11:20:11.748Z] [Renderer-INFO] [IntentEngine] Ingesting training data for Fuse... 39 items (http://127.0.0.1:5174/src/services/IntentEngine.ts:41)
+[2026-02-08T11:20:11.748Z] [Renderer-INFO] DB Ready (http://127.0.0.1:5174/src/App.tsx?t=1770549586991:126)
+[2026-02-08T11:20:11.748Z] [Renderer-INFO] [TrainingService] Ingesting training data... 39 items (http://127.0.0.1:5174/src/services/trainingService.ts:124)
+[2026-02-08T11:20:11.748Z] [Renderer-INFO] [TrainingService] Ingestion complete. (http://127.0.0.1:5174/src/services/trainingService.ts:131)
+[2026-02-08T11:20:11.749Z] [Renderer-INFO] [IntentEngine] Ingesting training data for Fuse... 39 items (http://127.0.0.1:5174/src/services/IntentEngine.ts:41)
+[2026-02-08T11:20:17.042Z] [Renderer-INFO] [Proactive] Checking for low stock items... (http://127.0.0.1:5174/src/services/proactiveService.ts:18)
+[2026-02-08T11:20:17.045Z] [Renderer-INFO] [Proactive] Checking for low stock items... (http://127.0.0.1:5174/src/services/proactiveService.ts:18)
+[2026-02-08T11:20:17.047Z] [Renderer-INFO] [Proactive] Low stock query result: [object Object],[object Object],[object Object] (http://127.0.0.1:5174/src/services/proactiveService.ts:24)
+[2026-02-08T11:20:17.047Z] [Renderer-INFO] [Proactive] Triggering toast for: Milk (5), Test33 (2), dsfds (0) (http://127.0.0.1:5174/src/services/proactiveService.ts:27)
+[2026-02-08T11:20:17.048Z] [Renderer-INFO] [Proactive] Low stock query result: [object Object],[object Object],[object Object] (http://127.0.0.1:5174/src/services/proactiveService.ts:24)
+[2026-02-08T11:20:17.049Z] [Renderer-INFO] [Proactive] Triggering toast for: Milk (5), Test33 (2), dsfds (0) (http://127.0.0.1:5174/src/services/proactiveService.ts:27)
+[2026-02-08T11:20:25.624Z] [Renderer-WARN] ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition. (http://127.0.0.1:5174/node_modules/.vite/deps/react-router-dom.js?v=56bfc946:4435)
+[2026-02-08T11:20:25.625Z] [Renderer-WARN] ⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath. (http://127.0.0.1:5174/node_modules/.vite/deps/react-router-dom.js?v=56bfc946:4435)
+[2026-02-08T11:26:15.735Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/Marketing.tsx (http://127.0.0.1:5174/@vite/client:810)
+[2026-02-08T11:26:15.736Z] [Renderer-DEBUG] [vite] hot updated: /src/index.css (http://127.0.0.1:5174/@vite/client:810)
+[2026-02-08T11:29:06.330Z] [Renderer-INFO] [saleService] getSalesSummary SQL: 
+            SELECT 
+                SUM(total) as net_total,
+                SUM(CASE WHEN total > 0 THEN total ELSE 0 END) as gross_total,
+                SUM(CASE WHEN total < 0 THEN total ELSE 0 END) as refund_total,
+                COUNT(*) as count 
+            FROM bills WHERE 1=1 AND status != 'CANCELLED'
+          (http://127.0.0.1:5174/src/services/saleService.ts:58)
+[2026-02-08T11:29:06.330Z] [Renderer-INFO] [saleService] getSalesSummary SQL: 
+            SELECT 
+                SUM(total) as net_total,
+                SUM(CASE WHEN total > 0 THEN total ELSE 0 END) as gross_total,
+                SUM(CASE WHEN total < 0 THEN total ELSE 0 END) as refund_total,
+                COUNT(*) as count 
+            FROM bills WHERE 1=1 AND date >= ? AND status != 'CANCELLED'
+         2026-02-07T18:30:00.000Z (http://127.0.0.1:5174/src/services/saleService.ts:58)
+[2026-02-08T11:29:06.332Z] [Renderer-INFO] [saleService] getSalesSummary SQL: 
+            SELECT 
+                SUM(total) as net_total,
+                SUM(CASE WHEN total > 0 THEN total ELSE 0 END) as gross_total,
+                SUM(CASE WHEN total < 0 THEN total ELSE 0 END) as refund_total,
+                COUNT(*) as count 
+            FROM bills WHERE 1=1 AND status != 'CANCELLED'
+          (http://127.0.0.1:5174/src/services/saleService.ts:58)
+[2026-02-08T11:29:06.333Z] [Renderer-INFO] [saleService] getSalesSummary SQL: 
+            SELECT 
+                SUM(total) as net_total,
+                SUM(CASE WHEN total > 0 THEN total ELSE 0 END) as gross_total,
+                SUM(CASE WHEN total < 0 THEN total ELSE 0 END) as refund_total,
+                COUNT(*) as count 
+            FROM bills WHERE 1=1 AND date >= ? AND status != 'CANCELLED'
+         2026-02-07T18:30:00.000Z (http://127.0.0.1:5174/src/services/saleService.ts:58)
+[2026-02-08T11:29:06.337Z] [Renderer-INFO] [saleService] getSalesSummary Result: [object Object] (http://127.0.0.1:5174/src/services/saleService.ts:60)
+[2026-02-08T11:29:06.338Z] [Renderer-INFO] [saleService] getSalesSummary Result: [object Object] (http://127.0.0.1:5174/src/services/saleService.ts:60)
+[2026-02-08T11:29:06.338Z] [Renderer-INFO] [saleService] getSalesSummary Result: [object Object] (http://127.0.0.1:5174/src/services/saleService.ts:60)
+[2026-02-08T11:29:06.338Z] [Renderer-INFO] [saleService] getSalesSummary Result: [object Object] (http://127.0.0.1:5174/src/services/saleService.ts:60)
+[2026-02-08T11:35:47.895Z] [Renderer-DEBUG] [vite] hot updated: /src/App.tsx (http://127.0.0.1:5174/@vite/client:810)
+[2026-02-08T11:35:47.896Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/Reports.tsx (http://127.0.0.1:5174/@vite/client:810)
+[2026-02-08T11:35:47.896Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/Hardware.tsx (http://127.0.0.1:5174/@vite/client:810)
+[2026-02-08T11:35:47.898Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/Settings.tsx (http://127.0.0.1:5174/@vite/client:810)
+[2026-02-08T11:35:47.899Z] [Renderer-DEBUG] [vite] invalidate /src/context/UIContext.tsx: Could not Fast Refresh ("useUI" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports (http://127.0.0.1:5174/@vite/client:810)
+[2026-02-08T11:35:47.899Z] [Renderer-DEBUG] [vite] hot updated: /src/context/UIContext.tsx (http://127.0.0.1:5174/@vite/client:810)
+[2026-02-08T11:35:47.900Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/Home.tsx (http://127.0.0.1:5174/@vite/client:810)
+[2026-02-08T11:35:47.901Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/Sales.tsx (http://127.0.0.1:5174/@vite/client:810)
+[2026-02-08T11:35:47.903Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/Products.tsx (http://127.0.0.1:5174/@vite/client:810)
+[2026-02-08T11:35:47.904Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/AIAssist.tsx (http://127.0.0.1:5174/@vite/client:810)
+[2026-02-08T11:35:47.904Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/GstDashboard.tsx (http://127.0.0.1:5174/@vite/client:810)
+[2026-02-08T11:35:47.905Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/AuditLogs.tsx (http://127.0.0.1:5174/@vite/client:810)
+[2026-02-08T11:35:47.907Z] [Renderer-DEBUG] [vite] hot updated: /src/components/GSTReportModal.tsx (http://127.0.0.1:5174/@vite/client:810)
+[2026-02-08T11:35:47.907Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/EndOfDay.tsx (http://127.0.0.1:5174/@vite/client:810)
+[2026-02-08T11:35:47.908Z] [Renderer-DEBUG] [vite] hot updated: /src/components/marketing/CatalogueBuilder.tsx (http://127.0.0.1:5174/@vite/client:810)
+[2026-02-08T11:35:47.908Z] [Renderer-DEBUG] [vite] hot updated: /src/index.css (http://127.0.0.1:5174/@vite/client:810)
+[2026-02-08T11:35:47.997Z] [Renderer-DEBUG] [vite] hot updated: /src/App.tsx (http://127.0.0.1:5174/@vite/client:810)
+[2026-02-08T11:35:47.997Z] [Renderer-DEBUG] [vite] hot updated: /src/components/Modal.tsx (http://127.0.0.1:5174/@vite/client:810)
+[2026-02-08T11:35:47.998Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/Settings.tsx (http://127.0.0.1:5174/@vite/client:810)
+[2026-02-08T11:35:47.998Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/Dashboard.tsx (http://127.0.0.1:5174/@vite/client:810)
+[2026-02-08T11:35:47.998Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/Home.tsx (http://127.0.0.1:5174/@vite/client:810)
+[2026-02-08T11:35:47.999Z] [Renderer-DEBUG] [vite] hot updated: /src/components/Table.tsx (http://127.0.0.1:5174/@vite/client:810)
+[2026-02-08T11:35:47.999Z] [Renderer-DEBUG] [vite] hot updated: /src/components/Button.tsx (http://127.0.0.1:5174/@vite/client:810)
+[2026-02-08T11:35:47.999Z] [Renderer-DEBUG] [vite] hot updated: /src/components/Sidebar.tsx (http://127.0.0.1:5174/@vite/client:810)
+[2026-02-08T11:35:48.083Z] [Renderer-INFO] Current Hash: #/settings (http://127.0.0.1:5174/src/App.tsx?t=1770550547029:99)
+[2026-02-08T11:35:48.084Z] [Renderer-INFO] 🎤 Command Gateway Initialized (http://127.0.0.1:5174/src/services/CommandGateway.ts?t=1770550547029:16)
+[2026-02-08T11:35:48.084Z] [Renderer-INFO] 🤖 Proactive Service Initialized (http://127.0.0.1:5174/src/services/proactiveService.ts:6)
+[2026-02-08T11:35:48.085Z] [Renderer-INFO] [Proactive] Checking for low stock items... (http://127.0.0.1:5174/src/services/proactiveService.ts:18)
+[2026-02-08T11:35:48.085Z] [Renderer-INFO] [Proactive] Checking for low stock items... (http://127.0.0.1:5174/src/services/proactiveService.ts:18)
+[2026-02-08T11:35:48.086Z] [Renderer-INFO] [Proactive] Checking for low stock items... (http://127.0.0.1:5174/src/services/proactiveService.ts:18)
+[2026-02-08T11:35:48.108Z] [Renderer-INFO] [Proactive] Low stock query result: [object Object],[object Object],[object Object] (http://127.0.0.1:5174/src/services/proactiveService.ts:24)
+[2026-02-08T11:35:48.109Z] [Renderer-INFO] [Proactive] Triggering toast for: Milk (5), Test33 (2), dsfds (0) (http://127.0.0.1:5174/src/services/proactiveService.ts:27)
+[2026-02-08T11:35:48.110Z] [Renderer-INFO] [Proactive] Low stock query result: [object Object],[object Object],[object Object] (http://127.0.0.1:5174/src/services/proactiveService.ts:24)
+[2026-02-08T11:35:48.110Z] [Renderer-INFO] [Proactive] Triggering toast for: Milk (5), Test33 (2), dsfds (0) (http://127.0.0.1:5174/src/services/proactiveService.ts:27)
+[2026-02-08T11:35:48.111Z] [Renderer-INFO] [Proactive] Low stock query result: [object Object],[object Object],[object Object] (http://127.0.0.1:5174/src/services/proactiveService.ts:24)
+[2026-02-08T11:35:48.111Z] [Renderer-INFO] [Proactive] Triggering toast for: Milk (5), Test33 (2), dsfds (0) (http://127.0.0.1:5174/src/services/proactiveService.ts:27)
+[2026-02-08T11:35:48.239Z] [Renderer-INFO] DB Ready (http://127.0.0.1:5174/src/App.tsx?t=1770550547029:126)
+[2026-02-08T11:35:48.240Z] [Renderer-INFO] [TrainingService] Ingesting training data... 39 items (http://127.0.0.1:5174/src/services/trainingService.ts:124)
+[2026-02-08T11:35:48.240Z] [Renderer-INFO] [TrainingService] Ingestion complete. (http://127.0.0.1:5174/src/services/trainingService.ts:131)
+[2026-02-08T11:35:48.241Z] [Renderer-INFO] [IntentEngine] Ingesting training data for Fuse... 39 items (http://127.0.0.1:5174/src/services/IntentEngine.ts:41)
+[2026-02-08T11:35:48.243Z] [Renderer-INFO] DB Ready (http://127.0.0.1:5174/src/App.tsx?t=1770550547029:126)
+[2026-02-08T11:35:48.244Z] [Renderer-INFO] [TrainingService] Ingesting training data... 39 items (http://127.0.0.1:5174/src/services/trainingService.ts:124)
+[2026-02-08T11:35:48.245Z] [Renderer-INFO] [TrainingService] Ingestion complete. (http://127.0.0.1:5174/src/services/trainingService.ts:131)
+[2026-02-08T11:35:48.246Z] [Renderer-INFO] [IntentEngine] Ingesting training data for Fuse... 39 items (http://127.0.0.1:5174/src/services/IntentEngine.ts:41)
+[2026-02-08T11:35:54.040Z] [Renderer-INFO] [Proactive] Checking for low stock items... (http://127.0.0.1:5174/src/services/proactiveService.ts:18)
+[2026-02-08T11:35:54.043Z] [Renderer-INFO] [Proactive] Low stock query result: [object Object],[object Object],[object Object] (http://127.0.0.1:5174/src/services/proactiveService.ts:24)
+[2026-02-08T11:35:54.043Z] [Renderer-INFO] [Proactive] Triggering toast for: Milk (5), Test33 (2), dsfds (0) (http://127.0.0.1:5174/src/services/proactiveService.ts:27)
+[2026-02-08T11:37:41.834Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/Settings.tsx (http://127.0.0.1:5174/@vite/client:810)
+[2026-02-08T11:37:41.836Z] [Renderer-DEBUG] [vite] hot updated: /src/index.css (http://127.0.0.1:5174/@vite/client:810)
+[2026-02-08T11:40:54.668Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/Settings.tsx (http://127.0.0.1:5174/@vite/client:810)
+[2026-02-08T11:40:54.670Z] [Renderer-DEBUG] [vite] hot updated: /src/index.css (http://127.0.0.1:5174/@vite/client:810)
+[2026-02-08T11:42:58.320Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/Settings.tsx (http://127.0.0.1:5174/@vite/client:810)
+[2026-02-08T11:42:58.321Z] [Renderer-DEBUG] [vite] hot updated: /src/index.css (http://127.0.0.1:5174/@vite/client:810)
+[2026-02-08T11:44:10.474Z] [Renderer-DEBUG] [vite] hot updated: /src/pages/Settings.tsx (http://127.0.0.1:5174/@vite/client:810)
+[2026-02-08T11:44:10.474Z] [Renderer-DEBUG] [vite] hot updated: /src/index.css (http://127.0.0.1:5174/@vite/client:810)
+[2026-02-08T11:44:28.898Z] [Renderer-INFO] [saleService] getSalesSummary SQL: 
+            SELECT 
+                SUM(total) as net_total,
+                SUM(CASE WHEN total > 0 THEN total ELSE 0 END) as gross_total,
+                SUM(CASE WHEN total < 0 THEN total ELSE 0 END) as refund_total,
+                COUNT(*) as count 
+            FROM bills WHERE 1=1 AND status != 'CANCELLED'
+          (http://127.0.0.1:5174/src/services/saleService.ts:58)
+[2026-02-08T11:44:28.899Z] [Renderer-INFO] [saleService] getSalesSummary SQL: 
+            SELECT 
+                SUM(total) as net_total,
+                SUM(CASE WHEN total > 0 THEN total ELSE 0 END) as gross_total,
+                SUM(CASE WHEN total < 0 THEN total ELSE 0 END) as refund_total,
+                COUNT(*) as count 
+            FROM bills WHERE 1=1 AND date >= ? AND status != 'CANCELLED'
+         2026-02-07T18:30:00.000Z (http://127.0.0.1:5174/src/services/saleService.ts:58)
+[2026-02-08T11:44:28.901Z] [Renderer-INFO] [saleService] getSalesSummary SQL: 
+            SELECT 
+                SUM(total) as net_total,
+                SUM(CASE WHEN total > 0 THEN total ELSE 0 END) as gross_total,
+                SUM(CASE WHEN total < 0 THEN total ELSE 0 END) as refund_total,
+                COUNT(*) as count 
+            FROM bills WHERE 1=1 AND status != 'CANCELLED'
+          (http://127.0.0.1:5174/src/services/saleService.ts:58)
+[2026-02-08T11:44:28.901Z] [Renderer-INFO] [saleService] getSalesSummary SQL: 
+            SELECT 
+                SUM(total) as net_total,
+                SUM(CASE WHEN total > 0 THEN total ELSE 0 END) as gross_total,
+                SUM(CASE WHEN total < 0 THEN total ELSE 0 END) as refund_total,
+                COUNT(*) as count 
+            FROM bills WHERE 1=1 AND date >= ? AND status != 'CANCELLED'
+         2026-02-07T18:30:00.000Z (http://127.0.0.1:5174/src/services/saleService.ts:58)
+[2026-02-08T11:44:28.905Z] [Renderer-INFO] [saleService] getSalesSummary Result: [object Object] (http://127.0.0.1:5174/src/services/saleService.ts:60)
+[2026-02-08T11:44:28.906Z] [Renderer-INFO] [saleService] getSalesSummary Result: [object Object] (http://127.0.0.1:5174/src/services/saleService.ts:60)
+[2026-02-08T11:44:28.906Z] [Renderer-INFO] [saleService] getSalesSummary Result: [object Object] (http://127.0.0.1:5174/src/services/saleService.ts:60)
+[2026-02-08T11:44:28.906Z] [Renderer-INFO] [saleService] getSalesSummary Result: [object Object] (http://127.0.0.1:5174/src/services/saleService.ts:60)
+[2026-02-08T11:46:41.978Z] [Renderer-INFO] [vite] server connection lost. Polling for restart... (http://127.0.0.1:5174/@vite/client:865)
+[2026-02-08T12:01:27.962Z] [Renderer-DEBUG] [vite] connecting... (http://127.0.0.1:5174/@vite/client:733)
+[2026-02-08T12:01:28.262Z] [Renderer-DEBUG] [vite] connected. (http://127.0.0.1:5174/@vite/client:827)
+[2026-02-08T12:01:28.479Z] [Renderer-INFO] %cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold (http://127.0.0.1:5174/node_modules/.vite/deps/chunk-LPF6KSF2.js?v=56bfc946:21609)
+[2026-02-08T12:01:28.561Z] [Renderer-INFO] Current Hash: #/ (http://127.0.0.1:5174/src/App.tsx?t=1770551050131:99)
+[2026-02-08T12:01:28.562Z] [Renderer-INFO] 🎤 Command Gateway Initialized (http://127.0.0.1:5174/src/services/CommandGateway.ts?t=1770550547029:16)
+[2026-02-08T12:01:28.562Z] [Renderer-INFO] 🤖 Proactive Service Initialized (http://127.0.0.1:5174/src/services/proactiveService.ts:6)
+[2026-02-08T12:01:28.562Z] [Renderer-INFO] [Proactive] Checking for low stock items... (http://127.0.0.1:5174/src/services/proactiveService.ts:18)
+[2026-02-08T12:01:28.565Z] [Renderer-INFO] Current Hash: #/ (http://127.0.0.1:5174/src/App.tsx?t=1770551050131:99)
+[2026-02-08T12:01:28.566Z] [Renderer-INFO] 🎤 Command Gateway Initialized (http://127.0.0.1:5174/src/services/CommandGateway.ts?t=1770550547029:16)
+[2026-02-08T12:01:28.566Z] [Renderer-INFO] 🤖 Proactive Service Initialized (http://127.0.0.1:5174/src/services/proactiveService.ts:6)
+[2026-02-08T12:01:28.567Z] [Renderer-INFO] [Proactive] Checking for low stock items... (http://127.0.0.1:5174/src/services/proactiveService.ts:18)
+[2026-02-08T12:01:28.568Z] [Renderer-INFO] [Proactive] Checking for low stock items... (http://127.0.0.1:5174/src/services/proactiveService.ts:18)
+[2026-02-08T12:01:28.686Z] [Renderer-WARN] %cElectron Security Warning (Disabled webSecurity) font-weight: bold; This renderer process has "webSecurity" disabled. This
+  exposes users of this app to severe security risks.
+
+For more information and help, consult
+https://electronjs.org/docs/tutorial/security.
+This warning will not show up
+once the app is packaged. (node:electron/js2c/sandbox_bundle:2)
+[2026-02-08T12:01:28.690Z] [Renderer-WARN] %cElectron Security Warning (allowRunningInsecureContent) font-weight: bold; This renderer process has "allowRunningInsecureContent"
+  enabled. This exposes users of this app to severe security risks.
+
+  
+For more information and help, consult
+https://electronjs.org/docs/tutorial/security.
+This warning will not show up
+once the app is packaged. (node:electron/js2c/sandbox_bundle:2)
+[2026-02-08T12:01:28.691Z] [Renderer-WARN] %cElectron Security Warning (Insecure Content-Security-Policy) font-weight: bold; This renderer process has either no Content Security
+  Policy set or a policy with "unsafe-eval" enabled. This exposes users of
+  this app to unnecessary security risks.
+
+For more information and help, consult
+https://electronjs.org/docs/tutorial/security.
+This warning will not show up
+once the app is packaged. (node:electron/js2c/sandbox_bundle:2)
+[2026-02-08T12:01:28.691Z] [Renderer-INFO] [Proactive] Low stock query result: [object Object],[object Object],[object Object] (http://127.0.0.1:5174/src/services/proactiveService.ts:24)
+[2026-02-08T12:01:28.692Z] [Renderer-INFO] [Proactive] Triggering toast for: Milk (5), Test33 (2), dsfds (0) (http://127.0.0.1:5174/src/services/proactiveService.ts:27)
+[2026-02-08T12:01:28.698Z] [Renderer-INFO] [Proactive] Low stock query result: [object Object],[object Object],[object Object] (http://127.0.0.1:5174/src/services/proactiveService.ts:24)
+[2026-02-08T12:01:28.699Z] [Renderer-INFO] [Proactive] Triggering toast for: Milk (5), Test33 (2), dsfds (0) (http://127.0.0.1:5174/src/services/proactiveService.ts:27)
+[2026-02-08T12:01:28.699Z] [Renderer-INFO] [Proactive] Low stock query result: [object Object],[object Object],[object Object] (http://127.0.0.1:5174/src/services/proactiveService.ts:24)
+[2026-02-08T12:01:28.700Z] [Renderer-INFO] [Proactive] Triggering toast for: Milk (5), Test33 (2), dsfds (0) (http://127.0.0.1:5174/src/services/proactiveService.ts:27)
+[2026-02-08T12:01:29.018Z] [Renderer-INFO] [DB][5:31:29 PM] Initializing for electron... (http://127.0.0.1:5174/src/services/databaseService.ts:11)
+[2026-02-08T12:01:29.019Z] [Renderer-INFO] [DB][5:31:29 PM] Electron platform detected. Initializing schema and migrations... (http://127.0.0.1:5174/src/services/databaseService.ts:11)
+[2026-02-08T12:01:29.211Z] [Renderer-INFO] [DB][5:31:29 PM] Running platform-agnostic migrations... (http://127.0.0.1:5174/src/services/databaseService.ts:11)
+[2026-02-08T12:01:29.235Z] [Renderer-INFO] DB Ready (http://127.0.0.1:5174/src/App.tsx?t=1770551050131:126)
+[2026-02-08T12:01:29.237Z] [Renderer-INFO] [TrainingService] Ingesting training data... 39 items (http://127.0.0.1:5174/src/services/trainingService.ts:124)
+[2026-02-08T12:01:29.238Z] [Renderer-INFO] [TrainingService] Ingestion complete. (http://127.0.0.1:5174/src/services/trainingService.ts:131)
+[2026-02-08T12:01:29.239Z] [Renderer-INFO] [IntentEngine] Ingesting training data for Fuse... 39 items (http://127.0.0.1:5174/src/services/IntentEngine.ts:41)
+[2026-02-08T12:01:29.239Z] [Renderer-INFO] DB Ready (http://127.0.0.1:5174/src/App.tsx?t=1770551050131:126)
+[2026-02-08T12:01:29.240Z] [Renderer-INFO] [TrainingService] Ingesting training data... 39 items (http://127.0.0.1:5174/src/services/trainingService.ts:124)
+[2026-02-08T12:01:29.240Z] [Renderer-INFO] [TrainingService] Ingestion complete. (http://127.0.0.1:5174/src/services/trainingService.ts:131)
+[2026-02-08T12:01:29.240Z] [Renderer-INFO] [IntentEngine] Ingesting training data for Fuse... 39 items (http://127.0.0.1:5174/src/services/IntentEngine.ts:41)
+[2026-02-08T12:01:29.240Z] [Renderer-INFO] DB Ready (http://127.0.0.1:5174/src/App.tsx?t=1770551050131:126)
+[2026-02-08T12:01:29.240Z] [Renderer-INFO] [TrainingService] Ingesting training data... 39 items (http://127.0.0.1:5174/src/services/trainingService.ts:124)
+[2026-02-08T12:01:29.241Z] [Renderer-INFO] [TrainingService] Ingestion complete. (http://127.0.0.1:5174/src/services/trainingService.ts:131)
+[2026-02-08T12:01:29.241Z] [Renderer-INFO] [IntentEngine] Ingesting training data for Fuse... 39 items (http://127.0.0.1:5174/src/services/IntentEngine.ts:41)
+[2026-02-08T12:01:33.250Z] [Renderer-WARN] ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition. (http://127.0.0.1:5174/node_modules/.vite/deps/react-router-dom.js?v=56bfc946:4435)
+[2026-02-08T12:01:33.252Z] [Renderer-WARN] ⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath. (http://127.0.0.1:5174/node_modules/.vite/deps/react-router-dom.js?v=56bfc946:4435)
+[2026-02-08T12:01:33.566Z] [Renderer-INFO] [Proactive] Checking for low stock items... (http://127.0.0.1:5174/src/services/proactiveService.ts:18)
+[2026-02-08T12:01:33.567Z] [Renderer-INFO] [Proactive] Checking for low stock items... (http://127.0.0.1:5174/src/services/proactiveService.ts:18)
+[2026-02-08T12:01:33.574Z] [Renderer-INFO] [Proactive] Low stock query result: [object Object],[object Object],[object Object] (http://127.0.0.1:5174/src/services/proactiveService.ts:24)
+[2026-02-08T12:01:33.575Z] [Renderer-INFO] [Proactive] Triggering toast for: Milk (5), Test33 (2), dsfds (0) (http://127.0.0.1:5174/src/services/proactiveService.ts:27)
+[2026-02-08T12:01:33.575Z] [Renderer-INFO] [Proactive] Low stock query result: [object Object],[object Object],[object Object] (http://127.0.0.1:5174/src/services/proactiveService.ts:24)
+[2026-02-08T12:01:33.575Z] [Renderer-INFO] [Proactive] Triggering toast for: Milk (5), Test33 (2), dsfds (0) (http://127.0.0.1:5174/src/services/proactiveService.ts:27)
+[2026-02-08T12:01:37.127Z] [Renderer-INFO] [saleService] getSalesSummary SQL: 
+            SELECT 
+                SUM(total) as net_total,
+                SUM(CASE WHEN total > 0 THEN total ELSE 0 END) as gross_total,
+                SUM(CASE WHEN total < 0 THEN total ELSE 0 END) as refund_total,
+                COUNT(*) as count 
+            FROM bills WHERE 1=1 AND status != 'CANCELLED'
+          (http://127.0.0.1:5174/src/services/saleService.ts:58)
+[2026-02-08T12:01:37.128Z] [Renderer-INFO] [saleService] getSalesSummary SQL: 
+            SELECT 
+                SUM(total) as net_total,
+                SUM(CASE WHEN total > 0 THEN total ELSE 0 END) as gross_total,
+                SUM(CASE WHEN total < 0 THEN total ELSE 0 END) as refund_total,
+                COUNT(*) as count 
+            FROM bills WHERE 1=1 AND date >= ? AND status != 'CANCELLED'
+         2026-02-07T18:30:00.000Z (http://127.0.0.1:5174/src/services/saleService.ts:58)
+[2026-02-08T12:01:37.130Z] [Renderer-INFO] [saleService] getSalesSummary SQL: 
+            SELECT 
+                SUM(total) as net_total,
+                SUM(CASE WHEN total > 0 THEN total ELSE 0 END) as gross_total,
+                SUM(CASE WHEN total < 0 THEN total ELSE 0 END) as refund_total,
+                COUNT(*) as count 
+            FROM bills WHERE 1=1 AND status != 'CANCELLED'
+          (http://127.0.0.1:5174/src/services/saleService.ts:58)
+[2026-02-08T12:01:37.131Z] [Renderer-INFO] [saleService] getSalesSummary SQL: 
+            SELECT 
+                SUM(total) as net_total,
+                SUM(CASE WHEN total > 0 THEN total ELSE 0 END) as gross_total,
+                SUM(CASE WHEN total < 0 THEN total ELSE 0 END) as refund_total,
+                COUNT(*) as count 
+            FROM bills WHERE 1=1 AND date >= ? AND status != 'CANCELLED'
+         2026-02-07T18:30:00.000Z (http://127.0.0.1:5174/src/services/saleService.ts:58)
+[2026-02-08T12:01:37.137Z] [Renderer-INFO] [saleService] getSalesSummary Result: [object Object] (http://127.0.0.1:5174/src/services/saleService.ts:60)
+[2026-02-08T12:01:37.137Z] [Renderer-INFO] [saleService] getSalesSummary Result: [object Object] (http://127.0.0.1:5174/src/services/saleService.ts:60)
+[2026-02-08T12:01:37.138Z] [Renderer-INFO] [saleService] getSalesSummary Result: [object Object] (http://127.0.0.1:5174/src/services/saleService.ts:60)
+[2026-02-08T12:01:37.138Z] [Renderer-INFO] [saleService] getSalesSummary Result: [object Object] (http://127.0.0.1:5174/src/services/saleService.ts:60)
+[2026-02-08T12:01:45.354Z] [Renderer-INFO] [saleService] getSalesSummary SQL: 
+            SELECT 
+                SUM(total) as net_total,
+                SUM(CASE WHEN total > 0 THEN total ELSE 0 END) as gross_total,
+                SUM(CASE WHEN total < 0 THEN total ELSE 0 END) as refund_total,
+                COUNT(*) as count 
+            FROM bills WHERE 1=1 AND status != 'CANCELLED'
+          (http://127.0.0.1:5174/src/services/saleService.ts:58)
+[2026-02-08T12:01:45.355Z] [Renderer-INFO] [saleService] getSalesSummary SQL: 
+            SELECT 
+                SUM(total) as net_total,
+                SUM(CASE WHEN total > 0 THEN total ELSE 0 END) as gross_total,
+                SUM(CASE WHEN total < 0 THEN total ELSE 0 END) as refund_total,
+                COUNT(*) as count 
+            FROM bills WHERE 1=1 AND date >= ? AND status != 'CANCELLED'
+         2026-02-07T18:30:00.000Z (http://127.0.0.1:5174/src/services/saleService.ts:58)
+[2026-02-08T12:01:45.356Z] [Renderer-INFO] [saleService] getSalesSummary SQL: 
+            SELECT 
+                SUM(total) as net_total,
+                SUM(CASE WHEN total > 0 THEN total ELSE 0 END) as gross_total,
+                SUM(CASE WHEN total < 0 THEN total ELSE 0 END) as refund_total,
+                COUNT(*) as count 
+            FROM bills WHERE 1=1 AND status != 'CANCELLED'
+          (http://127.0.0.1:5174/src/services/saleService.ts:58)
+[2026-02-08T12:01:45.356Z] [Renderer-INFO] [saleService] getSalesSummary SQL: 
+            SELECT 
+                SUM(total) as net_total,
+                SUM(CASE WHEN total > 0 THEN total ELSE 0 END) as gross_total,
+                SUM(CASE WHEN total < 0 THEN total ELSE 0 END) as refund_total,
+                COUNT(*) as count 
+            FROM bills WHERE 1=1 AND date >= ? AND status != 'CANCELLED'
+         2026-02-07T18:30:00.000Z (http://127.0.0.1:5174/src/services/saleService.ts:58)
+[2026-02-08T12:01:45.359Z] [Renderer-INFO] [saleService] getSalesSummary Result: [object Object] (http://127.0.0.1:5174/src/services/saleService.ts:60)
+[2026-02-08T12:01:45.359Z] [Renderer-INFO] [saleService] getSalesSummary Result: [object Object] (http://127.0.0.1:5174/src/services/saleService.ts:60)
+[2026-02-08T12:01:45.359Z] [Renderer-INFO] [saleService] getSalesSummary Result: [object Object] (http://127.0.0.1:5174/src/services/saleService.ts:60)
+[2026-02-08T12:01:45.359Z] [Renderer-INFO] [saleService] getSalesSummary Result: [object Object] (http://127.0.0.1:5174/src/services/saleService.ts:60)
+[2026-02-08T12:01:47.071Z] [Renderer-INFO] [saleService] getSalesSummary SQL: 
+            SELECT 
+                SUM(total) as net_total,
+                SUM(CASE WHEN total > 0 THEN total ELSE 0 END) as gross_total,
+                SUM(CASE WHEN total < 0 THEN total ELSE 0 END) as refund_total,
+                COUNT(*) as count 
+            FROM bills WHERE 1=1 AND status != 'CANCELLED'
+          (http://127.0.0.1:5174/src/services/saleService.ts:58)
+[2026-02-08T12:01:47.071Z] [Renderer-INFO] [saleService] getSalesSummary SQL: 
+            SELECT 
+                SUM(total) as net_total,
+                SUM(CASE WHEN total > 0 THEN total ELSE 0 END) as gross_total,
+                SUM(CASE WHEN total < 0 THEN total ELSE 0 END) as refund_total,
+                COUNT(*) as count 
+            FROM bills WHERE 1=1 AND date >= ? AND status != 'CANCELLED'
+         2026-02-07T18:30:00.000Z (http://127.0.0.1:5174/src/services/saleService.ts:58)
+[2026-02-08T12:01:47.073Z] [Renderer-INFO] [saleService] getSalesSummary SQL: 
+            SELECT 
+                SUM(total) as net_total,
+                SUM(CASE WHEN total > 0 THEN total ELSE 0 END) as gross_total,
+                SUM(CASE WHEN total < 0 THEN total ELSE 0 END) as refund_total,
+                COUNT(*) as count 
+            FROM bills WHERE 1=1 AND status != 'CANCELLED'
+          (http://127.0.0.1:5174/src/services/saleService.ts:58)
+[2026-02-08T12:01:47.073Z] [Renderer-INFO] [saleService] getSalesSummary SQL: 
+            SELECT 
+                SUM(total) as net_total,
+                SUM(CASE WHEN total > 0 THEN total ELSE 0 END) as gross_total,
+                SUM(CASE WHEN total < 0 THEN total ELSE 0 END) as refund_total,
+                COUNT(*) as count 
+            FROM bills WHERE 1=1 AND date >= ? AND status != 'CANCELLED'
+         2026-02-07T18:30:00.000Z (http://127.0.0.1:5174/src/services/saleService.ts:58)
+[2026-02-08T12:01:47.077Z] [Renderer-INFO] [saleService] getSalesSummary Result: [object Object] (http://127.0.0.1:5174/src/services/saleService.ts:60)
+[2026-02-08T12:01:47.078Z] [Renderer-INFO] [saleService] getSalesSummary Result: [object Object] (http://127.0.0.1:5174/src/services/saleService.ts:60)
+[2026-02-08T12:01:47.078Z] [Renderer-INFO] [saleService] getSalesSummary Result: [object Object] (http://127.0.0.1:5174/src/services/saleService.ts:60)
+[2026-02-08T12:01:47.078Z] [Renderer-INFO] [saleService] getSalesSummary Result: [object Object] (http://127.0.0.1:5174/src/services/saleService.ts:60)
+[2026-02-08T12:01:48.989Z] [Renderer-INFO] [saleService] getSalesSummary SQL: 
+            SELECT 
+                SUM(total) as net_total,
+                SUM(CASE WHEN total > 0 THEN total ELSE 0 END) as gross_total,
+                SUM(CASE WHEN total < 0 THEN total ELSE 0 END) as refund_total,
+                COUNT(*) as count 
+            FROM bills WHERE 1=1 AND status != 'CANCELLED'
+          (http://127.0.0.1:5174/src/services/saleService.ts:58)
+[2026-02-08T12:01:48.990Z] [Renderer-INFO] [saleService] getSalesSummary SQL: 
+            SELECT 
+                SUM(total) as net_total,
+                SUM(CASE WHEN total > 0 THEN total ELSE 0 END) as gross_total,
+                SUM(CASE WHEN total < 0 THEN total ELSE 0 END) as refund_total,
+                COUNT(*) as count 
+            FROM bills WHERE 1=1 AND date >= ? AND status != 'CANCELLED'
+         2026-02-07T18:30:00.000Z (http://127.0.0.1:5174/src/services/saleService.ts:58)
+[2026-02-08T12:01:48.991Z] [Renderer-INFO] [saleService] getSalesSummary SQL: 
+            SELECT 
+                SUM(total) as net_total,
+                SUM(CASE WHEN total > 0 THEN total ELSE 0 END) as gross_total,
+                SUM(CASE WHEN total < 0 THEN total ELSE 0 END) as refund_total,
+                COUNT(*) as count 
+            FROM bills WHERE 1=1 AND status != 'CANCELLED'
+          (http://127.0.0.1:5174/src/services/saleService.ts:58)
+[2026-02-08T12:01:48.992Z] [Renderer-INFO] [saleService] getSalesSummary SQL: 
+            SELECT 
+                SUM(total) as net_total,
+                SUM(CASE WHEN total > 0 THEN total ELSE 0 END) as gross_total,
+                SUM(CASE WHEN total < 0 THEN total ELSE 0 END) as refund_total,
+                COUNT(*) as count 
+            FROM bills WHERE 1=1 AND date >= ? AND status != 'CANCELLED'
+         2026-02-07T18:30:00.000Z (http://127.0.0.1:5174/src/services/saleService.ts:58)
+[2026-02-08T12:01:48.997Z] [Renderer-INFO] [saleService] getSalesSummary Result: [object Object] (http://127.0.0.1:5174/src/services/saleService.ts:60)
+[2026-02-08T12:01:48.998Z] [Renderer-INFO] [saleService] getSalesSummary Result: [object Object] (http://127.0.0.1:5174/src/services/saleService.ts:60)
+[2026-02-08T12:01:48.999Z] [Renderer-INFO] [saleService] getSalesSummary Result: [object Object] (http://127.0.0.1:5174/src/services/saleService.ts:60)
+[2026-02-08T12:01:48.999Z] [Renderer-INFO] [saleService] getSalesSummary Result: [object Object] (http://127.0.0.1:5174/src/services/saleService.ts:60)
+[2026-02-08T12:01:51.237Z] [Renderer-INFO] [saleService] getSalesSummary SQL: 
+            SELECT 
+                SUM(total) as net_total,
+                SUM(CASE WHEN total > 0 THEN total ELSE 0 END) as gross_total,
+                SUM(CASE WHEN total < 0 THEN total ELSE 0 END) as refund_total,
+                COUNT(*) as count 
+            FROM bills WHERE 1=1 AND status != 'CANCELLED'
+          (http://127.0.0.1:5174/src/services/saleService.ts:58)
+[2026-02-08T12:01:51.238Z] [Renderer-INFO] [saleService] getSalesSummary SQL: 
+            SELECT 
+                SUM(total) as net_total,
+                SUM(CASE WHEN total > 0 THEN total ELSE 0 END) as gross_total,
+                SUM(CASE WHEN total < 0 THEN total ELSE 0 END) as refund_total,
+                COUNT(*) as count 
+            FROM bills WHERE 1=1 AND date >= ? AND status != 'CANCELLED'
+         2026-02-07T18:30:00.000Z (http://127.0.0.1:5174/src/services/saleService.ts:58)
+[2026-02-08T12:01:51.239Z] [Renderer-INFO] [saleService] getSalesSummary SQL: 
+            SELECT 
+                SUM(total) as net_total,
+                SUM(CASE WHEN total > 0 THEN total ELSE 0 END) as gross_total,
+                SUM(CASE WHEN total < 0 THEN total ELSE 0 END) as refund_total,
+                COUNT(*) as count 
+            FROM bills WHERE 1=1 AND status != 'CANCELLED'
+          (http://127.0.0.1:5174/src/services/saleService.ts:58)
+[2026-02-08T12:01:51.240Z] [Renderer-INFO] [saleService] getSalesSummary SQL: 
+            SELECT 
+                SUM(total) as net_total,
+                SUM(CASE WHEN total > 0 THEN total ELSE 0 END) as gross_total,
+                SUM(CASE WHEN total < 0 THEN total ELSE 0 END) as refund_total,
+                COUNT(*) as count 
+            FROM bills WHERE 1=1 AND date >= ? AND status != 'CANCELLED'
+         2026-02-07T18:30:00.000Z (http://127.0.0.1:5174/src/services/saleService.ts:58)
+[2026-02-08T12:01:51.243Z] [Renderer-INFO] [saleService] getSalesSummary Result: [object Object] (http://127.0.0.1:5174/src/services/saleService.ts:60)
+[2026-02-08T12:01:51.243Z] [Renderer-INFO] [saleService] getSalesSummary Result: [object Object] (http://127.0.0.1:5174/src/services/saleService.ts:60)
+[2026-02-08T12:01:51.244Z] [Renderer-INFO] [saleService] getSalesSummary Result: [object Object] (http://127.0.0.1:5174/src/services/saleService.ts:60)
+[2026-02-08T12:01:51.244Z] [Renderer-INFO] [saleService] getSalesSummary Result: [object Object] (http://127.0.0.1:5174/src/services/saleService.ts:60)
+[2026-02-08T12:01:52.755Z] [Renderer-INFO] [saleService] getSalesSummary SQL: 
+            SELECT 
+                SUM(total) as net_total,
+                SUM(CASE WHEN total > 0 THEN total ELSE 0 END) as gross_total,
+                SUM(CASE WHEN total < 0 THEN total ELSE 0 END) as refund_total,
+                COUNT(*) as count 
+            FROM bills WHERE 1=1 AND status != 'CANCELLED'
+          (http://127.0.0.1:5174/src/services/saleService.ts:58)
+[2026-02-08T12:01:52.755Z] [Renderer-INFO] [saleService] getSalesSummary SQL: 
+            SELECT 
+                SUM(total) as net_total,
+                SUM(CASE WHEN total > 0 THEN total ELSE 0 END) as gross_total,
+                SUM(CASE WHEN total < 0 THEN total ELSE 0 END) as refund_total,
+                COUNT(*) as count 
+            FROM bills WHERE 1=1 AND date >= ? AND status != 'CANCELLED'
+         2026-02-07T18:30:00.000Z (http://127.0.0.1:5174/src/services/saleService.ts:58)
+[2026-02-08T12:01:52.756Z] [Renderer-INFO] [saleService] getSalesSummary SQL: 
+            SELECT 
+                SUM(total) as net_total,
+                SUM(CASE WHEN total > 0 THEN total ELSE 0 END) as gross_total,
+                SUM(CASE WHEN total < 0 THEN total ELSE 0 END) as refund_total,
+                COUNT(*) as count 
+            FROM bills WHERE 1=1 AND status != 'CANCELLED'
+          (http://127.0.0.1:5174/src/services/saleService.ts:58)
+[2026-02-08T12:01:52.757Z] [Renderer-INFO] [saleService] getSalesSummary SQL: 
+            SELECT 
+                SUM(total) as net_total,
+                SUM(CASE WHEN total > 0 THEN total ELSE 0 END) as gross_total,
+                SUM(CASE WHEN total < 0 THEN total ELSE 0 END) as refund_total,
+                COUNT(*) as count 
+            FROM bills WHERE 1=1 AND date >= ? AND status != 'CANCELLED'
+         2026-02-07T18:30:00.000Z (http://127.0.0.1:5174/src/services/saleService.ts:58)
+[2026-02-08T12:01:52.758Z] [Renderer-INFO] [saleService] getSalesSummary Result: [object Object] (http://127.0.0.1:5174/src/services/saleService.ts:60)
+[2026-02-08T12:01:52.759Z] [Renderer-INFO] [saleService] getSalesSummary Result: [object Object] (http://127.0.0.1:5174/src/services/saleService.ts:60)
+[2026-02-08T12:01:52.759Z] [Renderer-INFO] [saleService] getSalesSummary Result: [object Object] (http://127.0.0.1:5174/src/services/saleService.ts:60)
+[2026-02-08T12:01:52.759Z] [Renderer-INFO] [saleService] getSalesSummary Result: [object Object] (http://127.0.0.1:5174/src/services/saleService.ts:60)
+[2026-02-08T12:02:51.925Z] [Renderer-INFO] [saleService] getSalesSummary SQL: 
+            SELECT 
+                SUM(total) as net_total,
+                SUM(CASE WHEN total > 0 THEN total ELSE 0 END) as gross_total,
+                SUM(CASE WHEN total < 0 THEN total ELSE 0 END) as refund_total,
+                COUNT(*) as count 
+            FROM bills WHERE 1=1 AND status != 'CANCELLED'
+          (http://127.0.0.1:5174/src/services/saleService.ts:58)
+[2026-02-08T12:02:51.929Z] [Renderer-INFO] [saleService] getSalesSummary SQL: 
+            SELECT 
+                SUM(total) as net_total,
+                SUM(CASE WHEN total > 0 THEN total ELSE 0 END) as gross_total,
+                SUM(CASE WHEN total < 0 THEN total ELSE 0 END) as refund_total,
+                COUNT(*) as count 
+            FROM bills WHERE 1=1 AND date >= ? AND status != 'CANCELLED'
+         2026-02-07T18:30:00.000Z (http://127.0.0.1:5174/src/services/saleService.ts:58)
+[2026-02-08T12:02:51.931Z] [Renderer-INFO] [saleService] getSalesSummary SQL: 
+            SELECT 
+                SUM(total) as net_total,
+                SUM(CASE WHEN total > 0 THEN total ELSE 0 END) as gross_total,
+                SUM(CASE WHEN total < 0 THEN total ELSE 0 END) as refund_total,
+                COUNT(*) as count 
+            FROM bills WHERE 1=1 AND status != 'CANCELLED'
+          (http://127.0.0.1:5174/src/services/saleService.ts:58)
+[2026-02-08T12:02:51.932Z] [Renderer-INFO] [saleService] getSalesSummary SQL: 
+            SELECT 
+                SUM(total) as net_total,
+                SUM(CASE WHEN total > 0 THEN total ELSE 0 END) as gross_total,
+                SUM(CASE WHEN total < 0 THEN total ELSE 0 END) as refund_total,
+                COUNT(*) as count 
+            FROM bills WHERE 1=1 AND date >= ? AND status != 'CANCELLED'
+         2026-02-07T18:30:00.000Z (http://127.0.0.1:5174/src/services/saleService.ts:58)
+[2026-02-08T12:02:51.938Z] [Renderer-INFO] [saleService] getSalesSummary Result: [object Object] (http://127.0.0.1:5174/src/services/saleService.ts:60)
+[2026-02-08T12:02:51.939Z] [Renderer-INFO] [saleService] getSalesSummary Result: [object Object] (http://127.0.0.1:5174/src/services/saleService.ts:60)
+[2026-02-08T12:02:51.939Z] [Renderer-INFO] [saleService] getSalesSummary Result: [object Object] (http://127.0.0.1:5174/src/services/saleService.ts:60)
+[2026-02-08T12:02:51.939Z] [Renderer-INFO] [saleService] getSalesSummary Result: [object Object] (http://127.0.0.1:5174/src/services/saleService.ts:60)

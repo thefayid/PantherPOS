@@ -10,6 +10,8 @@ type Events = {
     'THEME_CHANGE': 'light' | 'dark';
     'SALE_COMPLETED': void;
     'CUSTOMER_SELECTED': any; // Customer object
+    'SYNC_STATUS': 'ONLINE' | 'SYNCING' | 'ERROR' | 'OFFLINE';
+    'LAST_SYNC_UPDATE': string; // ISO Date string
 };
 
 class EventBus {

@@ -471,18 +471,19 @@ export const databaseService = {
             // WhatsApp automation support
             "ALTER TABLE company_settings ADD COLUMN owner_whatsapp TEXT",
 
-<<<<<<< HEAD
             // Cash management enhancements
             "ALTER TABLE cash_drawer_sessions ADD COLUMN expected_cash REAL",
             "ALTER TABLE cash_drawer_sessions ADD COLUMN variance REAL",
-            "ALTER TABLE cash_transactions ADD COLUMN meta_json TEXT"
-=======
+            "ALTER TABLE cash_transactions ADD COLUMN meta_json TEXT",
+
             // GST Report Support
             "ALTER TABLE bills ADD COLUMN place_of_supply TEXT",
             "ALTER TABLE bills ADD COLUMN customer_gstin TEXT",
             "ALTER TABLE customers ADD COLUMN gstin TEXT",
-            "ALTER TABLE customers ADD COLUMN state TEXT"
->>>>>>> c2439d0 (latest changes)
+            "ALTER TABLE customers ADD COLUMN state TEXT",
+
+            // Batch Tracking Support
+            "ALTER TABLE products ADD COLUMN is_batch_tracked INTEGER DEFAULT 0"
         ];
 
         for (const sql of migrationQueries) {
@@ -1121,6 +1122,17 @@ export const databaseService = {
     },
 
     query: async (sql: string, params: any[] = []): Promise<any> => {
+        // Diagnostic check for invalid parameter types
+        params.forEach((p, i) => {
+            if (p instanceof Date) {
+                console.error(`[DB] CRITICAL ERROR: Raw Date object passed as parameter at index ${i}. SQL: ${sql}`);
+                // Auto-fix for diagnosis
+                params[i] = p.toISOString();
+            } else if (p === undefined) {
+                console.error(`[DB] CRITICAL ERROR: undefined passed as parameter at index ${i}. SQL: ${sql}`);
+                params[i] = null;
+            }
+        });
         const isElectron = platformService.isElectron();
 
         // 1. If Electron, always run locally

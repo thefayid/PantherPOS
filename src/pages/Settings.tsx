@@ -3,25 +3,48 @@ import { settingsService, type AppSettings } from '../services/settingsService';
 import { databaseService } from '../services/databaseService';
 import { dbStorage } from '../services/dbStorage';
 import { eventBus } from '../utils/EventBus';
-import { syncService } from '../services/syncService';
-import { Receipt, Database, Percent, Trash2, Plus, Printer, Store, Check, AlertCircle, RefreshCw, Lock } from 'lucide-react';
+import { cloudService } from '../services/cloudService';
+import {
+    Store,
+    CreditCard,
+    Printer,
+    MonitorCog,
+    Database,
+    Building2,
+    MapPin,
+    Phone,
+    FileText,
+    Hash,
+    Banknote,
+    ScanBarcode,
+    Trash2,
+    Plus,
+    Cloud,
+    Lock,
+    Smartphone,
+    Monitor,
+    ChevronRight,
+    Save,
+    Sun,
+    Moon
+} from 'lucide-react';
 import { Button } from '../components/Button';
 import { Modal } from '../components/Modal';
 import { useUI } from '../context/UIContext';
-import { Smartphone, Monitor } from 'lucide-react';
 import { cn } from '../utils/cn';
 import { permissionsService } from '../services/permissionsService';
 import { ManagerPinModal } from '../components/ManagerPinModal';
+import toast from 'react-hot-toast';
 
 export default function Settings() {
     const { isTouchMode, setTouchMode } = useUI();
     const currentUser = permissionsService.getCurrentUser();
     const canManageSettings = permissionsService.can('MANAGE_SETTINGS', currentUser);
-    const [overrideGranted, setOverrideGranted] = useState(false);
     const [isPinOpen, setIsPinOpen] = useState(false);
+    const [overrideGranted, setOverrideGranted] = useState(false);
 
     const [settings, setSettings] = useState<AppSettings | null>(null);
-    const [activeTab, setActiveTab] = useState<'GENERAL' | 'TAXES' | 'RECEIPT' | 'DATA'>('GENERAL');
+    const [activeTab, setActiveTab] = useState<'PROFILE' | 'BILLING' | 'HARDWARE' | 'SYSTEM'>('PROFILE');
     const [taxRates, setTaxRates] = useState<any[]>([]);
     const [isTaxModalOpen, setIsTaxModalOpen] = useState(false);
     const [editingTax, setEditingTax] = useState<any>(null);
@@ -35,7 +58,7 @@ export default function Settings() {
 
     const handleSaveSetting = async (key: keyof AppSettings, value: any) => {
         if (!settings) return;
-        if (!canEdit) return;
+        if (!canEdit) { setIsPinOpen(true); return; }
         setSettings({ ...settings, [key]: value });
         await settingsService.updateSetting(key, value);
     };
@@ -47,9 +70,10 @@ export default function Settings() {
             await settingsService.saveTaxRate(editingTax);
             setIsTaxModalOpen(false);
             loadTaxRates();
+            toast.success('Tax rate saved');
         } catch (error) {
             console.error(error);
-            alert('Failed to save tax rate');
+            toast.error('Failed to save tax rate');
         }
     };
 
@@ -58,452 +82,315 @@ export default function Settings() {
         if (confirm('Delete this tax rate?')) {
             await settingsService.deleteTaxRate(id);
             loadTaxRates();
+            toast.success('Tax rate deleted');
         }
     };
 
     const handleBackup = async () => {
-        if (!canEdit) {
-            setIsPinOpen(true);
-            return;
-        }
+        if (!canEdit) { setIsPinOpen(true); return; }
         try {
             const msg = await databaseService.createBackup();
-            alert(msg);
-        } catch (error) {
-            alert('Backup failed');
+            toast.success(msg);
+        } catch (error: any) {
+            toast.error('Backup failed: ' + error.message);
         }
     };
 
     if (!settings) return (
-        <div className="p-8 text-foreground font-medium flex items-center gap-2">
-            <div className="w-4 h-4 border-2 border-primary border-t-transparent animate-spin rounded-full"></div>
-            Loading Settings...
+        <div className="h-full flex items-center justify-center">
+            <div className="w-6 h-6 border-2 border-primary border-t-transparent animate-spin rounded-full"></div>
         </div>
     );
 
-    const InputGroup = ({ label, value, field, type = "text", placeholder = "" }: any) => (
-        <div className="flex flex-col gap-2">
-            <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest ml-1">{label}</label>
-            <input
-                type={type}
-                className="w-full bg-muted/20 border border-border text-foreground p-3 rounded-xl focus:border-primary/50 focus:outline-none focus:ring-1 focus:ring-primary/50 transition-all font-bold placeholder:text-muted-foreground/30 text-sm"
-                value={value || ''}
-                onChange={(e) => handleSaveSetting(field, type === 'number' ? parseFloat(e.target.value) : e.target.value)}
-                placeholder={placeholder}
-                disabled={!canEdit}
-            />
+    const SidebarItem = ({ id, icon: Icon, label, description }: any) => (
+        <button
+            onClick={() => setActiveTab(id)}
+            className={cn(
+                "w-full flex items-center justify-between p-3 rounded-lg text-left transition-all mb-1",
+                activeTab === id
+                    ? "bg-primary/10 text-primary font-medium"
+                    : "hover:bg-muted text-muted-foreground hover:text-foreground"
+            )}
+        >
+            <div className="flex items-center gap-3">
+                <Icon size={18} />
+                <div>
+                    <div className="text-sm font-semibold leading-none">{label}</div>
+                    <div className="text-[10px] opacity-70 mt-1">{description}</div>
+                </div>
+            </div>
+            {activeTab === id && <ChevronRight size={14} />}
+        </button>
+    );
+
+    const SectionTitle = ({ title }: { title: string }) => (
+        <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-4 flex items-center gap-2">
+            {title} <div className="h-px flex-1 bg-border/50"></div>
+        </h3>
+    );
+
+    const InputField = ({ label, icon: Icon, value, field, type = "text", placeholder, onChange, className }: any) => (
+        <div className={cn("space-y-1.5", className)}>
+            <label className="text-[11px] font-medium text-muted-foreground">{label}</label>
+            <div className="relative group">
+                {Icon && <Icon size={14} className="absolute left-3 top-3 text-muted-foreground group-focus-within:text-primary transition-colors" />}
+                <input
+                    type={type}
+                    value={value || ''}
+                    onChange={onChange || ((e: any) => handleSaveSetting(field, type === 'number' ? parseFloat(e.target.value) : e.target.value))}
+                    placeholder={placeholder}
+                    disabled={!canEdit}
+                    className={cn(
+                        "w-full bg-background border border-border rounded-lg h-10 px-3 text-sm transition-all focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/50",
+                        Icon && "pl-9"
+                    )}
+                />
+            </div>
         </div>
     );
 
     return (
-        <div className="h-full flex flex-col bg-background text-foreground p-6 overflow-hidden">
-            <div className="mb-6">
-                <h1 className="text-3xl font-black tracking-tight">Settings</h1>
-                <p className="text-muted-foreground font-medium">System Configuration & Preferences</p>
+        <div className="h-full flex bg-background text-foreground overflow-hidden">
+            {/* Sidebar */}
+            <div className="w-64 border-r border-border flex flex-col bg-muted/10">
+                <div className="p-6 border-b border-border/50">
+                    <h1 className="text-xl font-bold tracking-tight">Settings</h1>
+                    <p className="text-xs text-muted-foreground mt-1">Version 1.0.0</p>
+                </div>
+
+                <div className="flex-1 overflow-y-auto p-3 space-y-1">
+                    <SidebarItem id="PROFILE" icon={Store} label="Store Profile" description="Identity & Branding" />
+                    <SidebarItem id="BILLING" icon={CreditCard} label="Billing & Tax" description="Invoices & Rules" />
+                    <SidebarItem id="HARDWARE" icon={Printer} label="Hardware" description="Printers & Devices" />
+                    <SidebarItem id="SYSTEM" icon={MonitorCog} label="System" description="Data & Preferences" />
+                </div>
+
+                {!canEdit && (
+                    <div className="p-4 border-t border-border/50">
+                        <Button size="sm" variant="secondary" onClick={() => setIsPinOpen(true)} className="w-full justify-start text-orange-500 border-orange-200 bg-orange-50 hover:bg-orange-100 dark:bg-orange-500/10 dark:border-orange-500/20">
+                            <Lock size={14} className="mr-2" /> Unlock Editing
+                        </Button>
+                    </div>
+                )}
             </div>
 
-            {!canEdit && (
-                <div className="mb-4 p-4 rounded-2xl border border-orange-500/20 bg-orange-500/5 flex items-center justify-between gap-4">
-                    <div>
-                        <div className="text-[10px] font-black uppercase tracking-widest text-orange-500">Locked</div>
-                        <div className="text-sm font-bold text-foreground">Manager authorization required to edit settings.</div>
-                    </div>
-                    <Button
-                        className="bg-orange-500 hover:bg-orange-600 text-white border-none whitespace-nowrap"
-                        onClick={() => setIsPinOpen(true)}
-                    >
-                        <Lock size={16} className="mr-2" /> Unlock
-                    </Button>
-                </div>
-            )}
+            {/* Content Area */}
+            <div className="flex-1 overflow-y-auto bg-surface">
+                <div className="max-w-4xl mx-auto p-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
 
-            <div className="flex flex-col lg:flex-row gap-6 h-full min-h-0">
-                {/* Sidebar Navigation */}
-                <div className="w-full lg:w-72 flex flex-row lg:flex-col gap-2 overflow-x-auto lg:overflow-visible pb-2 lg:pb-0 shrink-0">
-                    {[
-                        { id: 'GENERAL', label: 'Store General', icon: Store },
-                        { id: 'TAXES', label: 'Tax Rules', icon: Percent },
-                        { id: 'RECEIPT', label: 'Receipt Template', icon: Receipt },
-                        { id: 'DATA', label: 'Backup & Data', icon: Database },
-                    ].map(tab => (
-                        <button
-                            key={tab.id}
-                            onClick={() => setActiveTab(tab.id as any)}
-                            className={`flex items-center gap-3 p-4 rounded-2xl text-left transition-all whitespace-nowrap lg:whitespace-normal group ${activeTab === tab.id
-                                ? 'bg-primary/10 text-primary font-black border border-primary/30 shadow-sm'
-                                : 'hover:bg-muted/50 text-muted-foreground hover:text-foreground border border-transparent'
-                                }`}
-                        >
-                            <tab.icon size={18} className={`${activeTab === tab.id ? 'text-primary' : 'text-muted-foreground group-hover:text-primary transition-colors'}`} />
-                            <span className="text-xs uppercase tracking-widest font-black">{tab.label}</span>
-                        </button>
-                    ))}
-                </div>
-
-                {/* Content Area */}
-                <div className="flex-1 bg-surface rounded-2xl border border-border p-8 overflow-y-auto shadow-xl custom-scrollbar">
-
-                    {/* GENERAL SETTINGS */}
-                    {activeTab === 'GENERAL' && (
-                        <div className="max-w-2xl flex flex-col gap-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                            <div className="flex flex-col gap-6">
-                                <h2 className="text-lg font-black border-b border-border/50 pb-3 text-foreground uppercase tracking-tight">Store Details</h2>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <InputGroup label="Store Name" value={settings.store_name} field="store_name" />
-                                    <InputGroup label="Phone Number" value={settings.store_phone} field="store_phone" />
-                                </div>
-                                <InputGroup label="Address (Main Branch)" value={settings.store_address} field="store_address" />
-                                <InputGroup label="GSTIN / VAT ID" value={settings.gst_no} field="gst_no" />
-                            </div>
-
-                            <div className="flex flex-col gap-6">
-                                <h2 className="text-lg font-black border-b border-border/50 pb-3 text-foreground uppercase tracking-tight">Visual Identity</h2>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <button
-                                        onClick={() => { eventBus.emit('THEME_CHANGE', 'dark'); }}
-                                        className="p-6 border rounded-2xl bg-slate-900 border-slate-800 relative overflow-hidden group ring-2 ring-transparent focus:ring-primary hover:border-primary/50 transition-all text-left shadow-lg"
-                                    >
-                                        <div className="font-black text-slate-100 relative z-10 text-sm uppercase tracking-widest">Obsidian Dark</div>
-                                        <div className="text-[10px] text-slate-400 relative z-10 font-bold mt-1">PRO OLED OPTIMIZED</div>
-                                        <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-transparent opacity-30" />
-                                        <div className="absolute top-4 right-4 bg-primary text-primary-foreground text-[8px] font-black px-2 py-0.5 rounded-full tracking-widest">DEFAULT</div>
-                                    </button>
-
-                                    <button
-                                        onClick={() => { eventBus.emit('THEME_CHANGE', 'light'); }}
-                                        className="p-6 border border-border rounded-2xl bg-white text-left hover:opacity-100 relative overflow-hidden transition-all shadow-md group"
-                                    >
-                                        <div className="font-black text-slate-900 relative z-10 text-sm uppercase tracking-widest">Bubblegum Light</div>
-                                        <div className="text-[10px] text-slate-500 relative z-10 font-bold mt-1">CLEAN & AIRY</div>
-                                        <div className="absolute inset-0 bg-gradient-to-br from-pink-500/5 to-transparent opacity-20" />
-                                    </button>
-                                </div>
-                            </div>
-
-                            <div className="flex flex-col gap-6 border-t border-border/50 pt-6">
-                                <h2 className="text-lg font-black border-b border-border/50 pb-3 text-foreground uppercase tracking-tight">System Optimization</h2>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <button
-                                        onClick={() => setTouchMode(false)}
-                                        className={cn(
-                                            "p-6 border rounded-2xl transition-all text-left flex flex-col gap-2 relative overflow-hidden group",
-                                            !isTouchMode
-                                                ? "bg-primary/10 border-primary shadow-sm"
-                                                : "bg-surface border-border hover:border-primary/30"
-                                        )}
-                                    >
-                                        <Monitor size={24} className={!isTouchMode ? "text-primary" : "text-muted-foreground"} />
-                                        <div>
-                                            <div className="font-black text-sm uppercase tracking-widest text-foreground">Normal Mode</div>
-                                            <div className="text-[10px] text-muted-foreground font-bold mt-1 uppercase">Desktop & Mouse Optimized</div>
-                                        </div>
-                                        {!isTouchMode && <div className="absolute top-4 right-4 bg-primary text-primary-foreground text-[8px] font-black px-2 py-0.5 rounded-full tracking-widest">ACTIVE</div>}
-                                    </button>
-
-                                    <button
-                                        onClick={() => setTouchMode(true)}
-                                        className={cn(
-                                            "p-6 border rounded-2xl transition-all text-left flex flex-col gap-2 relative overflow-hidden group",
-                                            isTouchMode
-                                                ? "bg-primary/10 border-primary shadow-sm"
-                                                : "bg-surface border-border hover:border-primary/30"
-                                        )}
-                                    >
-                                        <Smartphone size={24} className={isTouchMode ? "text-primary" : "text-muted-foreground"} />
-                                        <div>
-                                            <div className="font-black text-sm uppercase tracking-widest text-foreground">Touch Screen</div>
-                                            <div className="text-[10px] text-muted-foreground font-bold mt-1 uppercase">Tablet & Kiosk Optimized</div>
-                                        </div>
-                                        {isTouchMode && <div className="absolute top-4 right-4 bg-primary text-primary-foreground text-[8px] font-black px-2 py-0.5 rounded-full tracking-widest">ACTIVE</div>}
-                                    </button>
-                                </div>
-                            </div>
-
-                            <div className="flex flex-col gap-6 border-t border-border/50 pt-6">
-                                <h2 className="text-lg font-black border-b border-border/50 pb-3 text-foreground uppercase tracking-tight">Software Update</h2>
-                                <div className="p-6 bg-emerald-500/5 border border-emerald-500/10 rounded-2xl flex flex-col md:flex-row items-center gap-6">
-                                    <div className="p-4 bg-emerald-500/10 rounded-xl text-emerald-500">
-                                        <RefreshCw size={24} />
-                                    </div>
-                                    <div className="flex-1 text-center md:text-left">
-                                        <div className="font-black text-foreground uppercase tracking-tight text-sm">System Version</div>
-                                        <div className="text-[10px] text-muted-foreground font-medium mt-1">
-                                            Currently running version <span className="text-emerald-500 font-bold">1.0.0</span>. Check for latest features and security patches.
-                                        </div>
-                                    </div>
-                                    <button
-                                        onClick={() => {
-                                            if (window.electronAPI) {
-                                                window.electronAPI.checkUpdates();
-                                            } else {
-                                                alert("Updates only available in Desktop App");
-                                            }
-                                        }}
-                                        className="px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-lg shadow-emerald-500/20 whitespace-nowrap"
-                                    >
-                                        Check For Updates
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* TAX SETTINGS */}
-                    {activeTab === 'TAXES' && (
-                        <div className="flex flex-col gap-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                            <div className="flex justify-between items-end border-b border-border/50 pb-6">
-                                <div>
-                                    <h2 className="text-lg font-black text-foreground uppercase tracking-tight">Tax Configuration</h2>
-                                    <p className="text-xs text-muted-foreground font-medium mt-1">Define regional tax rules and applicability</p>
-                                </div>
-                                <button
-                                    onClick={() => {
-                                        if (!canEdit) {
-                                            setIsPinOpen(true);
-                                            return;
-                                        }
-                                        setEditingTax({ name: '', rate: 0 });
-                                        setIsTaxModalOpen(true);
-                                    }}
-                                    className={`flex items-center gap-2 px-6 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all ${canEdit
-                                        ? 'bg-primary hover:brightness-110 text-primary-foreground shadow-glow'
-                                        : 'bg-muted text-muted-foreground border border-border cursor-not-allowed'
-                                        }`}
-                                    disabled={!canEdit}
-                                >
-                                    <Plus size={16} /> New Tax Rate
-                                </button>
-                            </div>
-
-                            <div className="rounded-2xl overflow-hidden border border-border bg-muted/5 shadow-inner">
-                                <table className="w-full text-left">
-                                    <thead className="bg-muted/50 text-muted-foreground text-[10px] font-black uppercase tracking-widest">
-                                        <tr>
-                                            <th className="p-5 border-b border-border">Description</th>
-                                            <th className="p-5 border-b border-border text-center">Value (%)</th>
-                                            <th className="p-5 border-b border-border text-center">Status</th>
-                                            <th className="p-5 border-b border-border text-right">Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-border/50">
-                                        {taxRates.map((r) => (
-                                            <tr key={r.id} className="hover:bg-primary/5 transition-colors group">
-                                                <td className="p-5 font-bold text-foreground">{r.name}</td>
-                                                <td className="p-5 text-center font-black text-primary">{r.rate}%</td>
-                                                <td className="p-5 text-center">
-                                                    {r.is_default ? (
-                                                        <span className="text-[8px] bg-emerald-500/10 text-emerald-500 px-2.5 py-1 rounded-full border border-emerald-500/20 font-black uppercase tracking-widest">Default</span>
-                                                    ) : (
-                                                        <span className="text-[8px] bg-muted text-muted-foreground px-2.5 py-1 rounded-full border border-border font-black uppercase tracking-widest">Inactive</span>
-                                                    )}
-                                                </td>
-                                                <td className="p-5 text-right">
-                                                    <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                        <button
-                                                            onClick={() => {
-                                                                if (!canEdit) {
-                                                                    setIsPinOpen(true);
-                                                                    return;
-                                                                }
-                                                                setEditingTax(r);
-                                                                setIsTaxModalOpen(true);
-                                                            }}
-                                                            className={`p-2.5 rounded-lg transition-colors ${canEdit ? 'hover:bg-primary/10 text-primary' : 'text-muted-foreground cursor-not-allowed'}`}
-                                                            disabled={!canEdit}
-                                                        >
-                                                            <Plus size={16} className="rotate-45" />
-                                                        </button>
-                                                        <button
-                                                            onClick={() => handleDeleteTax(r.id)}
-                                                            className={`p-2.5 rounded-lg transition-colors ${canEdit ? 'hover:bg-destructive/10 text-destructive' : 'text-muted-foreground cursor-not-allowed'}`}
-                                                            disabled={!canEdit}
-                                                        >
-                                                            <Trash2 size={16} />
-                                                        </button>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                        {taxRates.length === 0 && (
-                                            <tr>
-                                                <td colSpan={4} className="p-20 text-center">
-                                                    <div className="flex flex-col items-center gap-3 opacity-30">
-                                                        <Percent size={48} strokeWidth={1} />
-                                                        <p className="font-black text-xs uppercase tracking-widest">No tax rates defined</p>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        )}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* RECEIPT SETTINGS */}
-                    {activeTab === 'RECEIPT' && (
-                        <div className="max-w-2xl flex flex-col gap-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    {/* --- TAB: STORE PROFILE --- */}
+                    {activeTab === 'PROFILE' && (
+                        <div className="space-y-8">
                             <div>
-                                <h2 className="text-lg font-black border-b border-border/50 pb-3 text-foreground uppercase tracking-tight">Receipt Branding</h2>
-                                <p className="text-xs text-muted-foreground font-medium mt-1">Configure thermal and digital receipt output</p>
+                                <h2 className="text-2xl font-bold tracking-tight">Store Profile</h2>
+                                <p className="text-muted-foreground">Manage your business identity and contact information.</p>
                             </div>
 
-                            <InputGroup label="Receipt Header (Welcome Message)" value={settings.receipt_header} field="receipt_header" placeholder="Welcome to our store!" />
+                            <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
+                                <SectionTitle title="Basic Information" />
+                                <div className="grid grid-cols-2 gap-6">
+                                    <InputField label="Store Name" icon={Building2} value={settings.store_name} field="store_name" placeholder="My Awesome Store" />
+                                    <InputField label="Phone Number" icon={Phone} value={settings.store_phone} field="store_phone" placeholder="+91 98765 43210" />
+                                </div>
+                                <div className="mt-4">
+                                    <InputField label="Store Address" icon={MapPin} value={settings.store_address} field="store_address" placeholder="123 Main St, City, State" />
+                                </div>
+                            </div>
 
-                            <div className="flex flex-col gap-2">
-                                <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest ml-1">Receipt Footer / Policy Note</label>
+                            <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
+                                <SectionTitle title="Legal & Branding" />
+                                <div className="grid grid-cols-2 gap-6">
+                                    <InputField label="GSTIN / VAT Number" icon={FileText} value={settings.gst_no} field="gst_no" placeholder="29ABCDE1234F1Z5" />
+                                    <div>
+                                        <div className="flex gap-2 mb-1.5">
+                                            <label className="text-[11px] font-medium text-muted-foreground">Store Logo URL</label>
+                                            {settings.store_logo && <span className="text-[10px] text-green-500 font-bold">✓ Set</span>}
+                                        </div>
+                                        <input
+                                            type="text"
+                                            value={settings.store_logo || ''}
+                                            onChange={e => handleSaveSetting('store_logo', e.target.value)}
+                                            className="w-full bg-background border border-border rounded-lg h-10 px-3 text-sm"
+                                            placeholder="https://example.com/logo.png"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* --- TAB: BILLING & TAX --- */}
+                    {activeTab === 'BILLING' && (
+                        <div className="space-y-8">
+                            <div>
+                                <h2 className="text-2xl font-bold tracking-tight">Billing Configuration</h2>
+                                <p className="text-muted-foreground">Customize invoice numbering, prefixes, and tax rules.</p>
+                            </div>
+
+                            <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
+                                <SectionTitle title="Invoice Sequencing" />
+                                <div className="grid grid-cols-4 gap-4">
+                                    <InputField label="Prefix" icon={FileText} value={settings.invoice_prefix} field="invoice_prefix" placeholder="INV-" />
+                                    <InputField label="Start No." icon={Hash} value={settings.invoice_start_number} field="invoice_start_number" type="number" placeholder="1001" />
+                                    <InputField label="Currency" icon={Banknote} value={settings.currency_symbol} field="currency_symbol" placeholder="₹" />
+                                    <InputField label="Barcode Prefix" icon={ScanBarcode} value={settings.barcode_prefix} field="barcode_prefix" placeholder="GEN" />
+                                </div>
+                            </div>
+
+                            <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
+                                <div className="flex items-center justify-between mb-4">
+                                    <SectionTitle title="Tax Rates" />
+                                    <Button size="sm" variant="secondary" onClick={() => { setEditingTax({ name: '', rate: 0 }); setIsTaxModalOpen(true); }} disabled={!canEdit}>
+                                        <Plus size={14} className="mr-1" /> Add Tax
+                                    </Button>
+                                </div>
+
+                                <div className="space-y-2">
+                                    {taxRates.map((tax) => (
+                                        <div key={tax.id} className="flex items-center justify-between p-3 border border-border rounded-lg bg-muted/20 hover:bg-muted/40 transition-colors">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-8 h-8 rounded bg-background border border-border flex items-center justify-center font-bold text-xs shadow-sm">
+                                                    {tax.rate}%
+                                                </div>
+                                                <div className="flex flex-col">
+                                                    <span className="text-sm font-medium">{tax.name}</span>
+                                                    {tax.is_default && <span className="text-[10px] text-primary font-bold uppercase">Default</span>}
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-1">
+                                                <Button variant="ghost" className="h-8 w-8 p-0" onClick={() => { setEditingTax(tax); setIsTaxModalOpen(true); }}><MonitorCog size={14} /></Button>
+                                                <Button variant="ghost" className="h-8 w-8 p-0 text-destructive hover:text-destructive" onClick={() => handleDeleteTax(tax.id)}><Trash2 size={14} /></Button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    {taxRates.length === 0 && <div className="text-center text-muted-foreground text-sm py-8">No tax rates defined.</div>}
+                                </div>
+                            </div>
+
+                            <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
+                                <SectionTitle title="Footer & Terms" />
                                 <textarea
-                                    className="w-full h-40 p-4 bg-muted/20 text-foreground border border-border rounded-2xl resize-none focus:border-primary/50 focus:outline-none focus:ring-1 focus:ring-primary/50 transition-all font-bold placeholder:text-muted-foreground/30 text-sm shadow-inner"
                                     value={settings.invoice_footer || ''}
-                                    onChange={(e) => handleSaveSetting('invoice_footer', e.target.value)}
-                                    placeholder="e.g. Items purchased are non-refundable."
-                                    disabled={!canEdit}
+                                    onChange={e => handleSaveSetting('invoice_footer', e.target.value)}
+                                    className="w-full bg-background border border-border rounded-lg p-3 text-sm min-h-[100px] focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/50"
+                                    placeholder="Thank you for your business!"
                                 />
                             </div>
-
-                            <div className="p-6 bg-primary/5 rounded-2xl border border-primary/10 flex items-center gap-5 shadow-sm">
-                                <div className="p-4 bg-primary rounded-xl text-primary-foreground shadow-glow">
-                                    <Printer size={28} />
-                                </div>
-                                <div className="flex-1">
-                                    <div className="font-black text-foreground uppercase tracking-tight text-sm">Hardware Link</div>
-                                    <div className="text-[10px] text-muted-foreground font-medium mt-0.5 leading-relaxed">
-                                        Printer detection is handled automatically. Adjust detailed peripheral settings in the <span className="text-primary font-bold">Hardware</span> tab for advanced routing.
-                                    </div>
-                                </div>
-                            </div>
                         </div>
                     )}
 
-                    {/* DATA BACKUP */}
-                    {activeTab === 'DATA' && (
-                        <div className="max-w-2xl flex flex-col gap-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    {/* --- TAB: HARDWARE --- */}
+                    {activeTab === 'HARDWARE' && (
+                        <div className="space-y-8">
                             <div>
-                                <h2 className="text-lg font-black border-b border-border/50 pb-3 text-foreground uppercase tracking-tight">Safety & Portability</h2>
-                                <p className="text-xs text-muted-foreground font-medium mt-1">Maintain ownership of your commercial data</p>
+                                <h2 className="text-2xl font-bold tracking-tight">Hardware</h2>
+                                <p className="text-muted-foreground">Configure printers, scales, and peripherals.</p>
                             </div>
 
-                            <div className="p-8 bg-gradient-to-br from-blue-500/10 to-blue-600/5 border border-blue-500/20 rounded-2xl flex flex-col gap-6 shadow-sm">
-                                <div className="flex items-center gap-5">
-                                    <div className="w-14 h-14 bg-blue-500/20 rounded-2xl flex items-center justify-center text-blue-600 border border-blue-500/30 shadow-inner">
-                                        <Database size={28} />
+                            <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
+                                <SectionTitle title="Receipt Printer" />
+                                <div className="grid grid-cols-2 gap-6">
+                                    <div className="space-y-1.5">
+                                        <label className="text-[11px] font-medium text-muted-foreground">Connection Type</label>
+                                        <select
+                                            value={settings.printer_type}
+                                            onChange={e => handleSaveSetting('printer_type', e.target.value)}
+                                            disabled={!canEdit}
+                                            className="w-full bg-background border border-border rounded-lg h-10 px-3 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/50"
+                                        >
+                                            <option value="USB_SHARED">USB Shared Printer</option>
+                                            <option value="NETWORK">Network (LAN/WiFi)</option>
+                                            <option value="SERIAL">Serial Port (COM)</option>
+                                        </select>
                                     </div>
-                                    <div>
-                                        <div className="text-lg font-black text-blue-700 dark:text-blue-100 tracking-tight uppercase">System Snapshot</div>
-                                        <div className="text-xs text-blue-800/60 dark:text-blue-200/60 font-medium">Generate a complete database dump for manual recovery.</div>
+                                    <InputField label={settings.printer_type === 'NETWORK' ? 'IP Address:Port' : 'Interface Path'} value={settings.printer_interface} field="printer_interface" placeholder={settings.printer_type === 'NETWORK' ? '192.168.1.100:9100' : '\\\\PC\\Printer'} />
+                                </div>
+                                <div className="grid grid-cols-2 gap-6 mt-4">
+                                    <InputField label="Paper Width (mm)" value={settings.printer_width} field="printer_width" type="number" placeholder="58" />
+                                    <div className="flex items-end">
+                                        <Button onClick={() => window.electronAPI?.printRaw([0x1B, 0x40, ...new TextEncoder().encode('Test Print\n\n\n'), 0x1D, 0x56, 0x41, 0x03])} variant="secondary" className="w-full border-border"> Test Connectivity</Button>
                                     </div>
                                 </div>
-                                <button
-                                    onClick={handleBackup}
-                                    className="w-full py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-lg shadow-blue-500/20"
-                                >
-                                    Initialize Backup
-                                </button>
-                            </div>
-
-                            <div className="p-8 bg-gradient-to-br from-purple-500/10 to-purple-600/5 border border-purple-500/20 rounded-2xl flex flex-col gap-8 shadow-sm">
-                                <div className="flex items-center gap-5">
-                                    <div className="w-14 h-14 bg-purple-500/20 rounded-2xl flex items-center justify-center text-purple-600 border border-purple-500/30 shadow-inner">
-                                        <Database size={28} className="rotate-180" />
-                                    </div>
-                                    <div>
-                                        <div className="text-lg font-black text-purple-700 dark:text-purple-100 tracking-tight uppercase">Multi-Term Sync</div>
-                                        <div className="text-xs text-purple-800/60 dark:text-purple-200/60 font-medium">Replicate cloud/server data to this local terminal.</div>
-                                    </div>
-                                </div>
-
-                                <div className="space-y-4">
-                                    <div className="flex flex-col gap-3">
-                                        <label className="text-[10px] font-black text-purple-800 dark:text-purple-200 uppercase tracking-widest ml-1">Terminal Gateway IP</label>
-                                        <div className="flex gap-2">
-                                            <input
-                                                type="text"
-                                                className="flex-1 bg-background border border-purple-500/30 text-foreground p-3.5 rounded-xl focus:border-purple-500 focus:outline-none transition-all font-mono font-bold text-sm"
-                                                placeholder="0.0.0.0"
-                                                defaultValue={syncService.getServerIp()}
-                                                onBlur={(e) => syncService.setServerIp(e.target.value)}
-                                                disabled={!canEdit}
-                                            />
-                                            <button
-                                                onClick={async (e) => {
-                                                    if (!canEdit) {
-                                                        setIsPinOpen(true);
-                                                        return;
-                                                    }
-                                                    const btn = e.currentTarget;
-                                                    const originalText = btn.innerText;
-                                                    btn.disabled = true;
-                                                    btn.innerText = 'WAITING...';
-
-                                                    const result = await syncService.syncFromPc();
-                                                    if (result.success) {
-                                                        alert(result.message);
-                                                        window.location.reload();
-                                                    } else {
-                                                        alert(result.message);
-                                                        btn.disabled = false;
-                                                        btn.innerText = originalText;
-                                                    }
-                                                }}
-                                                className="px-8 py-3 bg-purple-600 hover:bg-purple-500 text-white rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-lg shadow-purple-500/20"
-                                            >
-                                                Cloud Pull
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="p-6 bg-destructive/5 border border-destructive/20 rounded-2xl flex items-center justify-between gap-6">
-                                <div className="flex items-center gap-4">
-                                    <Trash2 size={24} className="text-destructive opacity-30" />
-                                    <div>
-                                        <div className="font-black text-foreground uppercase tracking-tight text-xs">Clear Local Storage</div>
-                                        <div className="text-[10px] text-muted-foreground font-medium">Wipe cache and local DB instance (Hard Reset).</div>
-                                    </div>
-                                </div>
-                                <button
-                                    onClick={async () => {
-                                        if (!canEdit) {
-                                            setIsPinOpen(true);
-                                            return;
-                                        }
-                                        if (confirm('Critical: This will wipe ALL cached data on this terminal. Continue?')) {
-                                            localStorage.removeItem('pos_db_web');
-                                            await dbStorage.clear();
-                                            window.location.reload();
-                                        }
-                                    }}
-                                    className="px-4 py-2 border border-destructive/50 text-destructive hover:bg-destructive hover:text-white rounded-lg text-[10px] font-black uppercase tracking-widest transition-all"
-                                >
-                                    Execute
-                                </button>
                             </div>
                         </div>
                     )}
+
+                    {/* --- TAB: SYSTEM --- */}
+                    {activeTab === 'SYSTEM' && (
+                        <div className="space-y-8">
+                            <div>
+                                <h2 className="text-2xl font-bold tracking-tight">System & Data</h2>
+                                <p className="text-muted-foreground">App preferences and data management.</p>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <button onClick={() => setTouchMode(!isTouchMode)} className={cn("flex items-center gap-4 p-4 rounded-xl border transition-all text-left", isTouchMode ? "bg-primary/5 border-primary" : "bg-card border-border hover:bg-muted/50")}>
+                                    <div className={cn("p-2 rounded-lg", isTouchMode ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground")}><Smartphone size={20} /></div>
+                                    <div>
+                                        <div className="font-bold text-sm">Touch Mode</div>
+                                        <div className="text-xs text-muted-foreground">{isTouchMode ? 'Enabled' : 'Disabled'}</div>
+                                    </div>
+                                </button>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <button onClick={() => eventBus.emit('THEME_CHANGE', 'light')} className="flex items-center gap-4 p-4 rounded-xl border border-border bg-white hover:border-slate-300 transition-all text-left group shadow-sm text-slate-900">
+                                        <div className="p-2 rounded-lg bg-slate-100 text-slate-600"><Sun size={20} /></div>
+                                        <div>
+                                            <div className="font-bold text-sm">Light Mode</div>
+                                            <div className="text-xs text-slate-500">Bright workspace</div>
+                                        </div>
+                                    </button>
+
+                                    <button onClick={() => eventBus.emit('THEME_CHANGE', 'dark')} className="flex items-center gap-4 p-4 rounded-xl border border-border bg-slate-950 hover:border-slate-700 transition-all text-left group text-slate-100">
+                                        <div className="p-2 rounded-lg bg-slate-800 text-slate-400"><Moon size={20} /></div>
+                                        <div>
+                                            <div className="font-bold text-sm">Dark Mode</div>
+                                            <div className="text-xs text-slate-500">Easy on eyes</div>
+                                        </div>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
+                                <SectionTitle title="Cloud Synchronization" />
+                                <div className="grid grid-cols-2 gap-6 mb-4">
+                                    <InputField label="Server URL" value={cloudService.getConfig().serverUrl} field="serverUrl" placeholder="https://api.pos.com" icon={Cloud} />
+                                    <InputField label="API Key" value={cloudService.getConfig().apiKey} field="apiKey" type="password" placeholder="••••••" icon={Lock} />
+                                </div>
+                                <div className="flex gap-3">
+                                    <Button size="sm" onClick={() => cloudService.uploadData().then(r => toast.success(r.message))} className="flex-1 bg-blue-600 text-white hover:bg-blue-700 border-0">Push Data to Cloud</Button>
+                                    <Button size="sm" variant="secondary" onClick={() => cloudService.downloadData().then(r => toast.success(r.message))} className="flex-1">Pull Data from Cloud</Button>
+                                </div>
+                            </div>
+
+                            <div className="bg-card border border-border rounded-xl p-6 shadow-sm flex items-center justify-between">
+                                <div>
+                                    <h4 className="font-bold text-sm">Database Management</h4>
+                                    <p className="text-xs text-muted-foreground">Create local backups or reset system.</p>
+                                </div>
+                                <div className="flex gap-2">
+                                    <Button size="sm" variant="secondary" onClick={handleBackup}>Create Backup</Button>
+                                    <Button size="sm" variant="danger" onClick={() => { if (confirm('Clear ALL data? This cannot be undone.')) dbStorage.clear().then(() => window.location.reload()) }}>Factory Reset</Button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                 </div>
             </div>
 
-            {/* Tax Rate Modal */}
-            <Modal isOpen={isTaxModalOpen} onClose={() => setIsTaxModalOpen(false)} title={editingTax?.id ? "Update Tax Protocol" : "New Tax protocol"}>
-                <form onSubmit={handleSaveTax} className="flex flex-col gap-6 pt-2">
-                    <div className="flex flex-col gap-2">
-                        <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Identifer</label>
-                        <input className="w-full bg-muted/20 border border-border rounded-xl p-4 text-foreground font-bold focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary shadow-inner" value={editingTax?.name || ''} onChange={e => setEditingTax({ ...editingTax, name: e.target.value })} placeholder="e.g. Standard GST" required />
+            {/* Config Modals */}
+            <Modal isOpen={isTaxModalOpen} onClose={() => setIsTaxModalOpen(false)} title={editingTax?.id ? "Edit Tax Rate" : "Add Tax Rate"}>
+                <form onSubmit={handleSaveTax} className="space-y-4 pt-2">
+                    <InputField label="Name" value={editingTax?.name} onChange={(e: any) => setEditingTax({ ...editingTax, name: e.target.value })} placeholder="e.g. GST 18%" />
+                    <InputField label="Rate percentage (%)" value={editingTax?.rate} onChange={(e: any) => setEditingTax({ ...editingTax, rate: parseFloat(e.target.value) })} type="number" placeholder="18" />
+                    <div className="flex items-center gap-2 p-3 bg-muted/30 rounded-lg">
+                        <input type="checkbox" checked={editingTax?.is_default} onChange={e => setEditingTax({ ...editingTax, is_default: e.target.checked })} id="def_tax" className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary" />
+                        <label htmlFor="def_tax" className="text-sm font-medium">Set as Default Rate</label>
                     </div>
-                    <div className="flex flex-col gap-2">
-                        <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Percentage (%)</label>
-                        <input type="number" step="0.01" className="w-full bg-muted/20 border border-border rounded-xl p-4 text-foreground font-black focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary shadow-inner" value={editingTax?.rate || ''} onChange={e => setEditingTax({ ...editingTax, rate: parseFloat(e.target.value) })} placeholder="0.00" required />
-                    </div>
-                    <div className="flex items-center gap-4 bg-muted/30 p-5 rounded-2xl border border-border cursor-pointer transition-all hover:bg-primary/5 group" onClick={() => setEditingTax({ ...editingTax, is_default: !editingTax?.is_default })}>
-                        <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${editingTax?.is_default ? 'bg-primary border-primary shadow-glow' : 'border-border bg-background'}`}>
-                            {editingTax?.is_default && <Check size={16} className="text-primary-foreground font-black" />}
-                        </div>
-                        <label className="font-black text-foreground cursor-pointer select-none text-xs uppercase tracking-tight">Assign as Primary Default Rate</label>
-                    </div>
-                    <div className="flex gap-3 pt-4">
-                        <Button type="button" variant="ghost" onClick={() => setIsTaxModalOpen(false)} className="flex-1 font-black uppercase tracking-widest text-[10px]">Cancel</Button>
-                        <Button type="submit" className="flex-1 bg-primary text-primary-foreground font-black uppercase tracking-widest text-[10px] shadow-glow" disabled={!canEdit}>Commit Changes</Button>
+                    <div className="flex gap-3 pt-2">
+                        <Button type="button" variant="ghost" onClick={() => setIsTaxModalOpen(false)} className="flex-1">Cancel</Button>
+                        <Button type="submit" className="flex-1">Save Changes</Button>
                     </div>
                 </form>
             </Modal>
@@ -512,15 +399,10 @@ export default function Settings() {
                 isOpen={isPinOpen}
                 onClose={() => setIsPinOpen(false)}
                 minRole={permissionsService.getOverrideMinRole('MANAGE_SETTINGS')}
-                title="Manager Authorization"
-                description="Enter a Manager/Admin PIN to unlock Settings editing."
-                auditAction="MANAGER_OVERRIDE"
-                auditDetails={{ action: 'MANAGE_SETTINGS', page: 'Settings', tab: activeTab }}
-                onApproved={() => {
-                    setIsPinOpen(false);
-                    setOverrideGranted(true);
-                }}
+                title="Unlock Settings"
+                description="Enter manager PIN to change these settings."
+                onApproved={() => { setIsPinOpen(false); setOverrideGranted(true); }}
             />
-        </div >
+        </div>
     );
 }
